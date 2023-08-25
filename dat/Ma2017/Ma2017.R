@@ -57,6 +57,29 @@ anchoredTimeDepth=anchorTime(timeDepth,time=anchorAt,age=89370,timeDir=2,genplot
 pl(1);
 plot(anchoredTimeDepth,type="l",lwd=2,col="red",ylim=c(max(FMI[1]),min(FMI[1])),xlab="Time (ka)",ylab="Depth (m)",cex.lab=1.2);
 
+# let's do this using ggplot in stead
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+pl_FMI <- FMI |>
+  tibble::as_tibble() |>
+  ggplot(aes(x = Depth_m, y = FMI_ohm.m)) +
+  geom_line() +
+  labs(x="Depth (m)",
+       y = "FMI"~Ohm~"(m)")
+pl_anchored <- anchored |>
+  tibble::as_tibble() |>
+  rename(Time_ka = X1, FMI_ohm.m = X2) |>
+  ggplot(aes(x = Time_ka/1e3, y = FMI_ohm.m)) +
+  geom_line() +
+  scale_x_continuous(
+    breaks = 80:92,
+    minor_breaks = seq(80, 92, 0.1)) +
+  labs(x="Age (Ma)",
+       y = "FMI"~Ohm~"(m)")
+pl_FMI/pl_anchored
+
 # (6) Conduct evolutive power spectral analysis (EPSA) and evolutive harmonic analysis (EHA)
 # for the tuned & anchored FMI data using a 500-ka moving window (with linear trend
 # removal), and three 2pi prolate tapers. Plot amplitude normalized to unity
