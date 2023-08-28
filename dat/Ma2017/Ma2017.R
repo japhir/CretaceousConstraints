@@ -11,7 +11,7 @@ library(astrochron);
 #     This should be a comma-separated-value file (.csv), with first column as depth (meters)
 # and second column as FMI.
 
-FMI=read("data.csv");
+FMI=read("dat/Ma2017/data.csv");
 
 # (2) This data set has a sampling interval that ranges from 0.030478 to 0.030479 m.
 # Interpolate the data to a sampling interval of 0.03 m.
@@ -76,8 +76,8 @@ pl_anchored <- anchored |>
   scale_x_continuous(
     breaks = 80:92,
     minor_breaks = seq(80, 92, 0.1)) +
-  labs(x="Age (Ma)",
-       y = "FMI"~Ohm~"(m)")
+  labs(x = "Age (Ma)",
+       y = "FMI Ohm (m)") # not sure if this is what it is.
 pl_FMI/pl_anchored
 
 # (6) Conduct evolutive power spectral analysis (EPSA) and evolutive harmonic analysis (EHA)
@@ -100,6 +100,7 @@ integrate_ecc=integratePower(pwr,flow=0.007,fhigh=0.012,npts=201,pad=5000,ln=T,y
 # (9) Evaluate amplitude modulation of the long eccentricity term (405 ka), following
 # removal of bias associated with long-term (>1 Myr) variance, using Lowess.
 
+## longEcc2=bandpass(anchored,flow=.002,fhigh=.0035,win=2,p=0.66, padfac=5,xmax=.02);
 longEcc2=bandpass(noLow(anchored,0.1,genplot=F),flow=.002,fhigh=.0035,win=2,p=0.66, padfac=5,xmax=.02);
 
 hilEcc2=hilbert(longEcc2,addmean=T);
