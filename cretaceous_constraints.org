@@ -530,6 +530,7 @@ Warning messages:
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:48]
 :END:
+sorted from young to older, longest records at the end
 
 ** IODP Leg 208 Site 1262
 :PROPERTIES:
@@ -556,6 +557,9 @@ figure from initial reports: http://www-odp.tamu.edu/publications/208_IR/chap_03
 get conversion between MBSF and MCD here http://web.iodp.tamu.edu/OVERVIEW/?&exp=208&site=1263
 figure of conversion between MBSF and MCD, 3 linear fits for different holes
 http://www-odp.tamu.edu/publications/208_IR/chap_03/c3_f5.htm
+
+I'm not going to put too much effort in, Richard should have this analysis according to Luc.
+
 #+begin_src R :results output graphics file :file imgs/208-1262_color_ZeebeLourens2019-2022.png :width 900 :height 500
   ODP208_1262_col <- readr::read_tsv("dat/ODP208_1262_color_reflectance.dat",
                                      guess_max = 3000)
@@ -580,6 +584,7 @@ http://www-odp.tamu.edu/publications/208_IR/chap_03/c3_f5.htm
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 17:29]
 :END:
+56 Ma to 66 Ma
 color reflectance used in [cite:@ZeebeLourens2022EPSL]
 #+begin_src R :results output graphics file :file imgs/198-1209_color_ZeebeLourens2019-2022.png :width 900 :height 500
   ODP198_1209_col <- readr::read_tsv("dat/ODP198_1209_color_reflectance.dat")
@@ -594,112 +599,24 @@ color reflectance used in [cite:@ZeebeLourens2022EPSL]
 #+RESULTS:
 [[file:imgs/198-1209_color_ZeebeLourens2019-2022.png]]
 
-** ODP Leg 198 Site 1210B
+** Contessa highway section
 :PROPERTIES:
-:CREATED:  [2023-08-31 Thu 15:52]
+:CREATED:  [2023-09-05 Tue 15:59]
 :END:
-Shatsky Rise equatorial Pacific [cite:@Jung2012]
-but also a table in the supplement:
-
-#+begin_src R :results output graphics file :file imgs/198-1210B_d13C_Jung2012.png :width 900 :height 500
-  ODP198_1210B <- readxl::read_excel("dat/Jung2012/1-s2.0-S0195667112000547-mmc1.xls",
-                                     range = "B2:E618",
-                                     col_types = "numeric") |>
-    rename(depth_mbsf = `Depth (mbsf)`,
-           d13C_VPDB = `δ13C (‰ V-PDB)`,
-           d18O_VPDB = `δ18O (‰ V-PDB)`,
-           age = `Age (Ma)`)
-
-  (ODP198_1210B |>
-    ggplot(aes(x = depth_mbsf, y = d13C_VPDB)) +
-   geom_line()) /
-    (ODP198_1210B |>
-     ggplot(aes(x = age, y = d18O_VPDB)) +
-     geom_line())
-#+end_src
-
-#+RESULTS:
-[[file:imgs/198-1210B_d13C_Jung2012.png]]
-
-but the data are available on pangaea now in [cite:@Ji-Eun2022]
-refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
-#+begin_src R :results output graphics file :file imgs/198-1210_d13C_Jung2012-fig6.png :width 900 :height 500
-  IODP198_1210B <- pangaear::pg_data("10.1594/PANGAEA.950806")[[1]]
-
-  dat <- IODP198_1210B$data
-
-  (dat |>
-    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ13C carb [‰ PDB] (vs. VPDB)`)) +
-    geom_line()) /
-  (dat |>
-    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ18O carb [‰ PDB] (vs. VPDB)`)) +
-    geom_line())
-#+end_src
-
-#+RESULTS:
-[[file:imgs/198-1210_d13C_Jung2012-fig6.png]]
-
-** ODP Leg 122 Site 762C
-:PROPERTIES:
-:CREATED:  [2023-08-31 Thu 14:24]
-:END:
-grayscale log from [cite:@Husson2011,Thibault2012]
-these were sent to me by Nicolas Thibault upon request, also cite [cite:@Thibault2012]
-
-reproduce [cite:@Husson2011] figure 3 and 4
-
-#+begin_src R :results output graphics file :file imgs/122-762B_grayscale_Husson-fig4.png :width 900 :height 500
-  ODP122_762C_gs <- readxl::read_excel("dat/Thibault2012/pal06092-mmc4.xls",
-                                       range = "A1:H7995",
-                                       guess_max = 2000)
-
-  dat <- ODP122_762C_gs |>
-    rename(depth_ambsf = ambsf, gray = `grey level (0-255)`,
-           depth_mbsf = mbsf,
-           core = `ODP Site 762C Cores`,
-           section = Section,
-           remarks = Remarks,
-           kyr100 = `100 kyr cycles`,
-           kyr405 = `405 kyr cycles`) |>
-    mutate(leg = 122, site = 762, hole = "C", .before = core) |>
-    mutate(smooth = slider::slide_dbl(gray, mean, .before = 7, .after = 7))
-
-  f100 <- dat |>
-    select(depth_ambsf, gray) |>
-    astrochron::linterp(genplot = FALSE) |> # TODO: take care of gaps!
-    astrochron::taner(flow = 0, fhigh = 1)
-
-  f405 <- dat |>
-    select(depth_ambsf, gray) |>
-    astrochron::linterp(genplot = FALSE) |> # TODO: take care of gaps!
-    astrochron::taner(flow = 0, fhigh = 0.25) # or is it 0.4?
-
-  dat |>
-    ## astrochron::linterp(genplot = FALSE) |>
-    ggplot(aes(x = depth_ambsf, y = gray)) +
-    annotate("rect", xmin = 555.8, xmax = 556.3, ymin = -Inf, ymax = Inf,
-             fill = "yellow", alpha = .6) + # the K/Pg boundary
-    ## geom_line(alpha = .2, colour = "darkblue") +
-    geom_line(aes(y = smooth), colour = "darkblue") +
-    geom_line(aes(y = gray - 90), data = f100, colour = "skyblue") +
-    geom_line(aes(y = gray - 100), data = f405, colour = "black") +
-    geom_text(aes(label = kyr100, y = 50)) +
-    geom_text(aes(label = kyr405, y = 40)) +
-    ## coord_cartesian(xlim = c(552, 588), expand = FALSE) +
-    scale_y_reverse()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/122-762B_grayscale_Husson-fig4.png]]
+MS, CaCO3, d13C, d18O
+uppermost Maastrichtian to lower Danian
+[cite:@Sinnesael2016] https://doi.pangaea.de/10.1594/PANGAEA.864450
 
 ** ODP Leg 208 Site 1267B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:49]
 :END:
+via [cite:@Husson2011] figure 3 and 4
+Ma_{405}1 to Ma_{405}6 or 7
+66 Ma to ~68.6
 raw magsus data from [cite:@Blum2005] https://doi.pangaea.de/10.1594/PANGAEA.266605
 also related: [cite:@Zachos2004]
 
-reproduce [cite:@Husson2011] figure 3 and 4
 
 #+begin_src R :results output graphics file :file imgs/208-1267B_MS_Husson-fig4.png :width 900 :height 500
   library(tidyverse)
@@ -758,10 +675,191 @@ reproduce [cite:@Husson2011] figure 3 and 4
 #+RESULTS:
 [[file:imgs/208-1267B_MS_Husson-fig4.png]]
 
+** IODP Exp 342 Site U1403A,B
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:29]
+:END:
+[cite:@Batenburg2018]
+d18O data between 66 Ma and 68.8 Ma
+XRF ln(Fe/Ca) data between 66 Ma and 68.8 Ma
+that /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
+
+#+begin_src R :results output graphics file :file imgs/342-U1403A_d18O_Batenburg2018-fig7.png :width 900 :height 500
+  IODP342_U1403A <- pangaear::pg_data("10.1594/PANGAEA.875741")[[1]]
+  dat <- IODP342_U1403A$data
+
+  dat |>
+    ggplot(aes(x = `Depth sed [m]`, y = `δ18O carb [‰ PDB]`)) +
+    geom_line()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/342-U1403A_d18O_Batenburg2018-fig7.png]]
+
+#+begin_src R :results output graphics file :file imgs/342-U1403A_FeCa_Batenburg2018-fig6.png :width 900 :height 500
+  IDOP342_U1403A_XRF <- pangaear::pg_data("10.1594/PANGAEA.875742")[[1]]
+
+  dat <- IDOP342_U1403A_XRF$data
+
+  bp <- dat |>
+    mutate(FeCa = log(`Fe count [#]` / `Ca count [#]`)) |>
+    select(depth = `Depth comp r [rmcd]`, FeCa) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::bandpass(flow = 1 / 3.4, fhigh = 1 / 6.8)
+
+  # copied from [cite:@Batenburg2018] table 2
+  agem <- tibble::tribble(
+                     ~ `Depth comp r [rmcd]`, ~ age_ma, ~ sed_rate,
+                     247.700, 66.04, NA_real_,
+                     251.040, 66.374, 1.00,
+                     254.960, 66.782, 0.96,
+                     259.205, 67.192, 1.04,
+                     263.695, 67.585, 1.14,
+                     268.365, 67.986, 1.16,
+                     271.680, 68.383, 0.84,
+                     274.635, 68.787, 0.73,
+                     275.000, 68.837, 0.73
+                   )
+
+  dat |>
+    ggplot(aes(x = `Depth comp r [rmcd]`, y = log(`Fe count [#]` / `Ca count [#]`))) +
+    geom_line() +
+    geom_line(aes(x = depth, y = FeCa), data = bp, colour = "red") +
+    ## annotate("text", x = 247.7, y = 2, label = "about 66 Ma") +
+    ## annotate("text", x = 275, y = 2, label = "about 68.5 Ma") +
+    geom_label(aes(label = age_ma, y = 1.9), data = agem)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/342-U1403A_FeCa_Batenburg2018-fig6.png]]
+
+** Zumaia
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:37]
+:END:
+[cite:@Batenburg2012]
+Ma_{405}1 to Ma_{405}9
+66 Ma to ~70 Ma
+
+from the supplementary info
+#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
+  Zumaia <- readxl::read_excel("dat/Batenburg2012/1-s2.0-S0012821X12005742-mmc2.xls") |>
+    rename(depth = Depth,
+           MS = `Magentic susceptibility (SI)`, # notice typo! XD
+           Lstar = `Reflectance, L* (%)`,
+           d13C_VPDB = `δ13C (‰VPDB) outliers in italics`) |>
+    mutate(depth = depth / 100)
+
+  Zumaia |>
+    select(depth, Lstar) |>
+    filter(!is.na(Lstar)) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::mtm()
+
+  f100 <- Zumaia |>
+    select(depth, Lstar) |>
+    filter(!is.na(Lstar)) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::taner(flow = 0, fhigh = 1) |>
+    as_tibble()
+
+  f405 <- Zumaia |>
+    select(depth, Lstar) |>
+    filter(!is.na(Lstar)) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::taner(flow = 0, fhigh = .4) |>
+    as_tibble()
+
+  (Zumaia |>
+   filter(!is.na(d13C_VPDB)) |>
+    ggplot(aes(x = depth, y = d13C_VPDB)) +
+    geom_line()) /
+  (Zumaia |>
+   ggplot(aes(x = depth, y = Lstar)) +
+   geom_line(alpha = .3, colour = "darkblue") +
+   geom_line(data = f100, colour = "skyblue") +
+   geom_line(data = f405)) /
+  (Zumaia |>
+    ggplot(aes(x = depth, y = MS)) +
+    geom_line())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Batenburg2012.png]]
+
+** Gubbio
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:51]
+:END:
+via [cite:@Batenburg2018] fig 7
+
+Umbria--March Basin, Italy
+66 Ma to ~76 Ma
+Ma_{405}1 to at least Ma_{405}12ish?
+[cite:@Voigt2012]
+https://doi.pangaea.de/10.1594/PANGAEA.778969
+
+also MS from [cite:@Husson2014] https://doi.pangaea.de/10.1594/PANGAEA.829778
+
+also this newer composite by [cite:@Gabriella2023]
+malformed forams
+OAE-2
+https://doi.pangaea.de/10.1594/PANGAEA.954540
+
+** ODP Leg 198 Site 1210B
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:52]
+:END:
+found via [cite:@Batenburg2018]
+Shatsky Rise equatorial Pacific [cite:@Jung2012]
+Ma_{405}2 to at least Ma_{405}12 ish?
+66.25 Ma to ~71.5 Ma
+
+table in the supplement:
+#+begin_src R :results output graphics file :file imgs/198-1210B_d13C_Jung2012.png :width 900 :height 500
+  ODP198_1210B <- readxl::read_excel("dat/Jung2012/1-s2.0-S0195667112000547-mmc1.xls",
+                                     range = "B2:E618",
+                                     col_types = "numeric") |>
+    rename(depth_mbsf = `Depth (mbsf)`,
+           d13C_VPDB = `δ13C (‰ V-PDB)`,
+           d18O_VPDB = `δ18O (‰ V-PDB)`,
+           age = `Age (Ma)`)
+
+  (ODP198_1210B |>
+    ggplot(aes(x = depth_mbsf, y = d13C_VPDB)) +
+   geom_line()) /
+    (ODP198_1210B |>
+     ggplot(aes(x = age, y = d18O_VPDB)) +
+     geom_line())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/198-1210B_d13C_Jung2012.png]]
+
+but the data are available on pangaea now in [cite:@Ji-Eun2022]
+refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
+#+begin_src R :results output graphics file :file imgs/198-1210_d13C_Jung2012-fig6.png :width 900 :height 500
+  IODP198_1210B <- pangaear::pg_data("10.1594/PANGAEA.950806")[[1]]
+
+  dat <- IODP198_1210B$data
+
+  (dat |>
+    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ13C carb [‰ PDB] (vs. VPDB)`)) +
+    geom_line()) /
+  (dat |>
+    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ18O carb [‰ PDB] (vs. VPDB)`)) +
+    geom_line())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/198-1210_d13C_Jung2012-fig6.png]]
+
 ** ODP Leg 74 Site 525A
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:57]
 :END:
+Ma_{405}6 to Ma_{405}8.5
+67.8 Ma to 69 Ma
 [cite:@Husson2011] grayscale log
 *** WAIT waiting for grayscale log in email
 :LOGBOOK:
@@ -772,6 +870,8 @@ reproduce [cite:@Husson2011] figure 3 and 4
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:58]
 :END:
+Ma_{405}8? to Ma_{405}14
+
 raw data from https://doi.pangaea.de/10.1594/PANGAEA.266578
 analysis copies [cite:@Husson2011]
 
@@ -841,121 +941,60 @@ analysis copies [cite:@Husson2011]
 - State "SOME"       from              [2023-08-31 Thu 15:21]
 :END:
 
-** IODP Exp 342 Site U1403A,B
+** ODP Leg 122 Site 762C
 :PROPERTIES:
-:CREATED:  [2023-08-31 Thu 15:29]
+:CREATED:  [2023-08-31 Thu 14:24]
 :END:
-[cite:@Batenburg2018]
-d18O data between 66 Ma and 68.8 Ma
-XRF ln(Fe/Ca) data between 66 Ma and 68.8 Ma
+grayscale log from [cite:@Husson2011,Thibault2012]
+Ma_{405}8 until Ma_{408}17 and then on to Ca_{405}4
+~69 Ma to ~77.5 Ma?
 
-#+begin_src R :results output graphics file :file imgs/342-U1403A_d18O_Batenburg2018-fig7.png :width 900 :height 500
-  IODP342_U1403A <- pangaear::pg_data("10.1594/PANGAEA.875741")[[1]]
-  dat <- IODP342_U1403A$data
+these were sent to me by Nicolas Thibault upon request, also cite [cite:@Thibault2012]
+reproduce [cite:@Husson2011] figure 3 and 4
+
+#+begin_src R :results output graphics file :file imgs/122-762B_grayscale_Husson-fig4.png :width 900 :height 500
+  ODP122_762C_gs <- readxl::read_excel("dat/Thibault2012/pal06092-mmc4.xls",
+                                       range = "A1:H7995",
+                                       guess_max = 2000)
+
+  dat <- ODP122_762C_gs |>
+    rename(depth_ambsf = ambsf, gray = `grey level (0-255)`,
+           depth_mbsf = mbsf,
+           core = `ODP Site 762C Cores`,
+           section = Section,
+           remarks = Remarks,
+           kyr100 = `100 kyr cycles`,
+           kyr405 = `405 kyr cycles`) |>
+    mutate(leg = 122, site = 762, hole = "C", .before = core) |>
+    mutate(smooth = slider::slide_dbl(gray, mean, .before = 7, .after = 7))
+
+  f100 <- dat |>
+    select(depth_ambsf, gray) |>
+    astrochron::linterp(genplot = FALSE) |> # TODO: take care of gaps!
+    astrochron::taner(flow = 0, fhigh = 1)
+
+  f405 <- dat |>
+    select(depth_ambsf, gray) |>
+    astrochron::linterp(genplot = FALSE) |> # TODO: take care of gaps!
+    astrochron::taner(flow = 0, fhigh = 0.25) # or is it 0.4?
 
   dat |>
-    ggplot(aes(x = `Depth sed [m]`, y = `δ18O carb [‰ PDB]`)) +
-    geom_line()
+    ## astrochron::linterp(genplot = FALSE) |>
+    ggplot(aes(x = depth_ambsf, y = gray)) +
+    annotate("rect", xmin = 555.8, xmax = 556.3, ymin = -Inf, ymax = Inf,
+             fill = "yellow", alpha = .6) + # the K/Pg boundary
+    ## geom_line(alpha = .2, colour = "darkblue") +
+    geom_line(aes(y = smooth), colour = "darkblue") +
+    geom_line(aes(y = gray - 90), data = f100, colour = "skyblue") +
+    geom_line(aes(y = gray - 100), data = f405, colour = "black") +
+    geom_text(aes(label = kyr100, y = 50)) +
+    geom_text(aes(label = kyr405, y = 40)) +
+    ## coord_cartesian(xlim = c(552, 588), expand = FALSE) +
+    scale_y_reverse()
 #+end_src
 
 #+RESULTS:
-[[file:imgs/342-U1403A_d18O_Batenburg2018-fig7.png]]
-
-#+begin_src R :results output graphics file :file imgs/342-U1403A_FeCa_Batenburg2018-fig6.png :width 900 :height 500
-  IDOP342_U1403A_XRF <- pangaear::pg_data("10.1594/PANGAEA.875742")[[1]]
-
-  dat <- IDOP342_U1403A_XRF$data
-
-  bp <- dat |>
-    mutate(FeCa = log(`Fe count [#]` / `Ca count [#]`)) |>
-    select(depth = `Depth comp r [rmcd]`, FeCa) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::bandpass(flow = 1 / 3.4, fhigh = 1 / 6.8)
-
-  # copied from [cite:@Batenburg2018] table 2
-  agem <- tibble::tribble(
-                     ~ `Depth comp r [rmcd]`, ~ age_ma, ~ sed_rate,
-                     247.700, 66.04, NA_real_,
-                     251.040, 66.374, 1.00,
-                     254.960, 66.782, 0.96,
-                     259.205, 67.192, 1.04,
-                     263.695, 67.585, 1.14,
-                     268.365, 67.986, 1.16,
-                     271.680, 68.383, 0.84,
-                     274.635, 68.787, 0.73,
-                     275.000, 68.837, 0.73
-                   )
-
-  dat |>
-    ggplot(aes(x = `Depth comp r [rmcd]`, y = log(`Fe count [#]` / `Ca count [#]`))) +
-    geom_line() +
-    geom_line(aes(x = depth, y = FeCa), data = bp, colour = "red") +
-    ## annotate("text", x = 247.7, y = 2, label = "about 66 Ma") +
-    ## annotate("text", x = 275, y = 2, label = "about 68.5 Ma") +
-    geom_label(aes(label = age_ma, y = 1.9), data = agem)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/342-U1403A_FeCa_Batenburg2018-fig6.png]]
-
-** Zumaia
-:PROPERTIES:
-:CREATED:  [2023-08-31 Thu 15:37]
-:END:
-[cite:@Batenburg2012]
-66 Ma to ~70 Ma
-
-#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
-  Zumaia <- readxl::read_excel("dat/Batenburg2012/1-s2.0-S0012821X12005742-mmc2.xls") |>
-    rename(depth = Depth,
-           MS = `Magentic susceptibility (SI)`, # notice typo! XD
-           Lstar = `Reflectance, L* (%)`,
-           d13C_VPDB = `δ13C (‰VPDB) outliers in italics`) |>
-    mutate(depth = depth / 100)
-
-  Zumaia |>
-    select(depth, Lstar) |>
-    filter(!is.na(Lstar)) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::mtm()
-
-  f100 <- Zumaia |>
-    select(depth, Lstar) |>
-    filter(!is.na(Lstar)) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::taner(flow = 0, fhigh = 1) |>
-    as_tibble()
-
-  f405 <- Zumaia |>
-    select(depth, Lstar) |>
-    filter(!is.na(Lstar)) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::taner(flow = 0, fhigh = .4) |>
-    as_tibble()
-
-  (Zumaia |>
-   filter(!is.na(d13C_VPDB)) |>
-    ggplot(aes(x = depth, y = d13C_VPDB)) +
-    geom_line()) /
-  (Zumaia |>
-   ggplot(aes(x = depth, y = Lstar)) +
-   geom_line(alpha = .3, colour = "darkblue") +
-   geom_line(data = f100, colour = "skyblue") +
-   geom_line(data = f405)) /
-  (Zumaia |>
-    ggplot(aes(x = depth, y = MS)) +
-    geom_line())
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia_Batenburg2012.png]]
-
-** Gubbio
-:PROPERTIES:
-:CREATED:  [2023-08-31 Thu 15:51]
-:END:
-Umbria--March Basin, Italy
-[cite:@Voigt2012]
+[[file:imgs/122-762B_grayscale_Husson-fig4.png]]
 
 ** Bottaccione
 :PROPERTIES:
@@ -963,6 +1002,7 @@ Umbria--March Basin, Italy
 :END:
 d13C and d18O data from [cite:@Sabatino2018]
 ~ 72.1 Ma to 84.2 Ma (a little more, these are the ages of the Campanian/Maastrichtian and Santonian/Campanian boundaries)
+about 12 405 kyr minima
 
 ah, slightly too old? -> can stitch w/ 1210B!
 
@@ -980,6 +1020,24 @@ ah, slightly too old? -> can stitch w/ 1210B!
 
 #+RESULTS:
 [[file:imgs/Bottaccione_d13C_Sabatino2018.png]]
+
+** Furlo
+:PROPERTIES:
+:CREATED:  [2023-09-05 Tue 16:09]
+:END:
+[cite:@Batenburg2016]
+color reflectance, carbon/oxygen isotopes from Furlo https://doi.pangaea.de/10.1594/PANGAEA.864715
+something like 90 Ma to 96 Ma
+straight through the Bonarelli level OAE-2
+
+** Jordanian Levant Platform
+:PROPERTIES:
+:CREATED:  [2023-09-05 Tue 16:06]
+:END:
+TOC, d13C, d18O
+90.86 Ma to 96.24 Ma
+[cite:@Wendler2014]
+https://doi.pangaea.de/10.1594/PANGAEA.834794
 
 * NEXT figure out how to group by contiguous sections
 :PROPERTIES:
