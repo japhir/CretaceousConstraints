@@ -1,3 +1,33 @@
+#+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports both :results output :eval no-export
+* libs
+#+begin_src R
+  library(tidyverse)
+  library(patchwork)
+  theme_set(theme_bw())
+#+end_src
+
+#+RESULTS:
+#+begin_example
+── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.4
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.3     ✔ tibble    3.2.1
+✔ lubridate 1.9.2     ✔ tidyr     1.3.0
+✔ purrr     1.0.2
+── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+#+end_example
+
+* look at the orbital solution
+:PROPERTIES:
+:CREATED:  [2023-08-30 Wed 17:04]
+:END:
+#+begin_src R
+
+#+end_src
+
 * reproduce [cite:@Ma2017] steps
 :PROPERTIES:
 :CREATED:  [2023-08-28 Mon 10:52]
@@ -8,6 +38,10 @@ This analysis uses version 0.6.6. Please use versions >= 0.6.6.
 #+begin_src R
   library(astrochron)
 #+end_src
+
+#+RESULTS:
+: Welcome to astrochron v1.2 (2023-08-25)
+:  Type ?astrochron to learn more
 
 ** read in data
 Read the Libsack FMI data from Locklair & Sageman (2008)
@@ -152,6 +186,7 @@ Integrate the short eccentricity power from 0.007 to 0.012 cycles/ka.
 Evaluate amplitude modulation of the long eccentricity term (405 ka), following
 removal of bias associated with long-term (>1 Myr) variance, using Lowess.
 
+# note: win = 2 means a cosine-tapered (Tukey) window
 #+begin_src R
   longEcc2 <- bandpass(noLow(anchored, 0.1, genplot = FALSE),
                        flow = .002, fhigh = .0035,
@@ -205,3 +240,750 @@ Plot summary figures.
        cex.lab = 1.2, xlim = xlim1)
   lines(hilEcc2)
 #+end_src
+
+* read [cite:@ZeebeLourens2019,@ZeebeLourens2022] to reproduce their approach
+:PROPERTIES:
+:CREATED:  [2023-08-28 Mon 11:56]
+:END:
+:LOGBOOK:
+CLOCK: [2023-08-28 Mon 17:02]--[2023-08-28 Mon 17:10] =>  0:08
+CLOCK: [2023-08-28 Mon 14:55]--[2023-08-28 Mon 17:02] =>  2:07
+- try to reproduce, cannot figureit out?
+CLOCK: [2023-08-28 Mon 14:10]--[2023-08-28 Mon 14:55] =>  0:45
+- do 2.4 Myr analysis on ZB18a
+CLOCK: [2023-08-28 Mon 11:20]--[2023-08-28 Mon 12:08] =>  0:48
+:END:
+
+Richard's code
+#+begin_src matlab
+f  = 1./2000;
+df = 0.6;
+
+yf{i} = gaussfilter(t{i},y{i},f,df*f,2*df*f,0.0);
+
+[~,ix{i}] = findpeaks(-yf{i});
+kv = ix{i};
+dt{i} = diff(t{i}(kv));
+#+end_src
+
+
+#+begin_src R
+  library(tidyverse)
+
+  # get orbital solution sol
+  sol <- snvecR::get_ZB18a() |>
+    select(age, ee)
+
+  # Do the same as Zeebe and Lourens 2022:
+  # filter 2 Myr ± 60% Gaussian
+  # 2 Myr = 2000 kyr period = 1 / 2000 period
+  x11(type = "cairo")
+  bp2000 <- sol |>
+    astrochron::bandpass(
+                  padfac = 10, # 10x the number of data points
+                  # parameterized as I understand Richard's matlab code
+                  # this doesn't make any sense to me
+                  ## flow = 0.6 * 1 / 2000,
+                  ## fhigh = 2 * 0.6 * 1 / 2000,
+                  flow = 1 / 2000 - 0.6 * 1 / 2000,
+                  fhigh = 1 / 2000 + 0.6 * 1 / 2000,
+                  win = 1, # Gaussian window
+                  demean = TRUE, detrend = TRUE, #???
+                  addmean = FALSE,
+                  xmax = .02)
+  grDevices::savePlot("imgs/2023-08-28_0_2Myr_bandpass_filter.png")
+
+  # get the peak maxima
+  pk2000 <- bp2000 |>
+    astrochron::peak()
+  grDevices::savePlot("imgs/2023-08-28_1_peak.png")
+
+  # but in the paper they do peak minima, we just flip the input
+  pk2000_flip <- bp2000 |>
+    mutate(ee = -ee) |>
+    astrochron::peak(genplot = TRUE)
+  grDevices::savePlot("imgs/2023-08-28_2_peak.png")
+
+  # calculate deltas between peaks
+  pk2000_tidy <- pk2000 |>
+    as_tibble() |>
+    # different ways to calculate the delta
+    mutate(delta_vln_lag = Location - lag(Location)) |> # this one minus previous one
+    mutate(delta_vln = lead(Location) - Location) # next one minus this one
+  pk2000_flip_tidy <- pk2000_flip |>
+    as_tibble() |>
+    mutate(delta_vln_lag = Location - lag(Location)) |>
+    mutate(delta_vln = lead(Location) - Location)
+
+  # check that peak id has gone well
+  bp2000 |>
+    ggplot(aes(x = age, y = ee)) +
+    geom_line() +
+    geom_point(aes(x = Location, y = Peak_Value, colour = "maxima"), data = pk2000_tidy) +
+    geom_point(aes(x = Location, y = -Peak_Value, colour = "minima"), data = pk2000_flip_tidy)
+  ggsave("~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous/imgs/2023-08-28_3_check_peaks.png")
+
+  # create a plot similar to Zeebe and Lourens 2022 EPSL figure 6a
+  pk2000_tidy |>
+    ggplot(aes(x = Location / 1000, y = delta_vln / 1000)) +
+    ## geom_point(aes(colour = "maxima lead")) +
+    ## geom_line(aes(colour = "maxima lead")) +
+    geom_point(aes(colour = "minima lead"), data = pk2000_flip_tidy) +
+    geom_line(aes(colour = "minima lead"), data = pk2000_flip_tidy) +
+    # did they use the half-distance? nope
+    ## geom_point(aes(x = (Location + .5 * (lead(Location) - Location)) / 1000, colour = "minima lead"), data = pk2000_flip_tidy) +
+    ## geom_line(aes(x = (Location + .5 * (lead(Location) - Location)) / 1000, colour = "minima lead"), data = pk2000_flip_tidy) +
+    ## geom_point(aes(y = delta_vln_lag / 1000, colour = "maxima lag")) +
+    ## geom_line(aes(y = delta_vln_lag / 1000, colour = "maxima lag")) +
+    ## geom_point(aes(y = delta_vln_lag / 1000, colour = "minima lag"), data = pk2000_flip_tidy) +
+    ## geom_line(aes(y = delta_vln_lag / 1000, colour = "minima lag"), data = pk2000_flip_tidy) +
+    labs(x = "Age (Ma)",
+         y = Delta[VLN] ~ "Interval between min/max in 2-Myr ecc filter (Myr)") +
+    scale_x_continuous(breaks = seq(40, 80, 5)) +
+    coord_cartesian(xlim = c(44, 70), ylim = c(0, 3))
+
+  ggsave("imgs/2023-08-28_4_Dvln.png", width = 8, height = 3)
+  ## ggsave("~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous/imgs/2023-08-28_4_Dvln.png")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 250001
+ ,* Sample interval= 0.4
+ ,* Mean value removed= 0.02683078
+ ,* Center of bandpass filter = 5e-04
+ ,* 600 pos/neg frequency pairs will be bandpassed
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 250001
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 50
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 250001
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 51
+
+ ,* No filtering of peaks applied.
+Saving 7 x 6.99 in image
+Warning messages:
+1: Removed 1 rows containing missing values (`geom_point()`).
+2: Removed 1 row containing missing values (`geom_line()`).
+Warning messages:
+1: Removed 1 rows containing missing values (`geom_point()`).
+2: Removed 1 row containing missing values (`geom_line()`).
+#+end_example
+
+** filter orbital solutions
+#+begin_src R
+  # test whether filtering is the same for comparison with Zeebe and Lourens 2022 EPSL fig B2
+  ## ZB20a <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
+  ##                            col_names = c("time", "ecc", "inc"), skip = 1) |>
+  ##   readr::write_rds("out/ZB20a.rds")
+  ZB20a <- readr::read_rds("out/ZB20a.rds")
+
+  ZB20a |>
+    ggplot(aes(x = time / 1000, y = ecc)) +
+    geom_line() +
+    coord_cartesian(xlim = c(63, 66))
+
+
+  ZB20a_bp100 <- ZB20a |>
+    astrochron::bandpass(flow = 1 / 100 - 0.0016 * 1 / 100,
+                         fhigh = 1 / 100 + 0.0016 * 1 / 100,
+                         padfac = 1000,
+                         win = 1,
+                         demean = TRUE, detrend = TRUE)
+
+  # this is how Richard filters the 405 kyr cycle in his solution
+  ZB20a_bp405 <- ZB20a |>
+    select(time, ecc) |>
+    astrochron::bandpass(flow = 1 / 405 - 0.0004,
+                         fhigh = 1 / 405 + 0.0004,
+                         padfac = 10,
+                         win = 1, # gaussian window
+                         demean = TRUE, detrend = TRUE,
+                         xmax = 0.005) |>
+    as_tibble()
+
+  ZB20a_bp405_narrower <- ZB20a |>
+    select(time, ecc) |>
+    astrochron::bandpass(flow = 1 / 405 - 0.0001,
+                         fhigh = 1 / 405 + 0.0001,
+                         padfac = 10,
+                         win = 1, # gaussian window
+                         demean = TRUE, detrend = TRUE,
+                         xmax = 0.005) |>
+    as_tibble()
+
+  ZB20a_bp405_wider <- ZB20a |>
+    select(time, ecc) |>
+    astrochron::bandpass(flow = 1 / 405 - 0.001,
+                         fhigh = 1 / 405 + 0.001,
+                         padfac = 10,
+                         win = 1, # gaussian window
+                         demean = TRUE, detrend = TRUE,
+                         xmax = 0.005) |>
+    as_tibble()
+
+  ZB20a_bp405_widest <- ZB20a |>
+    select(time, ecc) |>
+    astrochron::bandpass(flow = 1 / 405 - 0.0024,
+                         fhigh = 1 / 405 + 0.0024,
+                         padfac = 10,
+                         win = 1, # gaussian window
+                         demean = TRUE, detrend = TRUE,
+                         xmax = 0.005) |>
+    as_tibble()
+
+  ZB20a_bp405 |>
+    mutate(filt="default") |>
+    bind_rows(
+      ZB20a_bp405_narrower |>
+      mutate(filt="narrower")) |>
+    bind_rows(
+      ZB20a_bp405_wider |>
+      mutate(filt="wider")) |>
+    bind_rows(
+      ZB20a_bp405_widest |>
+      mutate(filt = "widest")) |>
+    ggplot(aes(x=time,y=ecc, colour = filt)) +
+    geom_line() +
+    geom_line(aes(colour="ZB18a default"), data = bp405 |> rename(time = age, ecc = ee)) +
+    geom_line(aes(colour = "ZB20a raw"), alpha = .3, data = ZB20a) +
+    geom_line(aes(colour = "ZB18a raw"), alpha = .3, data = snvecR::get_ZB18a() |> select(time = age, ecc = ee)) +
+    coord_cartesian(xlim=c(65400, 74200))
+#+end_src
+
+#+begin_src R
+  # everything below is a big hot mess!
+
+  bp405 <- sol |>
+    ## filter(age < 50e3) |>
+    astrochron::bandpass(flow = 1 / 405 - .0004,
+                         fhigh = 1 / 405 + .0004,
+                         padfac = 10,
+                         win = 1,
+                         demean = TRUE, detrend = TRUE,
+                         xmax = .02)
+
+  ## eha405 <- snvecR::get_ZB18a() |>
+  ##   select(age, ee) |>
+  ##   astrochron::eha(fmax = .1, pl = 1, output = 2, pad = 5000, genplot = 3, ydir = -1)
+
+  ## integrate_ecc <- eha405 |>
+  ##   astrochron::integratePower(flow = 0.007, fhigh = 0.012,
+  ##                              npts = 201, pad = 5000, ln = TRUE,
+  ##                              ydir = -1)
+
+  ## bp405_2 <- sol |>
+  ##   noLow(smooth = 1000, genplot = TRUE) |>
+  ##   bandpass(flow = .002, fhigh = .0035,
+  ##            win = 2, p = 0.66, padfac = 5, xmax = .02)
+
+  ## hb405_2 <- bp405_2 |>
+  ##   astrochron::hilbert()
+
+  hb405 <- bp405 |>
+    astrochron::hilbert()
+
+  # this doesn't work well on the hilbert transform, finds many peaks because of noise?
+  pk405 <- hb405 |>
+    astrochron::peak()
+
+  pkf405 <- pk405 |>
+    as_tibble() |>
+    tidylog::mutate(diff = Location - lag(Location)) |>
+    ## ggplot(aes(x = Location, y = diff)) + geom_point()
+    tidylog::filter(diff > 500) #|>
+    ## tidylog::filter(Location > 4000) |> # filter out youngest weird few
+    ## tidylog::filter(Location < 93e3)
+    ## tidylog::filter(!ID %in% c(142107, 17355, 174355, 203304, 225749))
+
+  pkf405 |>
+    ggplot(aes(x = Location, y = diff)) + geom_point() + geom_line()
+
+  pkf405 |>
+    ggplot(aes(x = Location, y = Peak_Value, ID = ID)) +
+    geom_point() +
+    geom_line(aes(x = age, y = ee - mean(ee), ID = NULL), data = bp405)
+    ## geom_line(aes(x = age, y = envelope, ID = NULL), data = hb405_2)
+
+  pkf405 |>
+    ggplot(aes(x = diff)) +
+    ## geom_histogram(binwidth = 1000) +
+    geom_density()
+#+end_src
+
+** how can I calculate the average spectral misfit?
+:PROPERTIES:
+:CREATED:  [2023-08-28 Mon 17:14]
+:END:
+
+* make composite dataset
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 12:48]
+:END:
+
+** IODP Leg 208 Site 1262
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 16:37]
+:END:
+color reflectance a* used in [cite:@ZeebeLourens2019]
+d13C/d18O available in https://doi.pangaea.de/10.1594/PANGAEA.854816
+53 Ma to 58 Ma
+[[https://web.iodp.tamu.edu/janusweb/imaging/photo.cgi][section photo's]]
+
+color reflectance a*/b* used in [cite:@ZeebeLourens2022EPSL]
+in combination with site 1209, Zumaia
+56 Ma to 66 Ma
+
+[[http://www-odp.tamu.edu/publications/208_IR/chap_03/chap_03.htm][initial reports]]
+
+http://web.iodp.tamu.edu/OVERVIEW/
+ah here it is:
+https://web.iodp.tamu.edu/janusweb/physprops/colordat.cgi?leg=208&site=1262
+
+or search for it via https://web.iodp.tamu.edu/janusweb/physprops/colordat.shtml
+figure from initial reports: http://www-odp.tamu.edu/publications/208_IR/chap_03/c3_f9.htm
+
+get conversion between MBSF and MCD here http://web.iodp.tamu.edu/OVERVIEW/?&exp=208&site=1263
+figure of conversion between MBSF and MCD, 3 linear fits for different holes
+http://www-odp.tamu.edu/publications/208_IR/chap_03/c3_f5.htm
+#+begin_src R :results output graphics file :file imgs/208-1262_color_ZeebeLourens2019-2022.png :width 900 :height 500
+  ODP208_1262_col <- readr::read_tsv("dat/ODP208_1262_color_reflectance.dat",
+                                     guess_max = 3000)
+  # add MCD
+  spl <- readr::read_tsv("dat/ODP208_1262_splice.dat")
+  spl_tie <- readr::read_tsv("dat/ODP208_1262_splice_tie.dat")
+
+  # add preliminary age model
+  wr_agem <- readxl::read_excel("dat/ZeebeLourens2022EPSL/agem.xlsx",
+                             range = "A3:K29")
+
+  ODP208_1262_col |>
+    ggplot(aes(x = `Depth (mbsf)`, y = scale(`a*` / `b*`))) +
+    geom_line() +
+    coord_cartesian(xlim = c(140, 220))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/208-1262_color_ZeebeLourens2019-2022.png]]
+
+** IODP Leg 198 Site 1209
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 17:29]
+:END:
+color reflectance used in [cite:@ZeebeLourens2022EPSL]
+#+begin_src R :results output graphics file :file imgs/198-1209_color_ZeebeLourens2019-2022.png :width 900 :height 500
+  ODP198_1209_col <- readr::read_tsv("dat/ODP198_1209_color_reflectance.dat")
+  ## spl <- readr::read_tsv("dat/ODP198_1209_splice.dat")
+  ## spl_tie <- readr::read_tsv("dat/ODP198_1209_splice_tie.dat")
+  ODP198_1209_col |>
+    ggplot(aes(x = `Depth (mbsf)`, y = `a*`)) +
+    geom_line() +
+    coord_cartesian(xlim = c(252.5, 261.6))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/198-1209_color_ZeebeLourens2019-2022.png]]
+
+** ODP Leg 198 Site 1210B
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:52]
+:END:
+Shatsky Rise equatorial Pacific [cite:@Jung2012]
+but also a table in the supplement:
+
+#+begin_src R :results output graphics file :file imgs/198-1210B_d13C_Jung2012.png :width 900 :height 500
+  ODP198_1210B <- readxl::read_excel("dat/Jung2012/1-s2.0-S0195667112000547-mmc1.xls",
+                                     range = "B2:E618",
+                                     col_types = "numeric") |>
+    rename(depth_mbsf = `Depth (mbsf)`,
+           d13C_VPDB = `δ13C (‰ V-PDB)`,
+           d18O_VPDB = `δ18O (‰ V-PDB)`,
+           age = `Age (Ma)`)
+
+  (ODP198_1210B |>
+    ggplot(aes(x = depth_mbsf, y = d13C_VPDB)) +
+   geom_line()) /
+    (ODP198_1210B |>
+     ggplot(aes(x = age, y = d18O_VPDB)) +
+     geom_line())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/198-1210B_d13C_Jung2012.png]]
+
+but the data are available on pangaea now in [cite:@Ji-Eun2022]
+refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
+#+begin_src R :results output graphics file :file imgs/198-1210_d13C_Jung2012-fig6.png :width 900 :height 500
+  IODP198_1210B <- pangaear::pg_data("10.1594/PANGAEA.950806")[[1]]
+
+  dat <- IODP198_1210B$data
+
+  (dat |>
+    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ13C carb [‰ PDB] (vs. VPDB)`)) +
+    geom_line()) /
+  (dat |>
+    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ18O carb [‰ PDB] (vs. VPDB)`)) +
+    geom_line())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/198-1210_d13C_Jung2012-fig6.png]]
+
+** ODP Leg 122 Site 762C
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 14:24]
+:END:
+grayscale log from [cite:@Husson2011,Thibault2012]
+these were sent to me by Nicolas Thibault upon request, also cite [cite:@Thibault2012]
+
+reproduce [cite:@Husson2011] figure 3 and 4
+
+#+begin_src R :results output graphics file :file imgs/122-762B_grayscale_Husson-fig4.png :width 900 :height 500
+  ODP122_762C_gs <- readxl::read_excel("dat/Thibault2012/pal06092-mmc4.xls",
+                                       range = "A1:H7995",
+                                       guess_max = 2000)
+
+  dat <- ODP122_762C_gs |>
+    rename(depth_ambsf = ambsf, gray = `grey level (0-255)`,
+           depth_mbsf = mbsf,
+           core = `ODP Site 762C Cores`,
+           section = Section,
+           remarks = Remarks,
+           kyr100 = `100 kyr cycles`,
+           kyr405 = `405 kyr cycles`) |>
+    mutate(leg = 122, site = 762, hole = "C", .before = core) |>
+    mutate(smooth = slider::slide_dbl(gray, mean, .before = 7, .after = 7))
+
+  f100 <- dat |>
+    select(depth_ambsf, gray) |>
+    astrochron::linterp(genplot = FALSE) |> # TODO: take care of gaps!
+    astrochron::taner(flow = 0, fhigh = 1)
+
+  f405 <- dat |>
+    select(depth_ambsf, gray) |>
+    astrochron::linterp(genplot = FALSE) |> # TODO: take care of gaps!
+    astrochron::taner(flow = 0, fhigh = 0.25) # or is it 0.4?
+
+  dat |>
+    ## astrochron::linterp(genplot = FALSE) |>
+    ggplot(aes(x = depth_ambsf, y = gray)) +
+    annotate("rect", xmin = 555.8, xmax = 556.3, ymin = -Inf, ymax = Inf,
+             fill = "yellow", alpha = .6) + # the K/Pg boundary
+    ## geom_line(alpha = .2, colour = "darkblue") +
+    geom_line(aes(y = smooth), colour = "darkblue") +
+    geom_line(aes(y = gray - 90), data = f100, colour = "skyblue") +
+    geom_line(aes(y = gray - 100), data = f405, colour = "black") +
+    geom_text(aes(label = kyr100, y = 50)) +
+    geom_text(aes(label = kyr405, y = 40)) +
+    ## coord_cartesian(xlim = c(552, 588), expand = FALSE) +
+    scale_y_reverse()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/122-762B_grayscale_Husson-fig4.png]]
+
+** ODP Leg 208 Site 1267B
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 12:49]
+:END:
+raw magsus data from [cite:@Blum2005] https://doi.pangaea.de/10.1594/PANGAEA.266605
+also related: [cite:@Zachos2004]
+
+reproduce [cite:@Husson2011] figure 3 and 4
+
+#+begin_src R :results output graphics file :file imgs/208-1267B_MS_Husson-fig4.png :width 900 :height 500
+  library(tidyverse)
+  theme_set(theme_bw())
+
+  ODP208_1267_MS <- pangaear::pg_data("10.1594/PANGAEA.266605")[[1]]
+
+  dat <- ODP208_1267_MS$data |>
+    select(depth = `Depth sed [m]`, MS = `Suscept corr`)
+
+  mtm <- dat |>
+    filter(depth >= 285.9) |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::mtm(xmax = 3, pl = 2) |>
+    as_tibble()
+
+  f100 <- dat |>
+    filter(depth >= 285.9) |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::taner(flow = 0, fhigh = 0.9, xmax = 3) |>
+    as_tibble()
+
+  f405 <- dat |>
+    filter(depth >= 285.9) |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::taner(flow = 0, fhigh = 0.25, xmax = 1) |>
+    as_tibble()
+
+  dat |>
+    ggplot(aes(x = depth, y = MS)) +
+    annotate("rect", xmin = 285.9, xmax = 286.5, ymin = -Inf, ymax = Inf,
+             fill = "yellow", alpha = .6) + # the K/Pg boundary
+    geom_line(colour = "darkblue") +
+    geom_line(aes(y = MS + 50), data = f100, colour = "skyblue") +
+    geom_line(aes(y = MS + 70), data = f405, colour = "black") +
+    coord_cartesian(xlim = c(287.4, 330), ylim = c(0, 300)) +
+    labs(x = "Depth (mbsf)", y = MS ~ "(10"^{-8} ~ "kgm"^{-3} * ")",
+         title = "ODP Leg 208 Site 1267B")
+
+
+  ## rmcd <- pangaear::pg_data("10.1594/pangaea.666132")[[1]]$data
+
+  ## # add rmcd depth
+  ## dat <- dat |>
+  ##   ## astrochron::tune(controlPts = rmcd, genplot = FALSE)
+  ##   mutate(rmcd = approx(x = rmcd$`Depth comp [mcd]`,
+  ##                        y = rmcd$`Depth comp r [rmcd]`,
+  ##                        xout = dat$`Depth comp [mcd]`)$y)
+
+  # add age model. This links raw mcd and armcd scale to 100 kyr maxima
+  # agem <- pangaear::pg_data("10.1594/PANGAEA.666282")
+  # but it's a PDF :S
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/208-1267B_MS_Husson-fig4.png]]
+
+** ODP Leg 74 Site 525A
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 14:57]
+:END:
+[cite:@Husson2011] grayscale log
+*** WAIT waiting for grayscale log in email
+:LOGBOOK:
+- State "WAIT"       from              [2023-08-31 Thu 15:20]
+:END:
+
+** ODP Leg 207 Site 1258B
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 14:58]
+:END:
+raw data from https://doi.pangaea.de/10.1594/PANGAEA.266578
+analysis copies [cite:@Husson2011]
+
+#+begin_src R :results output graphics file :file imgs/207-1258B_MS_Husson-fig4.png :width 900 :height 500
+  ODP207_1258B_MS <- pangaear::pg_data("10.1594/PANGAEA.266578")[[1]]
+
+  dat <- ODP207_1258B_MS$data |>
+    rename(depth_mbsf = `Depth sed [m]`,
+           depth_mcd = `Depth comp [mcd]`,
+           label = `Sample label`,
+           MS = `kappa [10**-6 SI]`) #|>
+    ## mutate(MS = MS * 1e2) # convert from 10^-6 SI to 10^-8kgm^-3
+
+  mtm <- dat |>
+    select(depth_mcd, MS) |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::mtm(xmax = 3, pl = 2) |>
+    as_tibble()
+
+  f100 <- dat |>
+    select(depth_mcd, MS) |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::taner(flow = 0, fhigh = 0.9, xmax = 3) |>
+    as_tibble()
+
+  f405 <- dat |>
+    select(depth_mcd, MS) |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::taner(flow = 0, fhigh = 0.4, xmax = 1) |>
+    as_tibble()
+
+  dat |>
+    ggplot(aes(x = depth_mcd, y = MS)) +
+    ## annotate("rect", xmin = 285.9, xmax = 286.5, ymin = -Inf, ymax = Inf,
+    ##          fill = "yellow", alpha = .6) + # the K/Pg boundary
+    geom_line(colour = "darkblue") +
+    geom_line(aes(y = MS + 5), data = f100, colour = "skyblue") +
+    geom_line(aes(y = MS + 7), data = f405, colour = "black") +
+    coord_cartesian(xlim = c(285, 350), expand = FALSE) +
+    labs(x = "Depth (mbsf)", y = MS ~ "(10"^{-8} ~ "kgm"^{-3} * ")",
+         title = "ODP Leg 207 Site 1258B")
+
+
+  ## rmcd <- pangaear::pg_data("10.1594/pangaea.666132")[[1]]$data
+
+  ## # add rmcd depth
+  ## dat <- dat |>
+  ##   ## astrochron::tune(controlPts = rmcd, genplot = FALSE)
+  ##   mutate(rmcd = approx(x = rmcd$`Depth comp [mcd]`,
+  ##                        y = rmcd$`Depth comp r [rmcd]`,
+  ##                        xout = dat$`Depth comp [mcd]`)$y)
+
+  # add age model. This links raw mcd and armcd scale to 100 kyr maxima
+  # agem <- pangaear::pg_data("10.1594/PANGAEA.666282")
+  # but it's a PDF :S
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/207-1258B_MS_Husson-fig4.png]]
+
+*** SOME get raw data from [cite:@Husson2011], they've extended this record!
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:21]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-08-31 Thu 15:21]
+:END:
+
+** IODP Exp 342 Site U1403A,B
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:29]
+:END:
+[cite:@Batenburg2018]
+d18O data between 66 Ma and 68.8 Ma
+XRF ln(Fe/Ca) data between 66 Ma and 68.8 Ma
+
+#+begin_src R :results output graphics file :file imgs/342-U1403A_d18O_Batenburg2018-fig7.png :width 900 :height 500
+  IODP342_U1403A <- pangaear::pg_data("10.1594/PANGAEA.875741")[[1]]
+  dat <- IODP342_U1403A$data
+
+  dat |>
+    ggplot(aes(x = `Depth sed [m]`, y = `δ18O carb [‰ PDB]`)) +
+    geom_line()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/342-U1403A_d18O_Batenburg2018-fig7.png]]
+
+#+begin_src R :results output graphics file :file imgs/342-U1403A_FeCa_Batenburg2018-fig6.png :width 900 :height 500
+  IDOP342_U1403A_XRF <- pangaear::pg_data("10.1594/PANGAEA.875742")[[1]]
+
+  dat <- IDOP342_U1403A_XRF$data
+
+  bp <- dat |>
+    mutate(FeCa = log(`Fe count [#]` / `Ca count [#]`)) |>
+    select(depth = `Depth comp r [rmcd]`, FeCa) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::bandpass(flow = 1 / 3.4, fhigh = 1 / 6.8)
+
+  # copied from [cite:@Batenburg2018] table 2
+  agem <- tibble::tribble(
+                     ~ `Depth comp r [rmcd]`, ~ age_ma, ~ sed_rate,
+                     247.700, 66.04, NA_real_,
+                     251.040, 66.374, 1.00,
+                     254.960, 66.782, 0.96,
+                     259.205, 67.192, 1.04,
+                     263.695, 67.585, 1.14,
+                     268.365, 67.986, 1.16,
+                     271.680, 68.383, 0.84,
+                     274.635, 68.787, 0.73,
+                     275.000, 68.837, 0.73
+                   )
+
+  dat |>
+    ggplot(aes(x = `Depth comp r [rmcd]`, y = log(`Fe count [#]` / `Ca count [#]`))) +
+    geom_line() +
+    geom_line(aes(x = depth, y = FeCa), data = bp, colour = "red") +
+    ## annotate("text", x = 247.7, y = 2, label = "about 66 Ma") +
+    ## annotate("text", x = 275, y = 2, label = "about 68.5 Ma") +
+    geom_label(aes(label = age_ma, y = 1.9), data = agem)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/342-U1403A_FeCa_Batenburg2018-fig6.png]]
+
+** Zumaia
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:37]
+:END:
+[cite:@Batenburg2012]
+66 Ma to ~70 Ma
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
+  Zumaia <- readxl::read_excel("dat/Batenburg2012/1-s2.0-S0012821X12005742-mmc2.xls") |>
+    rename(depth = Depth,
+           MS = `Magentic susceptibility (SI)`, # notice typo! XD
+           Lstar = `Reflectance, L* (%)`,
+           d13C_VPDB = `δ13C (‰VPDB) outliers in italics`) |>
+    mutate(depth = depth / 100)
+
+  Zumaia |>
+    select(depth, Lstar) |>
+    filter(!is.na(Lstar)) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::mtm()
+
+  f100 <- Zumaia |>
+    select(depth, Lstar) |>
+    filter(!is.na(Lstar)) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::taner(flow = 0, fhigh = 1) |>
+    as_tibble()
+
+  f405 <- Zumaia |>
+    select(depth, Lstar) |>
+    filter(!is.na(Lstar)) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::taner(flow = 0, fhigh = .4) |>
+    as_tibble()
+
+  (Zumaia |>
+   filter(!is.na(d13C_VPDB)) |>
+    ggplot(aes(x = depth, y = d13C_VPDB)) +
+    geom_line()) /
+  (Zumaia |>
+   ggplot(aes(x = depth, y = Lstar)) +
+   geom_line(alpha = .3, colour = "darkblue") +
+   geom_line(data = f100, colour = "skyblue") +
+   geom_line(data = f405)) /
+  (Zumaia |>
+    ggplot(aes(x = depth, y = MS)) +
+    geom_line())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Batenburg2012.png]]
+
+** Gubbio
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:51]
+:END:
+Umbria--March Basin, Italy
+[cite:@Voigt2012]
+
+** Bottaccione
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 16:09]
+:END:
+d13C and d18O data from [cite:@Sabatino2018]
+~ 72.1 Ma to 84.2 Ma (a little more, these are the ages of the Campanian/Maastrichtian and Santonian/Campanian boundaries)
+
+ah, slightly too old? -> can stitch w/ 1210B!
+
+#+begin_src R :results output graphics file :file imgs/Bottaccione_d13C_Sabatino2018.png :width 900 :height 500
+  Bottaccione <- readxl::read_excel("dat/Sabatino2018/1-s2.0-S0031018216309336-mmc1.xlsx",
+                     range = "A2:C658") |>
+    rename(depth = `Sample (m)`,
+           d13C_VPDB = `δ13C`,
+           d18O_VPDB = `δ18O`)
+
+  Bottaccione |>
+    ggplot(aes(x = depth, y = d13C_VPDB)) +
+    geom_line()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Bottaccione_d13C_Sabatino2018.png]]
+
+* NEXT figure out how to group by contiguous sections
+:PROPERTIES:
+:CREATED:  [2023-08-31 Thu 15:17]
+:END:
+currently linterp does just that
+I want to select adjacent areas, group by them, then ignore split-apply-combine for each spectral analysis etc.
