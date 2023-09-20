@@ -1,6 +1,7 @@
-#+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports both :results output :eval no-export
-* libs
-#+begin_src R
+#+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
+#+options: TOC:nil
+* COMMENT libs
+#+begin_src R :exports code
   library(tidyverse)
   library(patchwork)
   theme_set(theme_bw())
@@ -20,7 +21,7 @@
 ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 #+end_example
 
-* look at the orbital solution
+* COMMENT look at the orbital solution
 :PROPERTIES:
 :CREATED:  [2023-08-30 Wed 17:04]
 :END:
@@ -28,7 +29,7 @@
 
 #+end_src
 
-* reproduce [cite:@Ma2017] steps
+* COMMENT reproduce [cite:@Ma2017] steps
 :PROPERTIES:
 :CREATED:  [2023-08-28 Mon 10:52]
 :END:
@@ -241,7 +242,7 @@ Plot summary figures.
   lines(hilEcc2)
 #+end_src
 
-* read [cite:@ZeebeLourens2019,@ZeebeLourens2022] to reproduce their approach
+* COMMENT read [cite:@ZeebeLourens2019,@ZeebeLourens2022] to reproduce their approach
 :PROPERTIES:
 :CREATED:  [2023-08-28 Mon 11:56]
 :END:
@@ -526,13 +527,13 @@ Warning messages:
 :CREATED:  [2023-08-28 Mon 17:14]
 :END:
 
-* make composite dataset
+* get overview of dataset
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:48]
 :END:
 sorted from young to older, longest records at the end
 
-** IODP Leg 208 Site 1262
+** [#C] IODP Leg 208 Site 1262
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:37]
 :END:
@@ -574,13 +575,30 @@ I'm not going to put too much effort in, Richard should have this analysis accor
   ODP208_1262_col |>
     ggplot(aes(x = `Depth (mbsf)`, y = scale(`a*` / `b*`))) +
     geom_line() +
-    coord_cartesian(xlim = c(140, 220))
+    coord_cartesian(xlim = c(140, 220)) +
+    labs(title = "ODP 208 Site 1264 Color reflectance")
 #+end_src
 
 #+RESULTS:
 [[file:imgs/208-1262_color_ZeebeLourens2019-2022.png]]
 
-** IODP Leg 198 Site 1209
+** [#A] Hendaye
+:PROPERTIES:
+:CREATED:  [2023-09-18 Mon 16:42]
+:END:
+via [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frits Hilgen]]
+[[mu4e:msgid:AS8PR05MB10601D055071F8CD08F7C0153DBFBA@AS8PR05MB10601.eurprd05.prod.outlook.com][RE: Paper: Earth beyond six of nine planetary boundaries]]
+66 Ma until 64 Ma
+multi-proxy study of the interval from the K/Pg boundary up to cycle 20 of [cite:@Dinares-Turell2003].
+
+only photos for now
+linked to Zumaia, but no turbidites
+[[file:imgs/Hendaye_tuning_Frits-Hilgen.pdf::3]]
+
+shows expression of weak 200 kyr eccentricity cycle and oldest node of 2-Myr cycle
+Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in the 200 kyr cycle.
+
+** [#C] IODP Leg 198 Site 1209
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 17:29]
 :END:
@@ -593,7 +611,8 @@ color reflectance used in [cite:@ZeebeLourens2022EPSL]
   ODP198_1209_col |>
     ggplot(aes(x = `Depth (mbsf)`, y = `a*`)) +
     geom_line() +
-    coord_cartesian(xlim = c(252.5, 261.6))
+    coord_cartesian(xlim = c(252.5, 261.6)) +
+    labs(title = "ODP 198 Site 1209 Color reflectance")
 #+end_src
 
 #+RESULTS:
@@ -603,11 +622,27 @@ color reflectance used in [cite:@ZeebeLourens2022EPSL]
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 15:59]
 :END:
+[cite:@Sinnesael2016] https://doi.pangaea.de/10.1594/PANGAEA.864450
 MS, CaCO3, d13C, d18O
 uppermost Maastrichtian to lower Danian
-[cite:@Sinnesael2016] https://doi.pangaea.de/10.1594/PANGAEA.864450
+62.5 Ma to 67 Ma
 
-** ODP Leg 208 Site 1267B
+combined with Bottaccione
+#+begin_src R :results output graphics file :file imgs/Contessa_MS_Sinnesael2016.png :width 900 :height 500
+  Contessa <- pangaear::pg_data("10.1594/PANGAEA.864450")[[1]]
+
+  dat <- Contessa$data
+
+  dat |>
+    ggplot(aes(x = `Section [m]`, y = `chi [10**-9 m**3/kg]`)) +
+    geom_line() +
+    labs(title = "Contessa Highway Magnetic Susceptibility")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Contessa_MS_Sinnesael2016.png]]
+
+** [#A] ODP Leg 208 Site 1267B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:49]
 :END:
@@ -617,6 +652,14 @@ Ma_{405}1 to Ma_{405}6 or 7
 raw magsus data from [cite:@Blum2005] https://doi.pangaea.de/10.1594/PANGAEA.266605
 also related: [cite:@Zachos2004]
 
+*** Magsus data analyzed similarly to [cite:@Husson2011]
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 11:22]
+:END:
+depth sed [m] from 0.05 to 329 m
+depth comp [mcd] from 0.05 to 368 m
+
+208-1267B-1H-1,5 to 208-1267B-36X-7,37.5
 
 #+begin_src R :results output graphics file :file imgs/208-1267B_MS_Husson-fig4.png :width 900 :height 500
   library(tidyverse)
@@ -624,23 +667,37 @@ also related: [cite:@Zachos2004]
 
   ODP208_1267_MS <- pangaear::pg_data("10.1594/PANGAEA.266605")[[1]]
 
+  ODP208_1267_MS$data |>
+    select(`Sample label`) |>
+    separate(`Sample label`, into = c("leg", "sitehole", "coretype", "sectioninterval"),
+             sep = "-") |>
+    separate(sectioninterval, into = c("section", "interval"), sep = ",") |>
+    separate(sitehole, into = c("site", "hole"), sep = 4) |>
+    separate(coretype, into = c("core", "type"), sep = -1) |>
+    write_csv("out/ODP208_1267_MS.csv")
+
   dat <- ODP208_1267_MS$data |>
-    select(depth = `Depth sed [m]`, MS = `Suscept corr`)
+    select(depth = `Depth sed [m]`, MS = `Suscept corr`) |>
+    filter(depth >= 285.9)
 
   mtm <- dat |>
-    filter(depth >= 285.9) |>
     astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
-    astrochron::mtm(xmax = 3, pl = 2) |>
+    astrochron::mtm(xmax = 10, pl = 1) |> # basically only ~40 cm cycles
+    ## astrochron::lowspec(xmax = 10, pl = 1) |>
     as_tibble()
+  abline(v = c(1.4, 1.6))
+
+  f100_2 <- dat |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::bandpass(flow = 1.4, fhigh = 1.6, win = 1, padfac = 10)
 
   f100 <- dat |>
-    filter(depth >= 285.9) |>
     astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
     astrochron::taner(flow = 0, fhigh = 0.9, xmax = 3) |>
     as_tibble()
 
+
   f405 <- dat |>
-    filter(depth >= 285.9) |>
     astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
     astrochron::taner(flow = 0, fhigh = 0.25, xmax = 1) |>
     as_tibble()
@@ -655,26 +712,465 @@ also related: [cite:@Zachos2004]
     coord_cartesian(xlim = c(287.4, 330), ylim = c(0, 300)) +
     labs(x = "Depth (mbsf)", y = MS ~ "(10"^{-8} ~ "kgm"^{-3} * ")",
          title = "ODP Leg 208 Site 1267B")
-
-
-  ## rmcd <- pangaear::pg_data("10.1594/pangaea.666132")[[1]]$data
-
-  ## # add rmcd depth
-  ## dat <- dat |>
-  ##   ## astrochron::tune(controlPts = rmcd, genplot = FALSE)
-  ##   mutate(rmcd = approx(x = rmcd$`Depth comp [mcd]`,
-  ##                        y = rmcd$`Depth comp r [rmcd]`,
-  ##                        xout = dat$`Depth comp [mcd]`)$y)
-
-  # add age model. This links raw mcd and armcd scale to 100 kyr maxima
-  # agem <- pangaear::pg_data("10.1594/PANGAEA.666282")
-  # but it's a PDF :S
-
 #+end_src
 
 #+RESULTS:
 [[file:imgs/208-1267B_MS_Husson-fig4.png]]
 
+*** agemodels from [cite:@Westerhold2008]
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 11:22]
+:END:
+site 1267 range or rmcd = 311.39 m to 336.1 m
+
+#+begin_src R :results output graphics file :file imgs/agem_Westerhold2008.png :width 900 :height 500
+  # add age model. This links raw mcd and armcd scale to 100 kyr maxima
+  ## agem <- pangaear::pg_data("10.1594/PANGAEA.666282")
+  # but it's a PDF :S
+  # used tabula --pages=all to convert to text
+  # then manually converted it to CSV
+
+  agem <- readr::read_csv("dat/Westerhold2008/agemodel_clean.csv",
+                          comment = "#",
+                          na = c("", "end of splice", "condensed"))
+  # see if I got the formatting of the CSV correct
+  ## agem |>
+  ##   print(n = Inf, width = Inf)
+
+  agem |>
+    pivot_longer(c(site1262_mcd:site1001_rmcd, Zumaia_depth),
+                 names_to = "site", values_to = "depth") |>
+    pivot_longer(c(age_La2004_1, age_La2004_2), names_to = "option", values_to = "age") |>
+    ggplot(aes(x = depth, y = age, colour = site,
+               linetype = option, shape = option)) +
+    geom_point() +
+    geom_line()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/agem_Westerhold2008.png]]
+*** agemodel from [cite:@Batenburg2018a]
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 09:14]
+:END:
+depth rmcd from 232 m to 366 m
+age from 56 Ma to 69.1 Ma
+
+#+begin_src R
+  agem2 <- readr::read_csv("dat/Batenburg2018/site_1267_agemodel.csv") #|>
+  ## summarize(d = range(depth_rmcd), a = range(age_ma))
+#+end_src
+*** NEXT [#B] convert from mbsf and mcd to rmcd
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 11:29]
+:END:
+#+begin_src R
+  # https://doi.pangaea.de/10.1594/PANGAEA.666132
+  # NO! This is 1267 rmcd vs 1262 mcd!!!
+  rmcd <- pangaear::pg_data("10.1594/pangaea.666132")[[1]]$data
+  # this only covers mcd 104--236
+  # but I care only about depths in mbsf > ~285.9
+  ## ODP208_1267_MS$data |>
+  ##   filter(`Depth sed [m]` > 285)
+  # so that's roughly 320 rmcd
+
+  # I have Depth comp [mcd] in my original MS dataset
+
+  ## # add rmcd depth
+  dat <- dat |>
+    astrochron::tune(controlPts = rmcd, genplot = FALSE)
+    mutate(rmcd = approx(x = rmcd$`Depth comp [mcd]`,
+                         y = rmcd$`Depth comp r [rmcd]`,
+                         xout = dat$`Depth comp [mcd]`)$y)
+#+end_src
+why do we need this? It would allow me to apply the agemodel of others' to our record to check, what else?
+
+**** splice table from Westerhold PDF
+maybe this one?
+https://doi.pangaea.de/10.1594/PANGAEA.592301
+
+another PDF :S
+[[file:~/Downloads/208-1267_TabS7_tie_points.pdf]]
+
+this has hole core section interval depth_mbsf depth_rmcd
+tie to / append to / end of splice
+new mbsf / rmcd
+
+manually converted to csv again
+
+this links hole A to hole B and vice-versa
+depth_mbsf from 25.2 m to 329
+depth_rmcd from 28.6 m to 367 m
+#+begin_src R
+  rmcd <- readr::read_csv("dat/ODP208_1267_rmcd.csv") |>
+    mutate(hole = str_sub(label, start = 5, end = 5),
+           hole2 = str_sub(label2, start = 5, end = 5)) |>
+    mutate(row = 1:n())
+
+  rmcd |>
+    ggplot(aes(x = depth_mbsf, y = row)) +
+    geom_point(color = "blue", alpha = .2) +
+    geom_point(aes(x = depth_mbsf2), color = "red", alpha = .2) +
+    geom_segment(aes(xend = depth_mbsf2, yend = row),
+                 arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed"))
+
+  rmcd |>
+    ggplot(aes(x = depth_rmcd, y = row)) +
+    geom_point(color = "blue", alpha = .2) +
+    geom_point(aes(x = depth_rmcd2), color = "red", alpha = .2) +
+    geom_segment(aes(xend = depth_rmcd2, yend = row),
+                 arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed"))
+#+end_src
+
+**** janus web tool
+does this do what I want?
+https://web.iodp.tamu.edu/janusweb/general/splice.cgi
+doesn't work anymore
+
+**** original shipboard report
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 09:34]
+:END:
+convert mbsf to mcd
+http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t2.htm#563154
+
+single splice table
+http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t3.htm#564205
+table also available in ASCII: http://www-odp.tamu.edu/publications/208_IR/VOLUME/TABLES/IR208_08/08_T03.TXT
+*** colour reflectance data from Janus database?
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 11:23]
+:END:
+I've added this myself, may be nicer than just MS?
+https://web.iodp.tamu.edu/janusweb/physprops/colordat.cgi?leg=208&site=1267
+they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@Batenburg2018a] (56.042 Ma to 69.070 Ma)
+**** read in the data and calculate normalized a*/b*
+#+begin_src R
+  ODP208_1267_color_A <- readr::read_tsv("dat/ODP208_1267_color-reflectance.dat")
+  ODP208_1267_color_B <- readr::read_tsv("dat/ODP208_1267_color-reflectance_B.dat")
+
+  dat <- ODP208_1267_color_B |>
+    select(depth = `Depth (mbsf)`,
+           Lstar = `L*`,
+           astar = `a*`,
+           bstar = `b*`) |>
+    filter(depth >= 285.9) |>
+    mutate(aob = scale(astar / bstar)[, 1]) |>
+    select(depth, astar, everything())
+
+  # raw data with simple loess curve
+  dat |>
+    ggplot(aes(x = depth, y = Lstar)) +
+    geom_line() +
+    geom_line(aes(x = `Depth (mbsf)`, y = `L*`), data = ODP208_1267_color_A, alpha = .2) +
+    geom_smooth(method = "loess", span = .2) +
+    geom_smooth(method = "gam", color = "orange")
+
+  # let's see how sensitive it is to the span or to size of the rolling mean
+
+  fit_loess <- loess(Lstar ~ depth, data = dat, span = .75)
+  fit_gam <- mgcv::gam(Lstar ~ depth, data = dat)
+
+  lp <- dat |>
+    select(depth, Lstar_scl) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::lowpass(fcut = 1 / 15) # how do you decide which frequency to cull?
+  # this is linearly interpolated so it can't go into the other df
+
+  dat <- dat |>
+    mutate(
+      # there are several methods of calculating a rolling average
+      ## ma = roll::roll_mean() # that's left-aligned
+      ## ma = zoo::rollmean(Lstar, k = 33, align = "center", na.pad = TRUE),
+      # I prefer the slider implementation, it's FAAAST
+      # I've played around with the size of the window. If I make it larger,
+      # more low-frequency peaks are preserved.
+      ma = slider::slide_mean(Lstar, before = 3, after = 3),
+      loess = predict(fit_loess),
+      gam = predict(fit_gam),
+      Lstar_scl = scale(Lstar),
+      Lstar_loess_scl = scale(Lstar - loess),
+      Lstar_gam_scl = scale(Lstar - loess),
+      Lstar_ma_scl = scale(Lstar - ma))
+
+  dat |>
+    ggplot(aes(x = depth, y = Lstar)) +
+    geom_line(alpha = .3) +
+    geom_line(aes(y = loess), colour = "orange") +
+    geom_line(aes(y = gam), colour = "red") +
+    geom_line(aes(y = ma), colour = "indianred")
+
+  dat |>
+    ggplot(aes(x = depth, y = Lstar_scl)) +
+    geom_line() +
+    geom_line(aes(y = Lstar_loess_scl + 3), colour = "orange") +
+    geom_line(aes(y = Lstar_gam_scl + 6), colour = "red") +
+    geom_line(aes(y = Lstar_ma_scl + 9), colour = "indianred")
+
+  dat |>
+    drop_na() |>
+    select(depth,
+           Lstar,
+           ## Lstar_loess_scl
+           ## Lstar_gam_scl
+           ## Lstar_ma_scl
+           ) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::mtm(output = 1) |>
+    as_tibble()
+
+  # I like gam I think?
+
+  filt_bp <- dat |>
+    drop_na() |>
+    select(depth, Lstar_gam_scl) |>
+    astrochron::linterp(genplot = FALSE) |>
+    ## astrochron::bandpass(flow = 0, fhigh = .3, win = 0, xmax = 1) |> # uniform window
+    astrochron::bandpass(flow = 2., fhigh = 3., win = 1, xmax = 10) |> # gaussian window
+    ## astrochron::taner(flow = 0, fhigh = .3, xmax = 1) |> # taner window
+    as_tibble()
+
+  filt_bp |>
+    astrochron::hilbert(genplot = FALSE) |>
+    astrochron::peak() |>
+    as_tibble()
+
+  dat |>
+    ggplot(aes(x = depth, y = Lstar_gam_scl)) +
+    geom_line(alpha = .3) +
+    geom_line(data = filt_bp)
+#+end_src
+
+#+RESULTS:
+: indexed 0B in  0s, 0B/sindexed 1.00TB in  0s, 44.17TB/s                                                                                                       Rows: 25316 Columns: 15
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: "\t"
+: chr  (4): H, T, Sec, Munsell_HVC
+: dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+**** do spectral analysis
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 12:14]
+:END:
+#+begin_src R :results output graphics file :file imgs/208-1267B_color_mtm.png :width 900 :height 500
+  mtm <- dat |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::mtm(xmax = 6, pl = 1, output = 1) |>
+    as_tibble()
+
+  # plot the mtm
+  mtm |>
+    ggplot(aes(x = Frequency, y = Power)) +
+    geom_line() +
+    scale_y_log10() +
+    scale_x_continuous(
+      sec.axis = sec_axis(trans = ~ 1 / .x,
+                          name = "Period",
+                          breaks = c(.01, .5, .1, 1, 10))) +
+    geom_line(aes(y = AR1_fit), colour = "red") +
+    geom_line(aes(y = AR1_90_power), colour = "red") +
+    geom_line(aes(y = AR1_95_power), colour = "red") +
+    geom_line(aes(y = AR1_99_power), colour = "red") +
+    # highlight what filters are being used by Husson 2011
+    annotate("rect", xmin = 0., xmax = .25, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
+    annotate("rect", xmin = 0., xmax = .9, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
+    coord_cartesian(xlim = c(0, 3))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/208-1267B_color_mtm.png]]
+
+**** use taner filters
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 12:16]
+:END:
+#+begin_src R
+  f100 <- dat |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::taner(flow = .07, fhigh = 0.9, xmax = 3) |>
+    as_tibble()
+
+  f405 <- dat |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::taner(flow = .07, fhigh = 0.25, xmax = 1) |>
+    as_tibble()
+
+  ## f100_2 <- dat |>
+  ##   astrochron::linterp(genplot = FALSE) |>
+  ##   astrochron::bandpass(flow = .1, fhigh = .5, win = 1, xmax = 5)
+#+end_src
+
+**** plot the filters and the record
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 12:16]
+:END:
+#+begin_src R :results output graphics file :file imgs/208-1267B_color.png :width 900 :height 500
+  dat |>
+    ggplot(aes(x = depth, y = aob)) +
+    geom_line(color = "darkblue") +
+    geom_line(data = f100, color = "skyblue") +
+    geom_line(data = f405, color = "black") +
+    # same as MS from Husson 2011 from above
+    annotate("rect", xmin = 285.9, xmax = 286.5, ymin = -Inf, ymax = Inf,
+             fill = "yellow", alpha = .6) + # the K/Pg boundary
+    coord_cartesian(xlim = c(287.4, NA)) +
+    labs(x = "Depth (mbsf)", y = "Norm. a*/b*")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/208-1267B_color.png]]
+
+**** get the maxima of the 405 kyr filter
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 12:17]
+:END:
+#+begin_src R
+  pk405 <- f405 |>
+    astrochron::peak() |>
+    as_tibble() |>
+    mutate(
+      n_cyc = 0:n(),
+      age_405 = 65940 + n_cyc * 405) # ZB18a eq 2 or 66.96 for eq 3
+
+  pk405 |>
+    ggplot(aes(x = Location, y = age_405)) +
+    geom_line() + geom_point()
+
+  dat <- dat |>
+    mutate(
+      age = astrochron::tune(dat,
+                   controlPts = pk405 |>
+                     select(depth = Location, age_405),
+                   extrapolate = TRUE,
+                   genplot = FALSE)$X1)
+
+  dat |>
+    ggplot(aes(x = age, y = aob)) +
+    geom_line()
+
+  dat |>
+    select(age, aob) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::mtm(xmax = .06)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1733
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 10
+
+ ,* No filtering of peaks applied.
+Error in `mutate()`:
+ℹ In argument: `n_cyc = 0:n()`.
+Caused by error:
+! `n_cyc` must be size 10 or 1, not 11.
+Run `rlang::last_trace()` to see where the error occurred.
++ + ----- TUNING STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 2794
+ ,* Number of time control points= 10
+ ,* Sorting datasets into ensure increasing order, removing empty entries
+
+,**** WARNING: duplicate depth/height datum found in dat
+
+ ,* Mean sampling interval= 1.332388
+ ,* Median sampling interval= 1.808036
+ ,* Maximum sampling interval= 7.714286
+ ,* Minimum sampling interval= 0
+
+----- PERFORMING Multitaper Spectral Analysis -----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 2794
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 1.808036
+ ,* New number of samples= 2059
+ ,* Number of data points in stratigraphic series: 2059
+ ,* Stratigraphic series length (space or time): 3720.937
+ ,* Sampling interval (space or time): 1.808036
+ ,* Will use default setting of 5 DPSS tapers
+ ,* Mean value subtracted= 0.1015833
+ ,* Linear trend NOT subtracted
+ ,* Nyquist frequency: 0.2765432
+ ,* Rayleigh frequency: 0.000268619
+ ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.0008058569
+ ,* Padded to 10296 points
+
+ ,* Searching for significant spectral peaks that satisfy 90 % CL
+     requirements outlined in Meyers (2012):
+ ,* Number of significant F-test peaks identified = 32
+ID  / Frequency / Period / Harmonic_CL / Rednoise_CL
+1   0.0006983414   1431.964   94.44193   100
+2   0.05661938   17.6618   93.88804   72.1348
+3   0.07939605   12.59509   96.82607   99.47927
+4   0.08933399   11.19395   91.71181   99.89702
+5   0.09696202   10.31332   96.70337   87.05542
+6   0.1005612   9.944196   99.55621   73.2013
+7   0.1086727   9.201945   97.34754   98.66957
+8   0.1129164   8.856106   97.60775   85.1843
+9   0.114528   8.73149   94.97761   84.96299
+10   0.1195775   8.362774   99.83013   88.32753
+11   0.122156   8.186251   99.41092   98.80402
+12   0.1250568   7.996364   94.28173   88.18916
+13   0.127689   7.831525   94.57301   81.88665
+14   0.1369824   7.30021   97.90853   98.13951
+15   0.1387551   7.206944   97.25249   92.8674
+16   0.1409575   7.094335   96.86739   94.83192
+17   0.1489079   6.715561   92.28015   95.59369
+18   0.1514864   6.601254   94.20763   93.80038
+19   0.159383   6.274195   97.75216   99.2873
+20   0.1655606   6.040083   92.94299   87.10266
+21   0.1705565   5.863161   95.31809   73.97557
+22   0.173135   5.775841   96.94309   84.24478
+23   0.1749614   5.715547   92.92138   56.35226
+24   0.1773787   5.637655   99.02583   98.2947
+25   0.1781308   5.613853   97.85763   98.6933
+26   0.1792052   5.580197   98.92372   86.87813
+27   0.182482   5.479993   98.91651   79.7809
+28   0.1835564   5.447918   97.99307   63.96113
+29   0.1890357   5.290007   99.94708   66.57191
+30   0.1905398   5.248248   98.70234   89.36756
+31   0.2014984   4.962819   91.57414   75.61101
+32   0.2053661   4.869353   93.86716   93.96291
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+#+end_example
+
+*** Fe count from [cite:@Westerhold2008]
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 21:14]
+:END:
+overview of all supplementary data on PANGAEA
+https://doi.pangaea.de/10.1594/PANGAEA.667122
+
+title says "astronomical calibration of the Paleocene time"
+depth sed [m] from 234 m to 295 m
+depth revised [m] from 265 m to 330 m
+#+begin_src R
+  ODP208_1267_Fe <- pangaear::pg_data("10.1594/PANGAEA.666120")
+
+  ODP208_1267_magstrat <- pangaear::pg_data("10.1594/PANGAEA.666515")
+#+end_src
+
+*** CaCO3 dataset from [cite:@Sexton2011]
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 09:06]
+:END:
+Too young!
+
+depth sed [m] from 154 m to 163 m.
+depth comp [mcd] from to 168 m to 180 m
+age [ka BP] from 47800 ka to 50002 ka.
+#+begin_src R
+  ODP208_1267_CaCO3 <- pangaear::pg_data("10.1594/PANGAEA.763155")
+#+end_src
 ** IODP Exp 342 Site U1403A,B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:29]
@@ -690,7 +1186,8 @@ that /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
 
   dat |>
     ggplot(aes(x = `Depth sed [m]`, y = `δ18O carb [‰ PDB]`)) +
-    geom_line()
+    geom_line() +
+    labs(title = "IODP 342 U1403B d18O and d13C")
 #+end_src
 
 #+RESULTS:
@@ -727,7 +1224,8 @@ that /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
     geom_line(aes(x = depth, y = FeCa), data = bp, colour = "red") +
     ## annotate("text", x = 247.7, y = 2, label = "about 66 Ma") +
     ## annotate("text", x = 275, y = 2, label = "about 68.5 Ma") +
-    geom_label(aes(label = age_ma, y = 1.9), data = agem)
+    geom_label(aes(label = age_ma, y = 1.9), data = agem) +
+    labs(title = "IODP342 U1403A XRF")
 #+end_src
 
 #+RESULTS:
@@ -740,6 +1238,7 @@ that /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
 [cite:@Batenburg2012]
 Ma_{405}1 to Ma_{405}9
 66 Ma to ~70 Ma
+has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frits Hilgen]]
 
 from the supplementary info
 #+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
@@ -773,7 +1272,7 @@ from the supplementary info
   (Zumaia |>
    filter(!is.na(d13C_VPDB)) |>
     ggplot(aes(x = depth, y = d13C_VPDB)) +
-    geom_line()) /
+    geom_line() + labs(title = "Zumaia")) /
   (Zumaia |>
    ggplot(aes(x = depth, y = Lstar)) +
    geom_line(alpha = .3, colour = "darkblue") +
@@ -800,6 +1299,19 @@ Ma_{405}1 to at least Ma_{405}12ish?
 https://doi.pangaea.de/10.1594/PANGAEA.778969
 
 also MS from [cite:@Husson2014] https://doi.pangaea.de/10.1594/PANGAEA.829778
+#+begin_src R :results output graphics file :file imgs/Gubbio_MS_Husson2014.png :width 900 :height 500
+  Gubbio <- pangaear::pg_data("10.1594/PANGAEA.829778")[[1]]
+
+  dat <- Gubbio$data
+
+  dat |>
+    ggplot(aes(x = `Depth sed [m]`, y = `chi [10**-9 m**3/kg]`)) +
+    geom_line() +
+    labs(title = "Gubbio MS")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Gubbio_MS_Husson2014.png]]
 
 also this newer composite by [cite:@Gabriella2023]
 malformed forams
@@ -826,8 +1338,9 @@ table in the supplement:
            age = `Age (Ma)`)
 
   (ODP198_1210B |>
-    ggplot(aes(x = depth_mbsf, y = d13C_VPDB)) +
-   geom_line()) /
+   ggplot(aes(x = depth_mbsf, y = d13C_VPDB)) +
+   geom_line() +
+   labs(title = "ODP 198 Site 1210B")) /
     (ODP198_1210B |>
      ggplot(aes(x = age, y = d18O_VPDB)) +
      geom_line())
@@ -836,7 +1349,7 @@ table in the supplement:
 #+RESULTS:
 [[file:imgs/198-1210B_d13C_Jung2012.png]]
 
-but the data are available on pangaea now in [cite:@Ji-Eun2022]
+but the data are also available on pangaea now in [cite:@Ji-Eun2022]
 refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
 #+begin_src R :results output graphics file :file imgs/198-1210_d13C_Jung2012-fig6.png :width 900 :height 500
   IODP198_1210B <- pangaear::pg_data("10.1594/PANGAEA.950806")[[1]]
@@ -844,8 +1357,9 @@ refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
   dat <- IODP198_1210B$data
 
   (dat |>
-    ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ13C carb [‰ PDB] (vs. VPDB)`)) +
-    geom_line()) /
+   ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ13C carb [‰ PDB] (vs. VPDB)`)) +
+   geom_line() +
+   labs(title = "ODP 198 Site 1210B")) /
   (dat |>
     ggplot(aes(x = `Tuned time [Ma] (405)`, y = `δ18O carb [‰ PDB] (vs. VPDB)`)) +
     geom_line())
@@ -990,13 +1504,14 @@ reproduce [cite:@Husson2011] figure 3 and 4
     geom_text(aes(label = kyr100, y = 50)) +
     geom_text(aes(label = kyr405, y = 40)) +
     ## coord_cartesian(xlim = c(552, 588), expand = FALSE) +
-    scale_y_reverse()
+    scale_y_reverse() +
+    labs(title = "ODP122 762C grayscale from photo")
 #+end_src
 
 #+RESULTS:
 [[file:imgs/122-762B_grayscale_Husson-fig4.png]]
 
-** Bottaccione
+** Bottaccione == Gubbio?
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:09]
 :END:
@@ -1015,7 +1530,8 @@ ah, slightly too old? -> can stitch w/ 1210B!
 
   Bottaccione |>
     ggplot(aes(x = depth, y = d13C_VPDB)) +
-    geom_line()
+    geom_line() +
+    labs(title = "Bottaccione d13C and d18O")
 #+end_src
 
 #+RESULTS:
@@ -1039,9 +1555,14 @@ TOC, d13C, d18O
 [cite:@Wendler2014]
 https://doi.pangaea.de/10.1594/PANGAEA.834794
 
-* NEXT figure out how to group by contiguous sections
+* NEXT COMMENT figure out how to group by contiguous sections
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:17]
 :END:
 currently linterp does just that
 I want to select adjacent areas, group by them, then ignore split-apply-combine for each spectral analysis etc.
+* References
+:PROPERTIES:
+:UNNUMBERED: t
+:END:
+\printbibliography[heading=none]
