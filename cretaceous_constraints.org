@@ -665,16 +665,29 @@ depth comp [mcd] from 0.05 to 368 m
   library(tidyverse)
   theme_set(theme_bw())
 
+  # get hole A directly from Janus database:
+  ODP208_1267_MS_A <- readr::read_tsv("https://web.iodp.tamu.edu/janusweb/physprops/msldat.cgi?leg=208&site=1267&hole=A",
+                  comment = "<") |> # this comment gets rid of all the html headers
+    filter(str_detect(Leg, "^208")) # this gets rid of some stuff at the bottom of the page
+  ODP208_1267_MS_B <- readr::read_tsv("https://web.iodp.tamu.edu/janusweb/physprops/msldat.cgi?leg=208&site=1267&hole=B",
+                  comment = "<") |> # this comment gets rid of all the html headers
+    filter(str_detect(Leg, "^208")) # this gets rid of some stuff at the bottom of the page
+  # so we have Depth (mbsf) and would like to convert it to the new rmcd
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/208-1267B_MS_Husson-fig4.png :width 900 :height 500
+  # somehow they also put these data on PANGAEA (I found this one first)
+  # this is for hole B
   ODP208_1267_MS <- pangaear::pg_data("10.1594/PANGAEA.266605")[[1]]
 
-  ODP208_1267_MS$data |>
-    select(`Sample label`) |>
-    separate(`Sample label`, into = c("leg", "sitehole", "coretype", "sectioninterval"),
-             sep = "-") |>
-    separate(sectioninterval, into = c("section", "interval"), sep = ",") |>
-    separate(sitehole, into = c("site", "hole"), sep = 4) |>
-    separate(coretype, into = c("core", "type"), sep = -1) |>
-    write_csv("out/ODP208_1267_MS.csv")
+  ## ODP208_1267_MS$data |>
+  ##   select(`Sample label`) |>
+  ##   separate(`Sample label`, into = c("leg", "sitehole", "coretype", "sectioninterval"),
+  ##            sep = "-") |>
+  ##   separate(sectioninterval, into = c("section", "interval"), sep = ",") |>
+  ##   separate(sitehole, into = c("site", "hole"), sep = 4) |>
+  ##   separate(coretype, into = c("core", "type"), sep = -1) |>
+  ##   write_csv("out/ODP208_1267_MS.csv")
 
   dat <- ODP208_1267_MS$data |>
     select(depth = `Depth sed [m]`, MS = `Suscept corr`) |>
@@ -717,6 +730,247 @@ depth comp [mcd] from 0.05 to 368 m
 #+RESULTS:
 [[file:imgs/208-1267B_MS_Husson-fig4.png]]
 
+*** NEXT [#B] convert from mbsf and mcd to rmcd
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 11:29]
+:END:
+**** COMMENT 1267 rmcd to 1262 rmcd
+#+begin_src R
+  # https://doi.pangaea.de/10.1594/PANGAEA.666132
+  # NO! This is 1267 rmcd vs 1262 mcd!!!
+  rmcd <- pangaear::pg_data("10.1594/pangaea.666132")[[1]]$data
+  # this only covers mcd 104--236
+  # but I care only about depths in mbsf > ~285.9
+  ## ODP208_1267_MS$data |>
+  ##   filter(`Depth sed [m]` > 285)
+  # so that's roughly 320 rmcd
+
+  # I have Depth comp [mcd] in my original MS dataset
+
+  ## # add rmcd depth
+  dat <- dat |>
+    astrochron::tune(controlPts = rmcd, genplot = FALSE)
+    mutate(rmcd = approx(x = rmcd$`Depth comp [mcd]`,
+                         y = rmcd$`Depth comp r [rmcd]`,
+                         xout = dat$`Depth comp [mcd]`)$y)
+#+end_src
+why do we need this? It would allow me to apply the agemodel of others' to our record to check, what else?
+I need to integrate hole A and B into a single splice.
+
+**** original shipboard report
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 09:34]
+:END:
+simple conversion between mbsf and mcd table:
+http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t2.htm#563154
+
+single splice table
+http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t3.htm#564205
+
+table also available in ASCII: http://www-odp.tamu.edu/publications/208_IR/VOLUME/TABLES/IR208_08/08_T03.TXT
+**** CANC janus web tool
+CLOSED: [2023-09-20 Wed 11:32]
+does this do what I want?
+https://web.iodp.tamu.edu/janusweb/general/splice.cgi
+doesn't work anymore
+
+**** splice table from Westerhold PDF
+maybe this one?
+https://doi.pangaea.de/10.1594/PANGAEA.592301
+
+another PDF :S
+[[file:~/Downloads/208-1267_TabS7_tie_points.pdf]]
+
+this has hole core section interval depth_mbsf depth_rmcd
+tie to / append to / end of splice
+new mbsf / rmcd
+
+manually converted to csv again (this one was a bit easier than the one with many sites)
+
+this links hole A to hole B and vice-versa
+depth_mbsf from 25.2 m to 329
+depth_rmcd from 28.6 m to 367 m
+
+same as shipboard MCD above 180.25 MCD, adjusted below
+
+#+begin_src R
+  rmcd <- readr::read_csv("dat/ODP208_1267_rmcd.csv") |>
+    separate(label, into = c("sitehole", "coretype", "Sec"),
+               sep = "-", remove = FALSE) |>
+    separate(sitehole, into = c("Site", "H"), sep = -1) |>
+    separate(coretype, into = c("Core", "T"), sep = -1) |>
+    # we do not rename the interval, may not be the same as in the data!
+    mutate(Sec = ifelse(Sec == "7", "C", Sec),
+           Sec = ifelse(Sec == "cc", "C", Sec)) |>
+    mutate(diff = depth_rmcd - depth_mbsf, .after = depth_rmcd) |>
+    mutate(diff2 = depth_rmcd2 - depth_mbsf2, .after = depth_rmcd2) |>
+    mutate(row = 1:n())
+
+  rmcd2 <- rmcd |>
+    select(label, link, label2, interval2, depth_mbsf2, depth_rmcd2, diff2, row) |>
+    separate(label2, into = c("sitehole", "coretype", "Sec"),
+               sep = "-", remove = FALSE) |>
+    separate(sitehole, into = c("Site", "H"), sep = -1) |>
+    separate(coretype, into = c("Core", "T"), sep = -1) |>
+    # we do not rename the interval, may not be the same as in the data!
+    mutate(Sec = ifelse(Sec == "7", "C", Sec),
+           Sec = ifelse(Sec == "cc", "C", Sec))
+#+end_src
+
+#+begin_src R
+  rmcd |>
+    ggplot(aes(x = depth_mbsf, y = depth_rmcd, colour = H)) +
+    geom_point(alpha = .5) +
+    geom_segment(aes(xend = depth_mbsf, yend = depth_rmcd2),
+                 arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed")) +
+    geom_line(aes(y = depth_rmcd), linetype = "dashed") +
+    ## geom_line(aes(x = depth_mbsf2, y = depth_rmcd2))
+    geom_line(aes(y = depth_rmcd2))
+    ## geom_line(linetype = "dashed") #+
+    ## geom_line(aes(x = depth_mbsf2))
+
+  rmcd |>
+    ggplot(aes(x = depth_rmcd, y = row)) +
+    geom_point(alpha = .2) +
+    geom_point(aes(x = depth_rmcd2), color = "red", alpha = .2) +
+    geom_segment(aes(xend = depth_rmcd2, yend = row),
+                 arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed"))
+
+  # i'm confused by how to work with this splice table
+  rmcd |>
+    ggplot(aes(x = 1, y = depth_rmcd, colour = H)) +
+    geom_point() +
+    geom_point(aes(x = 2, y = depth_rmcd2)) +
+    geom_segment(aes(xend = 2, yend = depth_rmcd2), colour = "black") +
+    ## facet_grid(cols = vars(hole)) +
+    scale_y_reverse() +
+    coord_cartesian(xlim = c(-4, 6))
+#+end_src
+
+**** splice table from Röhl 2007
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 11:19]
+:END:
+https://doi.pangaea.de/10.1594/PANGAEA.667174?format=html#download
+this has depth from 202.78 m(bsf?) to 209 m
+from 227.08 to 235.24 rmcd
+
+**** apply the splice table to the magsus data
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 10:43]
+:END:
+understand the splice table
+#+begin_src R
+  ODP208_1267_MS_A |>
+    mutate(Sec = as.character(Sec)) |>
+    ggplot(aes(x = `Depth (mbsf)`,
+               y = `Corrected Suscept.`,
+               colour = H, group = H,
+               Site = Site, Core = Core, T = T, Sec = Sec, `Top (cm)` = `Top (cm)`)) +
+    geom_line() +
+    geom_line(aes(y = `Corrected Suscept.` + 100), data = ODP208_1267_MS_B) +
+    # this shows how the holes line up from XRF data and MS data
+    geom_segment(aes(x = depth_mbsf, xend = depth_mbsf2, y = -200, yend = -10,
+                     lab2 = label2),
+                 data = rmcd |> filter(H == "A")) +
+    geom_segment(aes(x = depth_mbsf, xend = depth_mbsf2, y = -10, yend = -200,
+                     lab2 = label2),
+                 data = rmcd |> filter(H == "B")) #+
+    # this shows the stretching they applied after
+    ## geom_segment(aes(xend = depth_rmcd2, y = 0, yend = 500), data = rmcd)
+
+  # add Magsus from hole A and B to the same dataframe
+  MS <- ODP208_1267_MS_A |>
+    mutate(Sec = as.character(Sec)) |>
+    bind_rows(ODP208_1267_MS_B) |>
+    # add the rcmd splice table
+    tidylog::left_join(rmcd |>
+                       # make the types teh same
+                       mutate(across(c(Site, Core), parse_double)) |>
+                       # do NOT match by section, only by core!
+                       rename(section = Sec) |>
+                       select(top = label, to = label2,
+                              Site, H, Core, T, section, interval, depth_mbsf, depth_rmcd, diff, row)) |>
+    # add the right-hand side of the splice table
+    tidylog::left_join(rmcd2 |>
+                       mutate(across(c(Site, Core), parse_double)) |>
+                       rename(section2 = Sec) |>
+                       select(from = label, bot = label2,
+                              Site, H, Core, T, section2, interval2, depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
+    # the ties represent jumps to another depth, anything above the jump should be included
+    ## mutate(seclsec = Sec < section,
+    ##        secesec = Sec == section,
+    ##        secgsec = Sec > section,
+    ##        topleint = `Top (cm)` <= interval,
+    ##        my_rmcd =
+    mutate(my_rmcd = case_when(
+    (Sec < section | ((Sec == section) & (`Top (cm)` <= interval))) ~ `Depth (mbsf)` + diff,
+    (Sec > section2 | ((Sec == section2) & `Top (cm)` >= interval2)) ~ `Depth (mbsf)` + diff2,
+    TRUE ~ NA_real_)) |>
+    mutate(on_splice = (Sec < section | ((Sec == section) & (`Top (cm)` <= interval))) &
+           (Sec > section2 | ((Sec == section2) & `Top (cm)` >= interval2))) |>
+    mutate(on_splice = ifelse(is.na(on_splice), FALSE, on_splice)) |>
+    ## print(width = Inf)
+    readr::write_csv("out/ODP208_1267_MS.csv")
+
+  # the rmcd splice table goes down to 311 mbsf for hole A, the MS data goes down to 312 mbsf
+  # trying it with approx/approxExtrap
+  # this is wrong, they shouldn't be stretched!
+  ## MS <- ODP208_1267_MS_A |>
+  ##   mutate(Sec = as.character(Sec)) |>
+  ##   mutate(depth_rmcd = Hmisc::approxExtrap(x = rmcd[rmcd$H == "A", ]$`Depth (mbsf)`,
+  ##                              y = rmcd[rmcd$H == "A", ]$depth_rmcd,
+  ##                              xout = `Depth (mbsf)`)$y) |>
+  ##   ## tail() |>
+  ##   ## print(width = Inf)
+  ##   bind_rows(
+  ##     # the rmcd splice table goes down to 329 mbsf for hole B, the MS data goes down to 329 mbsf
+  ##     ODP208_1267_MS_B |>
+  ##     mutate(Sec = as.character(Sec)) |>
+  ##     mutate(depth_rmcd = Hmisc::approxExtrap(x = rmcd[rmcd$H == "B", ]$`Depth (mbsf)`,
+  ##                                             y = rmcd[rmcd$H == "B", ]$depth_rmcd,
+  ##                                             xout = `Depth (mbsf)`)$y)
+  ##   )
+
+  MS |>
+    # I'd like to NOT plot the lines between the core gaps, so I group by Core
+    ## add_row(Leg = rep("208", length(lasts)), .after = lasts[1])
+    ## rows_insert()
+    ggplot(aes(x = my_rmcd, y = `Corrected Suscept.`, colour = H, group = Core)) +
+    geom_line(aes(alpha = on_splice))
+#+end_src
+
+I think that did it!
+
+*** shipboard agemodel [cite:@Zachos2004]
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 09:46]
+:END:
+http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_f28.htm#554657
+
+#+begin_src R
+  agem_sb <- readr::read_tsv("http://www-odp.tamu.edu/publications/208_IR/VOLUME/TABLES/IR208_08/08_T14.TXT",
+                             comment = "#", skip = 4)
+#+end_src
+
+get section mbsf depth
+#+begin_src R
+  mbsf <- readr::read_tsv("dat/ODP208_1267_core-section-summary.dat")
+  mcd <- readr::read_tsv("dat/ODP208_1267_splice-mcd.dat") |>
+    mutate(length = `MCD Bot` - `MCD Top`)
+#+end_src
+*** agemodel from Neptune database [cite:@Renaudie2020]
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 09:43]
+:END:
+#+begin_src R
+  agem3 <- readr::read_tsv("dat/Renaudie2020/agem.csv")
+
+  agem3 |>
+    ggplot(aes(x = `Depth (mbsf)`, y = `Age (Ma)`)) +
+    geom_line() +
+    geom_line(aes(x = `Depth (mcd)`), data = agem_sb, colour = "red")
+#+end_src
 *** agemodels from [cite:@Westerhold2008]
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:22]
@@ -760,83 +1014,19 @@ age from 56 Ma to 69.1 Ma
   agem2 <- readr::read_csv("dat/Batenburg2018/site_1267_agemodel.csv") #|>
   ## summarize(d = range(depth_rmcd), a = range(age_ma))
 #+end_src
-*** NEXT [#B] convert from mbsf and mcd to rmcd
+
+#+RESULTS:
+*** apply the agemodel to the MS data
 :PROPERTIES:
-:CREATED:  [2023-09-19 Tue 11:29]
+:CREATED:  [2023-09-20 Wed 15:49]
 :END:
 #+begin_src R
-  # https://doi.pangaea.de/10.1594/PANGAEA.666132
-  # NO! This is 1267 rmcd vs 1262 mcd!!!
-  rmcd <- pangaear::pg_data("10.1594/pangaea.666132")[[1]]$data
-  # this only covers mcd 104--236
-  # but I care only about depths in mbsf > ~285.9
-  ## ODP208_1267_MS$data |>
-  ##   filter(`Depth sed [m]` > 285)
-  # so that's roughly 320 rmcd
-
-  # I have Depth comp [mcd] in my original MS dataset
-
-  ## # add rmcd depth
-  dat <- dat |>
-    astrochron::tune(controlPts = rmcd, genplot = FALSE)
-    mutate(rmcd = approx(x = rmcd$`Depth comp [mcd]`,
-                         y = rmcd$`Depth comp r [rmcd]`,
-                         xout = dat$`Depth comp [mcd]`)$y)
+  MS |>
+    mutate(age = approx(agem2$depth_rmcd, agem2$age_ma,
+                        xout = my_rmcd)$y) |>
+    ggplot(aes(x = age, y = `Corrected Suscept.`)) +
+    geom_line(aes(colour = H, group = paste(H, Core)))
 #+end_src
-why do we need this? It would allow me to apply the agemodel of others' to our record to check, what else?
-
-**** splice table from Westerhold PDF
-maybe this one?
-https://doi.pangaea.de/10.1594/PANGAEA.592301
-
-another PDF :S
-[[file:~/Downloads/208-1267_TabS7_tie_points.pdf]]
-
-this has hole core section interval depth_mbsf depth_rmcd
-tie to / append to / end of splice
-new mbsf / rmcd
-
-manually converted to csv again
-
-this links hole A to hole B and vice-versa
-depth_mbsf from 25.2 m to 329
-depth_rmcd from 28.6 m to 367 m
-#+begin_src R
-  rmcd <- readr::read_csv("dat/ODP208_1267_rmcd.csv") |>
-    mutate(hole = str_sub(label, start = 5, end = 5),
-           hole2 = str_sub(label2, start = 5, end = 5)) |>
-    mutate(row = 1:n())
-
-  rmcd |>
-    ggplot(aes(x = depth_mbsf, y = row)) +
-    geom_point(color = "blue", alpha = .2) +
-    geom_point(aes(x = depth_mbsf2), color = "red", alpha = .2) +
-    geom_segment(aes(xend = depth_mbsf2, yend = row),
-                 arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed"))
-
-  rmcd |>
-    ggplot(aes(x = depth_rmcd, y = row)) +
-    geom_point(color = "blue", alpha = .2) +
-    geom_point(aes(x = depth_rmcd2), color = "red", alpha = .2) +
-    geom_segment(aes(xend = depth_rmcd2, yend = row),
-                 arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed"))
-#+end_src
-
-**** janus web tool
-does this do what I want?
-https://web.iodp.tamu.edu/janusweb/general/splice.cgi
-doesn't work anymore
-
-**** original shipboard report
-:PROPERTIES:
-:CREATED:  [2023-09-20 Wed 09:34]
-:END:
-convert mbsf to mcd
-http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t2.htm#563154
-
-single splice table
-http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t3.htm#564205
-table also available in ASCII: http://www-odp.tamu.edu/publications/208_IR/VOLUME/TABLES/IR208_08/08_T03.TXT
 *** colour reflectance data from Janus database?
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:23]
