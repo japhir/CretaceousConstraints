@@ -642,7 +642,7 @@ combined with Bottaccione
 #+RESULTS:
 [[file:imgs/Contessa_MS_Sinnesael2016.png]]
 
-** [#A] ODP Leg 208 Site 1267B
+** [#A] ODP Leg 208 Site 1267
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:49]
 :END:
@@ -661,7 +661,7 @@ depth comp [mcd] from 0.05 to 368 m
 
 208-1267B-1H-1,5 to 208-1267B-36X-7,37.5
 
-#+begin_src R :results output graphics file :file imgs/208-1267B_MS_Husson-fig4.png :width 900 :height 500
+#+begin_src R :results output none
   library(tidyverse)
   theme_set(theme_bw())
 
@@ -675,10 +675,11 @@ depth comp [mcd] from 0.05 to 368 m
   # so we have Depth (mbsf) and would like to convert it to the new rmcd
 #+end_src
 
+
 #+begin_src R :results output graphics file :file imgs/208-1267B_MS_Husson-fig4.png :width 900 :height 500
   # somehow they also put these data on PANGAEA (I found this one first)
   # this is for hole B
-  ODP208_1267_MS <- pangaear::pg_data("10.1594/PANGAEA.266605")[[1]]
+  ODP208_1267_MS_B_pg <- pangaear::pg_data("10.1594/PANGAEA.266605")[[1]]
 
   ## ODP208_1267_MS$data |>
   ##   select(`Sample label`) |>
@@ -689,7 +690,7 @@ depth comp [mcd] from 0.05 to 368 m
   ##   separate(coretype, into = c("core", "type"), sep = -1) |>
   ##   write_csv("out/ODP208_1267_MS.csv")
 
-  dat <- ODP208_1267_MS$data |>
+  dat <- ODP208_1267_MS_B_pg$data |>
     select(depth = `Depth sed [m]`, MS = `Suscept corr`) |>
     filter(depth >= 285.9)
 
@@ -768,13 +769,30 @@ single splice table
 http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t3.htm#564205
 
 table also available in ASCII: http://www-odp.tamu.edu/publications/208_IR/VOLUME/TABLES/IR208_08/08_T03.TXT
+**** shipboard section mbsf/mcd
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:20]
+:END:
+#+begin_src R
+  mbsf <- readr::read_tsv("dat/ODP208_1267_core-section-summary.dat")
+  mcd <- readr::read_tsv("dat/ODP208_1267_splice-mcd.dat") |>
+    mutate(length = `MCD Bot` - `MCD Top`)
+#+end_src
 **** CANC janus web tool
 CLOSED: [2023-09-20 Wed 11:32]
 does this do what I want?
 https://web.iodp.tamu.edu/janusweb/general/splice.cgi
 doesn't work anymore
 
-**** splice table from Westerhold PDF
+**** splice table from Röhl 2007
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 11:19]
+:END:
+https://doi.pangaea.de/10.1594/PANGAEA.667174?format=html#download
+this has depth from 202.78 m(bsf?) to 209 m
+from 227.08 to 235.24 rmcd
+
+**** splice table from [cite:@Westerhold2008] PDF
 maybe this one?
 https://doi.pangaea.de/10.1594/PANGAEA.592301
 
@@ -794,18 +812,21 @@ depth_rmcd from 28.6 m to 367 m
 same as shipboard MCD above 180.25 MCD, adjusted below
 
 #+begin_src R
+  # the full splice table
   rmcd <- readr::read_csv("dat/ODP208_1267_rmcd.csv") |>
     separate(label, into = c("sitehole", "coretype", "Sec"),
                sep = "-", remove = FALSE) |>
     separate(sitehole, into = c("Site", "H"), sep = -1) |>
     separate(coretype, into = c("Core", "T"), sep = -1) |>
     # we do not rename the interval, may not be the same as in the data!
-    mutate(Sec = ifelse(Sec == "7", "C", Sec),
-           Sec = ifelse(Sec == "cc", "C", Sec)) |>
+    # rename the CC sections into 7, the naming convention in the MS data
+    mutate(Sec = ifelse(Sec == "7", "7", Sec),
+           Sec = ifelse(Sec == "cc", "7", Sec)) |>
     mutate(diff = depth_rmcd - depth_mbsf, .after = depth_rmcd) |>
     mutate(diff2 = depth_rmcd2 - depth_mbsf2, .after = depth_rmcd2) |>
     mutate(row = 1:n())
 
+  # the right side of the splice table only
   rmcd2 <- rmcd |>
     select(label, link, label2, interval2, depth_mbsf2, depth_rmcd2, diff2, row) |>
     separate(label2, into = c("sitehole", "coretype", "Sec"),
@@ -813,10 +834,24 @@ same as shipboard MCD above 180.25 MCD, adjusted below
     separate(sitehole, into = c("Site", "H"), sep = -1) |>
     separate(coretype, into = c("Core", "T"), sep = -1) |>
     # we do not rename the interval, may not be the same as in the data!
-    mutate(Sec = ifelse(Sec == "7", "C", Sec),
-           Sec = ifelse(Sec == "cc", "C", Sec))
+    mutate(Sec = ifelse(Sec == "7", "7", Sec),
+           Sec = ifelse(Sec == "cc", "7", Sec))
 #+end_src
 
+#+RESULTS:
+: indexing ODP208_1267_rmcd.csv [====================================================] 490.28MB/s, eta:  0s                                                                                                                                            Rows: 61 Columns: 9
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr (3): label, link, label2
+: dbl (6): interval, depth_mbsf, depth_rmcd, interval2, depth_mbsf2, depth_rmcd2
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+***** plots to try to understand the splice table
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 17:15]
+:END:
 #+begin_src R
   rmcd |>
     ggplot(aes(x = depth_mbsf, y = depth_rmcd, colour = H)) +
@@ -847,18 +882,6 @@ same as shipboard MCD above 180.25 MCD, adjusted below
     coord_cartesian(xlim = c(-4, 6))
 #+end_src
 
-**** splice table from Röhl 2007
-:PROPERTIES:
-:CREATED:  [2023-09-20 Wed 11:19]
-:END:
-https://doi.pangaea.de/10.1594/PANGAEA.667174?format=html#download
-this has depth from 202.78 m(bsf?) to 209 m
-from 227.08 to 235.24 rmcd
-
-**** apply the splice table to the magsus data
-:PROPERTIES:
-:CREATED:  [2023-09-20 Wed 10:43]
-:END:
 understand the splice table
 #+begin_src R
   ODP208_1267_MS_A |>
@@ -866,7 +889,7 @@ understand the splice table
     ggplot(aes(x = `Depth (mbsf)`,
                y = `Corrected Suscept.`,
                colour = H, group = H,
-               Site = Site, Core = Core, T = T, Sec = Sec, `Top (cm)` = `Top (cm)`)) +
+               Site = Site, Core = Core, T = T, Sec = Sec)) +
     geom_line() +
     geom_line(aes(y = `Corrected Suscept.` + 100), data = ODP208_1267_MS_B) +
     # this shows how the holes line up from XRF data and MS data
@@ -878,7 +901,13 @@ understand the splice table
                  data = rmcd |> filter(H == "B")) #+
     # this shows the stretching they applied after
     ## geom_segment(aes(xend = depth_rmcd2, y = 0, yend = 500), data = rmcd)
+#+end_src
 
+**** apply the splice table to the magsus data
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 10:43]
+:END:
+#+begin_src R
   # add Magsus from hole A and B to the same dataframe
   MS <- ODP208_1267_MS_A |>
     mutate(Sec = as.character(Sec)) |>
@@ -897,6 +926,10 @@ understand the splice table
                        rename(section2 = Sec) |>
                        select(from = label, bot = label2,
                               Site, H, Core, T, section2, interval2, depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
+    # I tried the full_joins for both, which adds
+    #> 1267A-26H-7	1267B-27X-4	7	10	244.7	275.3	30.6	46
+    # and
+    #> 1267B-36X-C							61
     # the ties represent jumps to another depth, anything above the jump should be included
     ## mutate(seclsec = Sec < section,
     ##        secesec = Sec == section,
@@ -904,8 +937,8 @@ understand the splice table
     ##        topleint = `Top (cm)` <= interval,
     ##        my_rmcd =
     mutate(my_rmcd = case_when(
-    (Sec < section | ((Sec == section) & (`Top (cm)` <= interval))) ~ `Depth (mbsf)` + diff,
-    (Sec > section2 | ((Sec == section2) & `Top (cm)` >= interval2)) ~ `Depth (mbsf)` + diff2,
+    (Sec <= section) | ((Sec == section) & (`Top (cm)` <= interval)) ~ `Depth (mbsf)` + diff,
+    (Sec >= section2) | ((Sec == section2) & (`Top (cm)` >= interval2)) ~ `Depth (mbsf)` + diff2,
     TRUE ~ NA_real_)) |>
     mutate(on_splice = (Sec < section | ((Sec == section) & (`Top (cm)` <= interval))) &
            (Sec > section2 | ((Sec == section2) & `Top (cm)` >= interval2))) |>
@@ -936,12 +969,112 @@ understand the splice table
     # I'd like to NOT plot the lines between the core gaps, so I group by Core
     ## add_row(Leg = rep("208", length(lasts)), .after = lasts[1])
     ## rows_insert()
-    ggplot(aes(x = my_rmcd, y = `Corrected Suscept.`, colour = H, group = Core)) +
+    ggplot(aes(x = my_rmcd, y = `Corrected Suscept.`, colour = H, group = paste(H, Core, T, Sec),
+               Sec = Sec)) +
     geom_line(aes(alpha = on_splice))
+
+  ## MS |>
+  ##   ggplot(aes(x = `Depth (mbsf)`, y = `Corrected Suscept.`, colour = H, group = paste(H, Core, T))) +
+  ##   geom_line(aes(alpha = on_splice))
 #+end_src
+
+#+RESULTS:
+#+begin_example
+Joining with `by = join_by(Site, H, Core, T)`
+left_join: added 8 columns (top, to, section, interval, depth_mbsf, …)
+rows only in x    2,494
+rows only in y  (     1)
+matched rows     20,745
+                ========
+rows total       23,239
+Joining with `by = join_by(Site, H, Core, T)`
+left_join: added 8 columns (from, bot, section2, interval2, depth_mbsf2, …)
+rows only in x    2,510
+rows only in y  (     1)
+matched rows     20,729
+                ========
+rows total       23,239
+wrote 21.46kB in  0s, 2.14GB/swrote 1.00TB in  0s, 28.44TB/s                                                                                                       > > > > > > > > > > > > > > > > > > > > > . + Warning messages:
+1: Using alpha for a discrete variable is not advised.
+2: Removed 2230 rows containing missing values (`geom_line()`).
+#+end_example
 
 I think that did it!
 
+**** [#B] get_rmcd function
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:58]
+:END:
+#+begin_src R
+  get_rmcd <- function(data, rmcd = "dat/ODP208_1267_rmcd.csv") {
+    rmcd <- readr::read_csv(rmcd) |>
+      separate(label, into = c("sitehole", "coretype", "Sec"),
+                 sep = "-", remove = FALSE) |>
+      separate(sitehole, into = c("Site", "H"), sep = -1) |>
+      separate(coretype, into = c("Core", "T"), sep = -1) |>
+      # we do not rename the interval, may not be the same as in the data!
+      # rename the CC sections into 7, the naming convention in the MS data
+      mutate(Sec = ifelse(Sec == "7", "7", Sec),
+             Sec = ifelse(Sec == "cc", "C", Sec)) |>
+      mutate(diff = depth_rmcd - depth_mbsf, .after = depth_rmcd) |>
+      mutate(diff2 = depth_rmcd2 - depth_mbsf2, .after = depth_rmcd2) |>
+      mutate(row = 1:n())
+
+    # the right side of the splice table only
+    rmcd2 <- rmcd |>
+      select(label, link, label2, interval2, depth_mbsf2, depth_rmcd2, diff2, row) |>
+      separate(label2, into = c("sitehole", "coretype", "Sec"),
+                 sep = "-", remove = FALSE) |>
+      separate(sitehole, into = c("Site", "H"), sep = -1) |>
+      separate(coretype, into = c("Core", "T"), sep = -1) |>
+      # we do not rename the interval, may not be the same as in the data!
+      mutate(Sec = ifelse(Sec == "7", "7", Sec),
+             Sec = ifelse(Sec == "cc", "C", Sec))
+
+    out <- data |>
+      tidylog::left_join(rmcd |>
+                       # make the types the same
+                       mutate(across(c(Site, Core), parse_double)) |>
+                       # do NOT match by section, only by core!
+                       rename(section = Sec) |>
+                       select(top = label, to = label2,
+                              Site, H, Core, T, section, interval, depth_mbsf, depth_rmcd, diff, row)) |>
+      # add the right-hand side of the splice table
+      tidylog::left_join(rmcd2 |>
+                         mutate(across(c(Site, Core), parse_double)) |>
+                         rename(section2 = Sec) |>
+                         select(from = label, bot = label2,
+                                Site, H, Core, T, section2, interval2, depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
+    mutate(my_rmcd = case_when(
+    (Sec <= section) | ((Sec == section) & (`Top (cm)` <= interval)) ~ `Depth (mbsf)` + diff,
+    (Sec >= section2) | ((Sec == section2) & (`Top (cm)` >= interval2)) ~ `Depth (mbsf)` + diff2,
+    TRUE ~ NA_real_)) |>
+    mutate(on_splice = (Sec < section | ((Sec == section) & (`Top (cm)` <= interval))) &
+           (Sec > section2 | ((Sec == section2) & `Top (cm)` >= interval2))) |>
+      mutate(on_splice = ifelse(is.na(on_splice), FALSE, on_splice))
+
+    return(out)
+  }
+#+end_src
+
+#+RESULTS:
+
+*** SOME currently some issue with A26/B27 but I'm not interested in that interval anyway
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 17:32]
+:END:
+:LOGBOOK:
+- State "SOME"       from "NEXT"       [2023-09-20 Wed 17:32]
+:END:
+
+*** NEXT double-check with the excel file
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 09:22]
+:END:
+*** NEXT fix issue with overlapping depth in A31-4 and B32-5
+:PROPERTIES:
+:CREATED:  [2023-09-20 Wed 17:32]
+:END:
 *** shipboard agemodel [cite:@Zachos2004]
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 09:46]
@@ -953,13 +1086,33 @@ http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_f28.htm#554657
                              comment = "#", skip = 4)
 #+end_src
 
-get section mbsf depth
-#+begin_src R
-  mbsf <- readr::read_tsv("dat/ODP208_1267_core-section-summary.dat")
-  mcd <- readr::read_tsv("dat/ODP208_1267_splice-mcd.dat") |>
-    mutate(length = `MCD Bot` - `MCD Top`)
-#+end_src
-*** agemodel from Neptune database [cite:@Renaudie2020]
+#+RESULTS:
+#+begin_example
+indexed 218.00B in  0s, 7.82MB/s                                                                                                       indexed 1.00TB in  0s, 1.41PB/s                                                                                                       New names:
+• `` -> `...11`
+• `` -> `...12`
+• `` -> `...13`
+• `` -> `...14`
+• `` -> `...15`
+• `` -> `...16`
+• `` -> `...17`
+• `` -> `...18`
+• `` -> `...19`
+Rows: 66 Columns: 19
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+dbl (10): Age (Ma), Depth (mcd), LSR, Growth factor, Corrected LSR, Dry density (g/cm3), CaCO3 (wt%),...
+lgl  (9): ...11, ...12, ...13, ...14, ...15, ...16, ...17, ...18, ...19
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Warning message:
+One or more parsing issues, call `problems()` on your data frame for details, e.g.:
+  dat <- vroom(...)
+  problems(dat)
+#+end_example
+
+*** agemodel from Neptune database [cite:@Renaudie2020] (only hole B)
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 09:43]
 :END:
@@ -971,6 +1124,17 @@ get section mbsf depth
     geom_line() +
     geom_line(aes(x = `Depth (mcd)`), data = agem_sb, colour = "red")
 #+end_src
+
+#+RESULTS:
+: indexing agem.csv [=================================================================] 43.52MB/s, eta:  0s                                                                                                                                            Rows: 22 Columns: 4
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: "\t"
+: chr (2): Hole, Comment
+: dbl (2): Age (Ma), Depth (mbsf)
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
 *** agemodels from [cite:@Westerhold2008]
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:22]
@@ -1003,7 +1167,7 @@ site 1267 range or rmcd = 311.39 m to 336.1 m
 
 #+RESULTS:
 [[file:imgs/agem_Westerhold2008.png]]
-*** agemodel from [cite:@Batenburg2018a]
+*** [#B] agemodel from [cite:@Batenburg2018a]
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 09:14]
 :END:
@@ -1016,6 +1180,37 @@ age from 56 Ma to 69.1 Ma
 #+end_src
 
 #+RESULTS:
+: indexing site_1267_agemodel.csv [==================================================] 173.43MB/s, eta:  0s                                                                                                                                            Rows: 65 Columns: 3
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr (1): strat_event
+: dbl (2): depth_rmcd, age_ma
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+*** plot agem
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:25]
+:END:
+#+begin_src R :results output graphics file :file imgs/208-1267B_agem.png :width 900 :height 500
+  agem |>
+    ggplot() +
+    geom_line(aes(x = `Depth (mcd)`, y = `Age (Ma)`,
+                  colour = "Shipboard Scientific Party 2004"), data = agem_sb) +
+    geom_line(aes(x = `Depth (mbsf)`, y = `Age (Ma)`,
+                  colour = "Renaudi 2020 Neptune db (mbsf!)"), data = agem3) +
+    geom_line(aes(x = site1267_rmcd, y = age_La2004_1 / 1000,
+                  colour = "Westerhold et al., 2008 option 1")) +
+    geom_line(aes(x = site1267_rmcd, y = age_La2004_2 / 1000,
+                  colour = "Westerhold et al., 2008 option 2")) +
+    geom_line(aes(x = depth_rmcd, y = age_ma,
+                  colour = "Batenburg et al., 2018"), data = agem2) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = 66, ymax = 80, fill = "yellow", alpha = .3)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/208-1267B_agem.png]]
+
 *** apply the agemodel to the MS data
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 15:49]
@@ -1024,9 +1219,17 @@ age from 56 Ma to 69.1 Ma
   MS |>
     mutate(age = approx(agem2$depth_rmcd, agem2$age_ma,
                         xout = my_rmcd)$y) |>
-    ggplot(aes(x = age, y = `Corrected Suscept.`)) +
+    ggplot(aes(x = age, y = `Corrected Suscept.`,
+               alpha = on_splice,
+               Sec = Sec)) +
     geom_line(aes(colour = H, group = paste(H, Core)))
 #+end_src
+
+#+RESULTS:
+: Warning messages:
+: 1: Using alpha for a discrete variable is not advised.
+: 2: Removed 15764 rows containing missing values (`geom_line()`).
+
 *** colour reflectance data from Janus database?
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:23]
@@ -1039,6 +1242,7 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
   ODP208_1267_color_A <- readr::read_tsv("dat/ODP208_1267_color-reflectance.dat")
   ODP208_1267_color_B <- readr::read_tsv("dat/ODP208_1267_color-reflectance_B.dat")
 
+  # dat is only hole B for now
   dat <- ODP208_1267_color_B |>
     select(depth = `Depth (mbsf)`,
            Lstar = `L*`,
@@ -1046,7 +1250,7 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
            bstar = `b*`) |>
     filter(depth >= 285.9) |>
     mutate(aob = scale(astar / bstar)[, 1]) |>
-    select(depth, astar, everything())
+    select(depth, aob, everything())
 
   # raw data with simple loess curve
   dat |>
@@ -1055,93 +1259,34 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
     geom_line(aes(x = `Depth (mbsf)`, y = `L*`), data = ODP208_1267_color_A, alpha = .2) +
     geom_smooth(method = "loess", span = .2) +
     geom_smooth(method = "gam", color = "orange")
-
-  # let's see how sensitive it is to the span or to size of the rolling mean
-
-  fit_loess <- loess(Lstar ~ depth, data = dat, span = .75)
-  fit_gam <- mgcv::gam(Lstar ~ depth, data = dat)
-
-  lp <- dat |>
-    select(depth, Lstar_scl) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::lowpass(fcut = 1 / 15) # how do you decide which frequency to cull?
-  # this is linearly interpolated so it can't go into the other df
-
-  dat <- dat |>
-    mutate(
-      # there are several methods of calculating a rolling average
-      ## ma = roll::roll_mean() # that's left-aligned
-      ## ma = zoo::rollmean(Lstar, k = 33, align = "center", na.pad = TRUE),
-      # I prefer the slider implementation, it's FAAAST
-      # I've played around with the size of the window. If I make it larger,
-      # more low-frequency peaks are preserved.
-      ma = slider::slide_mean(Lstar, before = 3, after = 3),
-      loess = predict(fit_loess),
-      gam = predict(fit_gam),
-      Lstar_scl = scale(Lstar),
-      Lstar_loess_scl = scale(Lstar - loess),
-      Lstar_gam_scl = scale(Lstar - loess),
-      Lstar_ma_scl = scale(Lstar - ma))
-
-  dat |>
-    ggplot(aes(x = depth, y = Lstar)) +
-    geom_line(alpha = .3) +
-    geom_line(aes(y = loess), colour = "orange") +
-    geom_line(aes(y = gam), colour = "red") +
-    geom_line(aes(y = ma), colour = "indianred")
-
-  dat |>
-    ggplot(aes(x = depth, y = Lstar_scl)) +
-    geom_line() +
-    geom_line(aes(y = Lstar_loess_scl + 3), colour = "orange") +
-    geom_line(aes(y = Lstar_gam_scl + 6), colour = "red") +
-    geom_line(aes(y = Lstar_ma_scl + 9), colour = "indianred")
-
-  dat |>
-    drop_na() |>
-    select(depth,
-           Lstar,
-           ## Lstar_loess_scl
-           ## Lstar_gam_scl
-           ## Lstar_ma_scl
-           ) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::mtm(output = 1) |>
-    as_tibble()
-
-  # I like gam I think?
-
-  filt_bp <- dat |>
-    drop_na() |>
-    select(depth, Lstar_gam_scl) |>
-    astrochron::linterp(genplot = FALSE) |>
-    ## astrochron::bandpass(flow = 0, fhigh = .3, win = 0, xmax = 1) |> # uniform window
-    astrochron::bandpass(flow = 2., fhigh = 3., win = 1, xmax = 10) |> # gaussian window
-    ## astrochron::taner(flow = 0, fhigh = .3, xmax = 1) |> # taner window
-    as_tibble()
-
-  filt_bp |>
-    astrochron::hilbert(genplot = FALSE) |>
-    astrochron::peak() |>
-    as_tibble()
-
-  dat |>
-    ggplot(aes(x = depth, y = Lstar_gam_scl)) +
-    geom_line(alpha = .3) +
-    geom_line(data = filt_bp)
 #+end_src
 
 #+RESULTS:
-: indexed 0B in  0s, 0B/sindexed 1.00TB in  0s, 44.17TB/s                                                                                                       Rows: 25316 Columns: 15
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
-: Delimiter: "\t"
-: chr  (4): H, T, Sec, Munsell_HVC
-: dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
-:
-: ℹ Use `spec()` to retrieve the full column specification for this data.
-: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+#+begin_example
+indexed 0B in  0s, 0B/sindexed 1.00TB in  0s, 55.64TB/s                                                                                                       Rows: 25316 Columns: 15
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr  (4): H, T, Sec, Munsell_HVC
+dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
 
-**** do spectral analysis
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+indexing ODP208_1267_color-reflectance_B.dat [=====================================] 130.62GB/s, eta:  0s                                                                                                                                            Rows: 13263 Columns: 15
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr  (4): H, T, Sec, Munsell_HVC
+dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
++ + `geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ s(x, bs = "cs")'
+#+end_example
+**** do analysis of hole B in the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 12:42]
+:END:
+***** do spectral analysis
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 12:14]
 :END:
@@ -1167,13 +1312,13 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
     # highlight what filters are being used by Husson 2011
     annotate("rect", xmin = 0., xmax = .25, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
     annotate("rect", xmin = 0., xmax = .9, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
-    coord_cartesian(xlim = c(0, 3))
+    coord_cartesian(xlim = c(0, 10))
 #+end_src
 
 #+RESULTS:
 [[file:imgs/208-1267B_color_mtm.png]]
 
-**** use taner filters
+***** use taner filters
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 12:16]
 :END:
@@ -1193,7 +1338,25 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
   ##   astrochron::bandpass(flow = .1, fhigh = .5, win = 1, xmax = 5)
 #+end_src
 
-**** plot the filters and the record
+#+RESULTS:
+#+begin_example
+----- TANER BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1840
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= 11.30448
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+#+end_example
+
+***** plot the filters and the record
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 12:16]
 :END:
@@ -1213,7 +1376,7 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
 #+RESULTS:
 [[file:imgs/208-1267B_color.png]]
 
-**** get the maxima of the 405 kyr filter
+***** get the maxima of the 405 kyr filter
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 12:17]
 :END:
@@ -1333,6 +1496,431 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
   collapsing to unique 'x' values
 #+end_example
 
+***** remove long-term trends in the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:39]
+:END:
+#+begin_src R
+  fit_loess <- loess(aob ~ depth, data = dat, span = .75)
+  fit_gam <- mgcv::gam(aob ~ s(depth, bs = "cs"), data = dat)
+
+  lp <- dat |>
+    select(depth, aob## Lstar_scl
+           ) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::lowpass(fcut = 1 / 15) # how do you decide which frequency to cull?
+  # this is linearly interpolated so it can't go into the other df
+
+  # let's see how sensitive it is to the span or to size of the rolling mean
+  dat <- dat |>
+    mutate(
+      # there are several methods of calculating a rolling average
+      ## ma = roll::roll_mean() # that's left-aligned
+      ## ma = zoo::rollmean(Lstar, k = 33, align = "center", na.pad = TRUE),
+      # I prefer the slider implementation, it's FAAAST
+      # I've played around with the size of the window. If I make it larger,
+      # more low-frequency peaks are preserved.
+      ma = slider::slide_mean(aob, before = 3, after = 3),
+      loess = predict(fit_loess),
+      gam = predict(fit_gam),
+      scl = scale(Lstar)[, 1],
+      loess_scl = scale(aob - loess)[, 1],
+      gam_scl = scale(aob - loess)[, 1],
+      ma_scl = scale(aob - ma)[, 1])
+
+  dat |>
+    ggplot(aes(x = depth, y = aob)) +
+    geom_line(alpha = .3) +
+    geom_line(aes(y = loess), colour = "orange") +
+    geom_line(aes(y = gam), colour = "red") +
+    geom_line(aes(y = ma), colour = "indianred")
+
+  dat |>
+    ggplot(aes(x = depth, y = aob)) +
+    geom_line() +
+    geom_line(aes(y = loess_scl + 3), colour = "orange") +
+    geom_line(aes(y = gam_scl + 6), colour = "red") +
+    geom_line(aes(y = ma_scl + 9), colour = "indianred")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+----- LOWPASS FILTERING STRATIGRAPHIC SERIES-----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1840
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= 0.01953956
+ ,* 5 pos/neg frequency pairs and f(0) will be bandpassed
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+#+end_example
+
+***** do mtm analysis  in the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:55]
+:END:
+#+begin_src R
+  dat |>
+    drop_na() |>
+    select(depth,
+           ## aob
+           ## Lstar,
+           ## loess_scl
+           gam_scl
+           ## ma_scl
+           ) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::mtm(output = 1, xmax = 10) |>
+    as_tibble()
+#+end_src
+
+#+RESULTS:
+#+begin_example
+----- PERFORMING Multitaper Spectral Analysis -----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1840
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points in stratigraphic series: 1733
+ ,* Stratigraphic series length (space or time): 43.3
+ ,* Sampling interval (space or time): 0.025
+ ,* Will use default setting of 5 DPSS tapers
+ ,* Mean value subtracted= -0.01233601
+ ,* Linear trend NOT subtracted
+ ,* Nyquist frequency: 20
+ ,* Rayleigh frequency: 0.02308136
+ ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.06924409
+ ,* Padded to 8666 points
+
+ ,* Searching for significant spectral peaks that satisfy 90 % CL
+     requirements outlined in Meyers (2012):
+ ,* Number of significant F-test peaks identified = 45
+ID  / Frequency / Period / Harmonic_CL / Rednoise_CL
+1   0.04154166   24.07222   99.99332   94.47068
+2   0.3507962   2.850658   95.40414   99.34413
+3   0.549273   1.820588   99.92272   90.23704
+4   0.6600508   1.515035   91.19649   59.47227
+5   2.506347   0.3989871   99.89627   96.12123
+6   2.594046   0.3854982   92.44308   83.04771
+7   4.264943   0.2344697   92.16859   88.38001
+8   6.106624   0.1637566   99.97574   64.24839
+9   7.957535   0.1256671   98.02938   84.56849
+10   8.156012   0.1226089   99.56273   93.39497
+11   8.636049   0.1157937   93.77362   89.15927
+12   9.162243   0.1091436   94.5318   94.81719
+13   9.254558   0.1080549   97.12304   91.02518
+14   9.780752   0.1022416   99.23594   89.6252
+15   10.58389   0.09448321   97.63208   95.19877
+16   11.0547   0.09045929   95.38273   71.77478
+17   11.17009   0.08952479   93.31012   94.37374
+18   11.23933   0.08897331   94.41622   69.61838
+19   11.34549   0.08814076   97.56208   82.46031
+20   11.65474   0.08580198   96.46021   92.3349
+21   12.3748   0.0808094   95.08567   97.70813
+22   12.6379   0.0791271   93.61368   93.78243
+23   12.91946   0.07740264   93.58463   98.73064
+24   13.021   0.07679901   99.36298   62.93381
+25   13.99954   0.07143093   93.04069   69.35024
+26   14.09647   0.07093975   99.0737   99.23679
+27   14.3688   0.06959525   98.67312   65.13055
+28   14.43803   0.06926151   98.13179   88.08993
+29   14.62266   0.06838699   93.05752   71.92128
+30   14.81652   0.06749221   93.207   97.05258
+31   14.92269   0.06701206   98.81422   88.95434
+32   15.26425   0.06551255   90.32211   64.95676
+33   15.31964   0.06527569   90.27383   91.41624
+34   15.62428   0.06400295   97.41725   85.49958
+35   16.00277   0.06248918   97.92565   69.38568
+36   17.09208   0.05850662   94.68049   88.8287
+37   17.56751   0.05692328   94.9835   98.48725
+38   17.70598   0.0564781   95.94265   67.11723
+39   17.7706   0.05627273   94.22985   82.84472
+40   17.80291   0.0561706   94.13535   73.71871
+41   17.91369   0.05582324   99.42751   89.83134
+42   18.30141   0.05464061   90.21182   73.95803
+43   18.47681   0.05412191   99.35286   58.34943
+44   18.5645   0.05386624   99.42883   60.71567
+45   19.87076   0.0503252   99.8528   87.81698
+# A tibble: 4,332 × 8
+   Frequency   Power Harmonic_CL AR1_CL AR1_fit AR1_90_power AR1_95_power AR1_99_power
+       <dbl>   <dbl>       <dbl>  <dbl>   <dbl>        <dbl>        <dbl>        <dbl>
+ 1   0.00462 0.00804        7.33   99.8 0.00296      0.00473      0.00542      0.00687
+ 2   0.00923 0.00779        1.57   99.7 0.00296      0.00473      0.00542      0.00687
+ 3   0.0138  0.00746        1.54   99.5 0.00296      0.00473      0.00542      0.00687
+ 4   0.0185  0.00706       19.9    99.2 0.00296      0.00473      0.00542      0.00687
+ 5   0.0231  0.00658       57.2    98.6 0.00296      0.00473      0.00542      0.00687
+ 6   0.0277  0.00608       89.2    97.5 0.00296      0.00473      0.00542      0.00687
+ 7   0.0323  0.00568       99.3    96.2 0.00296      0.00473      0.00542      0.00687
+ 8   0.0369  0.00546      100.     95.2 0.00296      0.00473      0.00542      0.00687
+ 9   0.0415  0.00532      100.     94.5 0.00296      0.00473      0.00542      0.00687
+10   0.0462  0.00512       99.5    93.2 0.00296      0.00473      0.00542      0.00687
+# ℹ 4,322 more rows
+# ℹ Use `print(n = ...)` to see more rows
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+#+end_example
+
+***** bandpass filtering in the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:56]
+:END:
+#+begin_src R
+  # I like gam I think?
+  filt_bp_2.4 <- dat |>
+    drop_na() |>
+    select(depth, gam_scl) |>
+    astrochron::linterp(genplot = FALSE) |>
+    # this is peak no 1
+    astrochron::bandpass(flow = 0.042 - .15 * .042, fhigh = 0.042 + .15 * .042, win = 1, xmax = 1) |> # gaussian window
+    ## astrochron::taner(flow = 0, fhigh = .3, xmax = 1) |> # taner window
+    as_tibble()
+
+  filt_bp_405 <- dat |>
+    drop_na() |>
+    select(depth, gam_scl) |>
+    astrochron::linterp(genplot = FALSE) |>
+    ## astrochron::bandpass(flow = 0, fhigh = .3, win = 0, xmax = 1) |> # uniform window
+    # this is peak no 2, no 3 = 0.5
+    astrochron::bandpass(flow = 0.35 - .15 * .35, fhigh = 0.35 + .15 * .35, win = 1, xmax = 1) |> # gaussian window
+    ## astrochron::taner(flow = 0, fhigh = .3, xmax = 1) |> # taner window
+    as_tibble()
+
+  filt_bp_100 <- dat |>
+    drop_na() |>
+    select(depth, gam_scl) |>
+    astrochron::linterp(genplot = FALSE) |>
+    ## astrochron::bandpass(flow = 0, fhigh = .3, win = 0, xmax = 1) |> # uniform window
+    # this is peak no. 5/6
+    astrochron::bandpass(flow = 2.51 - .15 * 2.51, fhigh = 2.51 + .15 * 2.51, win = 1, xmax = 10) |> # gaussian window
+    ## astrochron::taner(flow = 0, fhigh = .3, xmax = 1) |> # taner window
+    as_tibble()
+
+  filt_bp_prec <- dat |>
+    drop_na() |>
+    select(depth, gam_scl) |>
+    astrochron::linterp(genplot = FALSE) |>
+    ## astrochron::bandpass(flow = 0, fhigh = .3, win = 0, xmax = 1) |> # uniform window
+    # this is peak no. 9
+    astrochron::bandpass(flow = 7.96 - .15 * 7.69, fhigh = 7.96 + .15 * 7.96, win = 1, xmax = 10) |> # gaussian window
+    ## astrochron::taner(flow = 0, fhigh = .3, xmax = 1) |> # taner window
+    as_tibble()
+
+  filt_hb <- filt_bp_prec |>
+    astrochron::hilbert(genplot = TRUE, output = TRUE) |>
+    ## astrochron::peak() |>
+    as_tibble()
+#+end_src
+
+#+RESULTS:
+#+begin_example
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1840
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= -0.01994842
+ ,* Center of bandpass filter = 2.5
+ ,* 86 pos/neg frequency pairs will be bandpassed
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1840
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= -0.01994842
+ ,* Center of bandpass filter = 4
+ ,* 86 pos/neg frequency pairs will be bandpassed
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1840
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= -0.01994842
+ ,* Center of bandpass filter = 6.7
+ ,* 86 pos/neg frequency pairs will be bandpassed
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+----- PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= -0.01987432
+#+end_example
+
+***** plot the filters
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:56]
+:END:
+#+begin_src R
+  dat |>
+    ggplot(aes(x = depth, y = gam_scl)) +
+    geom_line(alpha = .3) +
+    ## geom_line(aes(colour = "precession?"), data = filt_bp_prec) +
+    geom_line(aes(colour = "100 kyr"), data = filt_bp_100) +
+    geom_line(aes(colour = "405 kyr"), data = filt_bp_405) #+
+    ## geom_line(aes(colour = "2.4 Myr"), data = filt_bp_2.4) #+
+    ## geom_line(aes(colour = "Hilbert transform of prec", x = depth, y = envelope), data = filt_hb)
+#+end_src
+
+#+RESULTS:
+
+***** combine the filters into an eccentricity curve
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 13:15]
+:END:
+#+begin_src R
+  filt_bp_405 |>
+    rename(f405 = gam_scl) |>
+    mutate(f100 = filt_bp_100$gam_scl) |>
+    mutate(f405s = scale(f405)[, 1],
+           f100s = scale(f100)[, 1],
+           ecc = f405s + .5*f100s, # with arbitrary scaling
+           ecc2 = f405 + f100) |> # just the raw spectral output
+    ggplot(aes(x = depth, y = ecc2)) +
+    geom_line()
+#+end_src
+
+#+RESULTS:
+
+**** add rmcd depth and create splice for colour data
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:39]
+:END:
+#+begin_src R
+  col <- ODP208_1267_color_A |>
+    mutate(Sec = as.character(Sec)) |>
+    bind_rows(ODP208_1267_color_B) |>
+    get_rmcd() |>
+    # this CC isn't included correctly
+    mutate(on_splice = if_else(H == "B" & Core == 33 & Sec == "CC", TRUE, on_splice))
+
+  col |>
+    ggplot(aes(x = my_rmcd, y = `L*`, colour = H, group = paste(H, Core, T, Sec),
+               Sec = Sec)) +
+    geom_line(aes(alpha = on_splice))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+indexing ODP208_1267_rmcd.csv [====================================================] 206.14MB/s, eta:  0s                                                                                                                                            Rows: 61 Columns: 9
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: ","
+chr (3): label, link, label2
+dbl (6): interval, depth_mbsf, depth_rmcd, interval2, depth_mbsf2, depth_rmcd2
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Joining with `by = join_by(Site, H, Core, T)`
+left_join: added 8 columns (top, to, section, interval, depth_mbsf, …)
+rows only in x    3,908
+rows only in y  (     1)
+matched rows     34,671
+                ========
+rows total       38,579
+Joining with `by = join_by(Site, H, Core, T)`
+left_join: added 8 columns (from, bot, section2, interval2, depth_mbsf2, …)
+rows only in x    3,975
+rows only in y  (     1)
+matched rows     34,604
+                ========
+rows total       38,579
++ + Warning messages:
+1: Using alpha for a discrete variable is not advised.
+2: Removed 3685 rows containing missing values (`geom_line()`).
+#+end_example
+
+**** apply agemodel to colour data
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 12:09]
+:END:
+#+begin_src R
+  col <- col |>
+    mutate(age = approx(agem2$depth_rmcd, agem2$age_ma,
+                        xout = my_rmcd)$y)
+
+  col |>
+    ggplot(aes(x = age, y = `L*`,
+               alpha = on_splice,
+               Sec = Sec)) +
+    geom_line(aes(colour = H, group = paste(H, Core)))
+#+end_src
+
+#+RESULTS:
+: Warning messages:
+: 1: Using alpha for a discrete variable is not advised.
+: 2: Removed 25569 rows containing missing values (`geom_line()`).
+
+**** do spectral analysis of the splice in the time domain
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 12:44]
+:END:
+interesting! There's almost no 405 kyr cyclicity in there, probably b/c it was tuned to 100 kyr cycles exactly?
+
+#+begin_src R
+  col_ <- col |>
+    filter(!is.na(age),
+           age > 66,
+           on_splice) |>
+    mutate(aob = `a*` / `b*`,
+           scl = scale(aob)[, 1])
+
+  col_ |>
+    ggplot(aes(x = age, y = scl, colour = H, group = paste(H, Core, Sec))) +
+    geom_line() +
+    geom_smooth(aes(group = "all"))
+    ## geom_line(linetype = "dashed")
+
+  fit_gam_col <- mgcv::gam(scl ~ s(age, bs = "cs"), data = col_)
+
+  col_ |>
+    mutate(gam = predict(fit_gam_col) |> as.vector()) |>
+    mutate(scl_gam = scl - gam) |>
+    mutate(scl_ma = slider::slide_mean(scl, before = 2, after = 2)) |>
+    mutate(age = age * 1e3) |>
+    ## ggplot(aes(x = scl_gam)) + geom_density()
+    select(age, scl_gam) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::mtm(xmax = 0.06)
+
+  col_ |>
+    mutate(scl_ma = slider::slide_mean(scl, before = 2, after = 2)) |>
+    mutate(age = age * 1e3) |>
+    ## ggplot(aes(x = scl_gam)) + geom_density()
+    select(age, scl_ma) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::bandpass(flow = 0.008 - .15 * 0.008, fhigh = .008 + .15 * .008, xmax = .006)
+#+end_src
 *** Fe count from [cite:@Westerhold2008]
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 21:14]
