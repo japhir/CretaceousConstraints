@@ -3327,28 +3327,41 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 [[file:imgs/Zumaia-Sopelana_records.png]]
 
 note that the minima from the field do not map 1:1 to the minima in the records...
-*** make plot of spectra
+**** NEXT gam removal with specified knots
 :PROPERTIES:
-:CREATED:  [2023-09-25 Mon 10:57]
+:CREATED:  [2023-09-25 Mon 15:42]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900
-  specs |>
-    ggplot(aes(x = Frequency, y = Power, colour = site)) +
-    facet_grid(rows = vars(name)) +
-    geom_line() +
-    geom_line(aes(y = AR1_fit)) +
-    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
-    ## geom_line(aes(y = Harmonic_CL)) +
-    coord_cartesian(xlim = c(NA, 5)) +
-    scale_y_log10() +
-    scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x, breaks = c(10, 1, .5, .3, .2, .1))) +
-    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
-              inherit.aes = FALSE,
-              alpha = .3, data = filts2 |> distinct(name, flow, fhigh))
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
+  smooth_basic |>
+    filter(site == "Zumaia", name == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_line(colour = "gray") +
+    geom_line(aes(y = gam_pred)) +
+    geom_line(aes(y = det)) +
+    geom_line(aes(y = filt, colour = "basic filt"),
+              data = filts_basic |>
+              filter(site == "Zumaia", name == "MS")) +
+    geom_point(aes(x = strat_bot, y = -2,
+                   size = !is.na(comment)),
+               inherit.aes = FALSE,
+               data = agem |>
+               filter(minmax == "minimum")) +
+    geom_segment(aes(x = strat_bot, xend = strat_top,
+                     y = 2, yend = 2),
+                 inherit.aes = FALSE,
+                 data = agem |>
+                   filter(minmax == "maximum"),
+                 linewidth = 2) +
+    # try to make it into little sine waves
+    ## geom_segment(aes(x = strat_bot, xend = strat_top,
+    ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
+    ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
+    ##              data = agem) +
+    labs(x = "Depth (m)", y = "Scaled proxy value", colour = "Site", size = "Well-defined")
+    ## geom_text(aes(x = strat_bot, y = 0,
+    ##                label = desc), data = agem)
 #+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia-Sopelana_mtm.png]]
 *** apply the age model from the field
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:16]
@@ -3361,6 +3374,7 @@ note that the minima from the field do not map 1:1 to the minima in the records.
   agem_simple <- agem |>
     filter(minmax == "minimum") |>
     select(-strat_top, -minmax, -desc) |>
+    mutate(site = "Zumaia") |>
     # let's add the age model for Sopelana
     # copied manually by reading figure 3 in Batenburg et al., 2014!
     bind_rows(
@@ -3369,21 +3383,394 @@ note that the minima from the field do not map 1:1 to the minima in the records.
         10, 149,
         11, 160,
         12, 171,
-        13, 183)) |>
+        13, 183) |>
+      mutate(site = "Sopelana")
+    ) |>
     mutate(age = n * 405)
 
-  smooth |>
+  smooth <- smooth |>
     ## filter(site == "Zumaia") |>
     mutate(age = Hmisc::approxExtrap(agem_simple$strat_bot,
                                      agem_simple$age,
-                                     xout = depth)$y) |>
-    ggplot(aes(x = age, y = value)) +
-    facet_grid(rows = vars(name), scales = "free_y") +
-    ## geom_line(colour = "gray") +
-    ## geom_line(aes(y = gam_pred, group = site))
-    geom_line(aes(y = det, colour = site)) +
-    geom_point(aes(x = age, y = -2.5), data = agem_simple)
+                                     xout = depth)$y)
 #+end_src
+*** make sure the linear interpolation is consistent between proxies/sites
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:49]
+:END:
+#+begin_src R
+  # what Δt do we want for linear interpolation?
+  # where should the linear interpolation start?
+  smooth |>
+    summarize(min(age), .by = c(name, site))
+
+  smooth <- smooth |>
+    mutate(dt = case_when(name == "d13C_VPDB" ~ 10,
+                          name == "MS" ~ 3,
+                          name == "Lstar" ~ 3,
+                          TRUE ~ NA_real_),
+           strt = case_when(name == "d13C_VPDB" ~ - 91,
+                            site == "Zumaia" ~ 2,
+                            site == "Sopelana" ~ 3653,
+                            TRUE ~ NA_real_))
+#+end_src
+
+*** calculate spectra in the time domain
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:49]
+:END:
+#+begin_src R
+  specs_age <- smooth |>
+    nest(.by = c(name, site, dt, strt)) |>
+    mutate(
+      mtm = pmap(list(d = data, dt = dt, strt = strt),
+                \(d, dt, strt) d |>
+                  ## mutate(det = scale(value)[, 1]) |> # this overwrites our fancy detrending approach
+                  select(age, det) |>
+                  astrochron::linterp(dt = dt, start = strt,
+                                      genplot = FALSE, verbose = FALSE) |>
+                  astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
+    ) |>
+    unnest(mtm)
+#+end_src
+
+*** calculate bandpass filters in the time domain
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:49]
+:END:
+#+begin_src R
+  filts_age <- smooth |>
+    nest(.by = c(name, site, dt, strt)) |>
+    mutate(flow = 1 / 405 - .3 * 1 / 405, fhigh = 1 / 405 + .3 * 1 / 405) |>
+    ## mutate(flow = case_when(name == "MS" ~ 1 / 308,
+    ##                         name == "Lstar" ~ 1 / 311,
+    ##                         name == "d13C_VPDB" ~ 1 / 326,
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(name == "MS" ~ 1 / 609,
+    ##                          name == "Lstar" ~ 1 / 621,
+    ##                          name == "d13C_VPDB" ~ 1 / 675,
+    ##                          TRUE ~ NA_real_)) |>
+    ## filter(!is.na(flow)) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh, dt, strt),
+                \(d, l, h, dt, strt) d |>
+                           ## mutate(det = scale(value)[, 1]) |> # this overwrites our fancy detrending approach
+                           select(age, det) |>
+                           astrochron::linterp(dt = dt, start = strt,
+                                               genplot = FALSE, verbose = FALSE) |>
+                           astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                                genplot = FALSE))
+    ) |>
+    unnest(cols = bp) |>
+    rename(filt = det)
+
+  filts_age_100 <- smooth |>
+    nest(.by = c(name, site, dt, strt)) |>
+    mutate(flow = 1 / 100 - .3 * 1 / 100, fhigh = 1 / 100 + .3 * 1 / 100) |>
+    ## mutate(flow = case_when(name == "MS" ~ 1 / 75,
+    ##                         name == "Lstar" ~ 1 / 75,
+    ##                         ## name == "d13C_VPDB" ~ 1 / 12, # this isn't significant in the spectrum!
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(name == "MS" ~ 1 / 150,
+    ##                          name == "Lstar" ~ 1 / 150,
+    ##                          ## name == "d13C_VPDB" ~ 1 / 31,
+    ##                          TRUE ~ NA_real_)) |>
+    ## filter(!is.na(flow)) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh, dt, strt),
+                \(d, l, h, dt, strt) d |>
+                           ## mutate(det = scale(value)[, 1]) |> # this overwrites our fancy detrending approach
+                           select(age, det) |>
+                           astrochron::linterp(
+                                         dt = dt, start = strt,
+                                         genplot = FALSE, verbose = FALSE) |>
+                           astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                                genplot = FALSE))
+    ) |>
+    unnest(cols = bp) |>
+    rename(filt = det)
+
+  filts_age_prec <- smooth |>
+    nest(.by = c(name, site, dt, strt)) |>
+    mutate(flow = 1 / 23 - .3 * 1 / 23, fhigh = 1 / 23 + .3 * 1 / 23) |>
+    # filter values from Batenburg et al., 2014 (these seem a bit arbitrary)
+    ## mutate(flow = case_when(name == "MS" ~ 1 / 17.8,
+    ##                         name == "Lstar" ~ 1 / 13.4,
+    ##                         name == "d13C_VPDB" ~ 1 / 21.3, # I did these myself
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(name == "MS" ~ 1 / 35.3,
+    ##                          name == "Lstar" ~ 1 / 27.2,
+    ##                          name == "d13C_VPDB" ~ 1 / 30, # I did these myself
+    ##                          TRUE ~ NA_real_)) |>
+    filter(!is.na(flow)) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh, dt, strt),
+                \(d, l, h, dt, strt) d |>
+                           ## mutate(det = scale(value)[, 1]) |> # this overwrites our fancy detrending approach
+                           select(age, det) |>
+                           astrochron::linterp(dt = dt, start = strt,
+                                               genplot = FALSE, verbose = FALSE) |>
+                           astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                                genplot = FALSE))
+    ) |>
+    unnest(cols = bp) |>
+    rename(filt = det)
+#+end_src
+
+*** calculate hilbert transform of precession data in the time domain
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:50]
+:END:
+#+begin_src R
+  hb_age_prec <- filts_age_prec |>
+    select(-data) |>
+    nest(.by = c(site, name, flow, fhigh)) |>
+    mutate(hb = map(data, \(d) d |>
+                               select(age, filt) |>
+                               astrochron::hilbert(genplot = FALSE))) |>
+    unnest(hb) |>
+    select(-data)
+#+end_src
+
+*** plot spectra
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:50]
+:END:
+#+begin_src R
+  # plot spectra w/ Freq on x-axis
+  specs_age |>
+    ggplot(aes(x = Frequency, y = Power, colour = site)) +
+    facet_grid(## cols = vars(site),
+               rows = vars(name)) +
+    geom_line() +
+    geom_line(aes(y = AR1_fit)) +
+    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
+    ## geom_line(aes(y = Harmonic_CL)) +
+    coord_cartesian(xlim = c(1 / 5000, 1 / 10)) +
+    scale_y_log10() +
+    ## scale_x_log10(
+    scale_x_continuous(
+      sec.axis = sec_axis(trans = ~ 1 / .,
+                                           breaks = c(2400, 1600, 1200, 405, 100, 23))) +
+    annotation_logticks() +
+    geom_text(aes(x = fmean, y = 1, label = round(pmean, 1)),
+              inherit.aes = FALSE,
+              hjust = 0.5,
+              data = filts_age |>
+                bind_rows(filts_age_100) |>
+                bind_rows(filts_age_prec) |>
+                distinct(name, flow, fhigh) |>
+                mutate(fmean = flow + (fhigh - flow) / 2, pmean = 1 / fmean)) +
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1),
+              inherit.aes = FALSE,
+              alpha = .3, fill = "yellow",
+              data = filts_age |>
+                bind_rows(filts_age_100) |>
+                bind_rows(filts_age_prec) |>
+                distinct(name, flow, fhigh)) +
+    labs(x = "Frequency (cycles/kyr)", y = "Power", colour = "Site")
+#+end_src
+
+*** COMMENT plot spectra with period on the x-axis
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:50]
+:END:
+#+begin_src R :eval never
+  # plot spectra with period on x-axis (with log-axis)
+  specs_age |>
+    ggplot(aes(x = 1 / Frequency, y = Power, colour = site)) +
+    facet_grid(## cols = vars(site),
+               rows = vars(name)) +
+    geom_line() +
+    geom_line(aes(y = AR1_fit)) +
+    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
+    ## geom_line(aes(y = Harmonic_CL)) +
+    ## coord_cartesian(xlim = c(1e-3, 1e-1)) +
+    coord_cartesian(xlim = c(10, 5000)) +
+    scale_y_log10() +
+    scale_x_log10() +
+    annotation_logticks() +
+    geom_rect(aes(xmin = 1 / flow, xmax = 1 / fhigh, ymin = 1e-5, ymax = 1),
+              inherit.aes = FALSE,
+              alpha = .3, fill = "yellow",
+              data = filts_age |> distinct(name, flow, fhigh)) +
+    labs(x = "Period (kyr)", y = "Power", colour = "Site")
+#+end_src
+*** plot the data with the filters
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:50]
+:END:
+#+begin_src R
+  smooth |>
+    ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
+    ggplot(aes(x = age / 1e3, y = value, colour = site)) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_vline(aes(xintercept = age / 1e3), data = agem_simple) +
+    geom_line(aes(y = det)) +
+    geom_line(aes(y = filt + 1.5), data = filts_age) +
+    geom_line(aes(y = filt + 3.5), data = filts_age_100) +
+    geom_line(aes(y = filt + 5.5), data = filts_age_prec) +
+    geom_line(aes(y = envelope + 5.5, group = site), colour = "red", data = hb_age_prec) +
+    geom_point(aes(y = pk + 1.5),
+               colour = "red",
+               data = filts_age |>
+                            nest(.by = c(name, site, flow, fhigh)) |>
+                            mutate(pk = map(data, \(d) d |>
+                                                       select(age, filt) |>
+                                                       mutate(filt = -filt) |> # we want minima rather than maxima
+                                                       astrochron::peak(genplot = FALSE))) |>
+                            unnest(pk) |>
+                            rename(age = Location, pk = Peak_Value) |>
+                            mutate(pk = -pk)) +
+    scale_x_continuous(breaks = seq(0, 5, 1)) +
+    labs(x = "K/Pg + Age (Ma)", y = "Normalized proxy",
+         title = "Zumaia raw proxy record filters"
+         ## title = "Zumaia fancy detrended proxy record filters"
+         )
+#+end_src
+
+*** get ZB18a
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:51]
+:END:
+#+begin_src R
+  # get the first orbital solution in there
+  sln <- snvecR::get_ZB18a() |>
+    select(age, ecc = ee) |>
+    filter(age > 56000 & age < 80000) |>
+    mutate(scl = scale(ecc)[, 1])
+#+end_src
+
+*** create eccentricity curve from data
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:51]
+:END:
+#+begin_src R
+  # construct a fake eccentricity record
+  smooth |>
+    ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
+    ggplot(aes(x = 66 + age / 1e3, y = value, colour = site, group = site)) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_vline(aes(xintercept = 66 + age / 1e3), data = agem_simple) +
+    geom_line(aes(x = age / 1e3, y = scl), colour = "gray", inherit.aes = FALSE, data = sln) +
+    ## geom_line(aes(y = `405` + `100`, colour = "1:1 filt"), data = data_ecc) +
+    ## geom_line(aes(y = `405` + .5 * `100`, colour = "1:0.5 filt"), data = data_ecc) +
+    geom_line(aes(y = `405` + 2 * envelope, colour = "1:2 filt/hilbert"), data = data_ecc) +
+    geom_line(aes(y = `405` + envelope, colour = "1:1 filt/hilbert"), data = data_ecc) +
+    geom_line(aes(y = `405` + 0.5 * envelope, colour = "1:0.5 filt/hilbert"), data = data_ecc) +
+    ## geom_line(aes(y = envelope + 5.5, group = site), colour = "red", data = hb_age_prec) +
+    scale_x_continuous(breaks = 66 + seq(0, 5, 1), labels = seq(0, 5, 1)) +
+    labs(x = "K/Pg + Age (Ma)", y = "Normalized filtered proxy",
+         ## title = "Zumaia raw proxy record filters"
+         ## title = "Zumaia fancy detrended proxy record filters"
+         )
+#+end_src
+*** add the orbital solution to the ecc curve and plot the MSD
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:51]
+:END:
+#+begin_src R
+  data_ecc <- filts_age |>
+    select(name, site, age, filt) |>
+    rename(`405` = filt) |>
+    tidylog::left_join(
+      filts_age_100 |>
+      select(name, site, age, filt) |>
+      rename(`100` = filt)
+      ) |>
+    tidylog::left_join(
+               hb_age_prec |>
+               select(name, site, age, envelope)
+             ) |>
+    mutate(ZB18a = approx(sln$age, sln$scl, xout = age + 66000)$y)
+
+  data_ecc |>
+    ggplot(aes(x = age, y = ZB18a, colour = site, group = site)) +
+    ## geom_line() +
+    ## geom_line(aes(y = (`405` + `100` - ZB18a)^2, colour = "1:1")) +
+    ## geom_line(aes(y = (`405` + 0.5 * `100` - ZB18a)^2, colour = "1:0.5")) +
+    geom_line(aes(y = (`405` + 2 * envelope - ZB18a)^2, colour = "1:2 env")) +
+    geom_line(aes(y = (`405` + envelope - ZB18a)^2, colour = "1:1 env")) +
+    geom_line(aes(y = (`405` + 0.5 * envelope - ZB18a)^2, colour = "1:0.5 env")) +
+    facet_grid(rows = vars(name))
+#+end_src
+
+*** create a summary of the MSD
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:52]
+:END:
+#+begin_src R
+  # in general, which version gives the best fit?
+  data_ecc |>
+    summarize(
+      msd_1_2 = sqrt(sum((scale(`405` + 2 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_1.5 = sqrt(sum((scale(`405` + 1.5 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_1 = sqrt(sum((scale(`405` + `100`)[, 1] - ZB18a)^2)),
+      ## msd_1_0.9 = sqrt(sum((scale(`405` + 0.9 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_0.5 = sqrt(sum((scale(`405` + 0.5 * `100`)[, 1] - ZB18a)^2)),
+      ## msd_1_0.1 = sqrt(sum((scale(`405` + 0.1 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_2_env = sqrt(sum((scale(`405` + 2 * envelope)[, 1] - ZB18a)^2)), # <3
+      msd_1_1.5_env = sqrt(sum((scale(`405` + 1.5 * envelope)[, 1] - ZB18a)^2)), # <3
+      msd_1_1_env = sqrt(sum((scale(`405` + envelope)[, 1] - ZB18a)^2)), # <3
+      ## msd_1_0.9_env = sqrt(sum((scale(`405` + 0.9 * envelope)[, 1] - ZB18a)^2)),
+      msd_1_0.5_env = sqrt(sum((scale(`405` + 0.5 * envelope)[, 1] - ZB18a)^2)),
+      ## msd_1_0.1_env = sqrt(sum((scale(`405` + 0.1 * envelope)[, 1] - ZB18a)^2)),
+      .by = c(name, site))
+#+end_src
+
+*** do the same analysis with different ages for the K/Pg boundary
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:52]
+:END:
+#+begin_src R
+  # which time offset gives the best fit?
+  data_ecc <- filts_age |>
+    select(name, site, age, filt) |>
+    rename(`405` = filt) |>
+    tidylog::left_join(
+      filts_age_100 |>
+      select(name, site, age, filt) |>
+      rename(`100` = filt)
+      ) |>
+    tidylog::left_join(
+               hb_age_prec |>
+               select(name, site, age, envelope)
+             ) |>
+    nest(.by = c(name, site)) |>
+    ## filter(age > 56000 & age < 80000) |> # this is the age range we got for the solution
+    mutate(age_kpg = list(66000 + seq(-5000, 5000, 5))) |>
+    unnest(age_kpg) |>
+    unnest(data) |>
+    mutate(ZB18a = approx(sln$age, sln$scl, xout = age + age_kpg)$y)
+
+  data_ecc |>
+    summarize(
+      msd_1_2 = sqrt(sum((scale(`405` + 2 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_1.5 = sqrt(sum((scale(`405` + 1.5 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_1 = sqrt(sum((scale(`405` + `100`)[, 1] - ZB18a)^2)),
+      ## msd_1_0.9 = sqrt(sum((scale(`405` + 0.9 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_0.5 = sqrt(sum((scale(`405` + 0.5 * `100`)[, 1] - ZB18a)^2)),
+      ## msd_1_0.1 = sqrt(sum((scale(`405` + 0.1 * `100`)[, 1] - ZB18a)^2)),
+      msd_1_2_env = sqrt(sum((scale(`405` + 2 * envelope)[, 1] - ZB18a)^2)), # <3
+      msd_1_1.5_env = sqrt(sum((scale(`405` + 1.5 * envelope)[, 1] - ZB18a)^2)), # <3
+      msd_1_1_env = sqrt(sum((scale(`405` + envelope)[, 1] - ZB18a)^2)), # <3
+      ## msd_1_0.9_env = sqrt(sum((scale(`405` + 0.9 * envelope)[, 1] - ZB18a)^2)),
+      msd_1_0.5_env = sqrt(sum((scale(`405` + 0.5 * envelope)[, 1] - ZB18a)^2)),
+      ## msd_1_0.1_env = sqrt(sum((scale(`405` + 0.1 * envelope)[, 1] - ZB18a)^2)),
+      .by = c(name, site, age_kpg)) |>
+    ggplot(aes(x = age_kpg, y = msd_1_2_env, group = site)) +
+    geom_line() +
+    geom_line(aes(y = msd_1_1_env)) +
+    geom_line(aes(y = msd_1_0.5_env)) +
+    geom_line(aes(y = msd_1_1)) +
+    geom_line(aes(y = msd_1_1.5)) +
+    geom_line(aes(y = msd_1_0.5)) +
+    facet_grid(rows = vars(name)) +
+    labs(x = "Age of the K/Pg boundary", y = "MSD")
+#+end_src
+
+#+RESULTS:
+
 ** Gubbio
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:51]
