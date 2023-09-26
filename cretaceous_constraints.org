@@ -1305,9 +1305,9 @@ this is to inspect how the moving average affects the outcome
 #+begin_src R :results graphics file :file imgs/ODP208_1267_MS_mtm.png :width 800
   MS_ |>
     select(my_rmcd,
-           ## var
+           var
            ## scl_ma
-           scl_gam
+           ## scl_gam
            ## scl_loess
            ) |>
     astrochron::linterp(genplot = FALSE) |>
@@ -2661,12 +2661,16 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 14:18]
 :END:
+**** This just subtracts a gam from the raw data
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 15:35]
+:END:
 #+begin_src R
-  smooth <- comp |>
+  smooth_basic <- comp |>
     ## pivot_wider() |>
-    nest(.by = c(name, site)) |> # nest_by is different!!
-    ## mutate(lm = map(data, ~ lm(value ~ depth, data = .)))
-    mutate(gam = map(data,
+    nest(.by = c(name, site,)) |> # nest_by is different!!
+    mutate(
+      gam = map(data,
                      ~ mgcv::gam(value ~ s(depth, bs = "cs"),
                                  method = "REML",
                                  data = .))) |>
@@ -2678,7 +2682,210 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
     mutate(det = scale(value - gam_pred)[, 1], .by = c(name, site))
 #+end_src
 
+#+RESULTS:
+
+**** subtract red/white interval means and then do a gam for the whole record
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 15:35]
+:END:
+we have to be careful of the white/red intervals in the record!
+So instead of fitting a simple gam through the whole record, we fit one for each coloured interval separately.
+
+#+begin_src R
+  smooth <- comp |>
+    mutate(colour = case_when(
+             depth < 0 ~ "white1",
+             depth > 0 & depth <= 58.59 ~ "red1",
+             depth > 58.59 & depth <= 59 ~ "pink1",
+             depth > 59 & depth <= 82.75 ~ "white2",
+             depth > 82.75 & depth <= 87.8 ~ "pink2",
+             depth > 87.8 & depth <= 108.5 ~ "red2",
+             depth > 108.5 & depth <= 109.8 ~ "pink3",
+             depth > 109.8 ~ "white3",
+             TRUE ~ NA_character_)) |>
+    ## mutate(mean_colour = mean(value), .by = c(site, name, colour)) |>
+    ## mutate(dec = value - mean_colour) |>
+    ## pivot_wider() |>
+    # first calculate a lm for each slice of colour interval
+    nest(.by = c(name, site, colour)) |> # nest_by is different!!
+    mutate(
+      lim = map(data, ~ lm(value ~ depth, data = .x)),
+      lin_pred = map(lim, predict)) |>
+    select(-lim) |>
+    unnest(c(data, lin_pred)) |>
+    mutate(lin = value - lin_pred) |>
+    nest(.by = c(name, site)) |> # nest_by is different!!
+    mutate(
+      gamm = map(data,
+                ## ~ loess(dec ~ depth, data = ., span = .9)
+                ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
+                            method = "REML",
+                            data = .)),
+      gam_pred = map(gamm, predict)
+    ) |>
+    select(-gamm) |>
+    unnest(cols = c(data, gam_pred)) |>
+    mutate(gam = lin - gam_pred,
+           det = scale(gam)[, 1],
+           .by = c(name, site))
+#+end_src
+
+#+RESULTS:
+
+**** did the linear trend removal work?
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 10:57]
+:END:
+***** lines
+#+begin_src R
+  smooth |>
+    ggplot(aes(x = depth, y = value)) +
+    geom_line() +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_line(aes(y = lin_pred, group = paste(site, colour)), colour = "red", linewidth = 2)
+#+end_src
+
+#+RESULTS:
+
+***** gam
+#+begin_src R
+  smooth |>
+    ggplot(aes(x = depth, y = lin)) +
+    geom_line() +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_line(aes(y = gam_pred, group = paste(site)), colour = "red", linewidth = 2)
+#+end_src
+
+#+RESULTS:
+
+***** final result
+#+begin_src R
+  smooth |>
+    ggplot(aes(x = depth, y = det)) +
+    geom_line() +
+    facet_grid(rows = vars(name), scales = "free_y") #+
+    ## geom_line(aes(y = gam_pred, group = paste(site)), colour = "red", linewidth = 2)
+#+end_src
+
+#+RESULTS:
+
+
+**** COMMENT gam with custom knots around the colour transitions
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 15:43]
+:END:
+#+begin_src R
+  smooth_k <- comp |>
+    nest(.by = c(name, site,)) |> # nest_by is different!!
+    mutate(
+      gam = map(data,
+                     ~ mgcv::gam(value ~ s(depth, bs = "cs"),
+                                 method = "REML",
+                                 k = 6,
+                                 knots = c(-5, 0, 58.75, 85, 109, 145),
+                                 data = .))) |>
+    mutate(
+      gam_pred = map(gam, predict),
+    ) |>
+    select(-gam) |>
+    unnest(cols = c(data, gam_pred)) |>
+    mutate(det = scale(value - gam_pred)[, 1], .by = c(name, site))
+#+end_src
+
+#+RESULTS:
+
+*** plot long-term trend removal
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 14:30]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_long-term-trend.png :width 900 :height 500
+  (smooth |>
+   filter(site == "Zumaia", name == "MS") |>
+   ggplot(aes(x = depth, y = dec)) +
+   geom_line(aes(y = value), colour = "gray") +
+   ## geom_line(aes(y = det), smooth_basic) +
+   geom_line(colour = "gray4") +
+   geom_line(aes(y = mean_colour), colour = "darkgreen") +
+   ## geom_smooth(method = "loess", span = .05) +
+   geom_line(aes(y = gam_pred, group = site), colour = "blue", linewidth = 2) +
+   geom_line(aes(y = gam_pred, group = site), linewidth = 2,
+             colour = "red",
+             data = smooth_basic |> filter(site == "Zumaia", name == "MS")) +
+   facet_grid(rows = vars(name), scales = "free_y") #+
+    ## geom_vline(xintercept = c(59, 85, 109)) +
+    ## annotate("rect",
+    ##          xmin = c(-5, 0, 58.75, 85, 109),
+    ##          xmax = c(0, 59, 85, 109, 145),
+    ##          ymin = 0, ymax = 1,
+    ##          fill = c("gray", "red", "gray", "red", "gray"),
+    ##          alpha = .2
+   ##          )
+   ) /
+  (smooth |>
+   filter(site == "Zumaia", name == "MS") |>
+   ggplot(aes(x = depth, y = det)) +
+   geom_line() +
+   ## geom_smooth(method = "loess", span = .05) +
+   facet_grid(rows = vars(name), scales = "free_y") +
+   ## geom_vline(xintercept = c(59, 85, 109)) +
+   annotate("rect",
+            xmin = c(-5, 0, 59, 85, 109),
+            xmax = c(0, 59, 85, 109, 145),
+            ymin = 0, ymax = 1,
+            fill = c("gray", "red", "gray", "red", "gray"),
+            alpha = .2
+            ))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_long-term-trend.png]]
+
 *** calculate spectra
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 10:56]
+:END:
+#+begin_src R
+  specs <- comp |>
+    nest(.by = c(name, site)) |>
+    mutate(
+      mtm = map(data,
+                ~ . |>
+                  select(depth, value) |>
+                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                  astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
+    ) |>
+    unnest(mtm)
+#+end_src
+
+#+RESULTS:
+
+**** make plot of spectra
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 10:57]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900
+  specs |>
+    ggplot(aes(x = Frequency/100, y = Power, colour = site)) +
+    facet_grid(## cols = vars(site),
+               rows = vars(name)) +
+    geom_line() +
+    geom_line(aes(y = AR1_fit)) +
+    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
+    ## geom_line(aes(y = Harmonic_CL)) +
+    ## coord_cartesian(xlim = c(0.0001, 0.05)) +
+    scale_y_log10()# +
+    ## scale_x_continuous(trans = "reciprocal")
+    ## scale_x_log10() #+
+    ## scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x, breaks = c(10, 1, .5, .3, .2, .1))) +
+    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
+              ## inherit.aes = FALSE,
+              ## alpha = .3, data = filts2 |> distinct(name, flow, fhigh))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_mtm.png]]
+
+*** calculate spectra on artificially chopped up record
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
@@ -2697,27 +2904,195 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
 #+RESULTS:
 
+**** make plot of spectra
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 10:57]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900
+  specs |>
+    ggplot(aes(x = Frequency, y = Power, colour = site)) +
+    facet_grid(## cols = vars(site),
+               rows = vars(name)) +
+    geom_line() +
+    geom_line(aes(y = AR1_fit)) +
+    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
+    ## geom_line(aes(y = Harmonic_CL)) +
+    coord_cartesian(xlim = c(0.01, 5)) +
+    scale_y_log10() +
+    ## scale_x_continuous(trans = "reciprocal")
+    ## scale_x_log10() +
+    ## scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x, breaks = c(10, 1, .5, .3, .2, .1))) +
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
+              inherit.aes = FALSE,
+              alpha = .3, data = filts_fancy |> distinct(name, flow, fhigh))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_mtm.png]]
 *** do bandpass filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
+**** bp on raw
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:18]
+:END:
 #+begin_src R
-  filts <-
+  filts_basic <-
+    comp |>
+    nest(.by = c(name, site)) |>
+    # different filters per proxy
+    mutate(flow = case_when(name == "MS" ~ 1 / 12,
+                            name == "Lstar" ~ 1 / 12,
+                            name == "d13C_VPDB" ~ 1 / 12,
+                            TRUE ~ NA_real_),
+           fhigh = case_when(name == "MS" ~ 1 / 24,
+                             name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+                             name == "d13C_VPDB" ~ 1 / 31,
+                             TRUE ~ NA_real_)) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh),
+               \(d, l, h) d |>
+                 select(depth, value) |>
+                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                      genplot = FALSE))
+    ) |>
+    unnest(cols = bp) |>
+    rename(filt = value)
+  # TODO: 100 kyr
+#+end_src
+**** bp on scaled
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:47]
+:END:
+#+begin_src R
+  filts_scl <- comp |>
+      nest(.by = c(name, site)) |>
+      # different filters per proxy
+      mutate(flow = case_when(name == "MS" ~ 1 / 12,
+                              name == "Lstar" ~ 1 / 12,
+                              name == "d13C_VPDB" ~ 1 / 12,
+                              TRUE ~ NA_real_),
+             fhigh = case_when(name == "MS" ~ 1 / 24,
+                               name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+                               name == "d13C_VPDB" ~ 1 / 31,
+                               TRUE ~ NA_real_)) |>
+      mutate(
+        bp = pmap(list(data, flow, fhigh),
+                 \(d, l, h) d |>
+                   mutate(scl = scale(value)[, 1]) |>
+                   select(depth, scl) |>
+                   astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                   astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                        genplot = FALSE))
+      ) |>
+      unnest(cols = bp) |>
+      rename(filt = scl)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.07309613
+ ,* Center of bandpass filter = 0.0577957
+ ,* 15 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.09609354
+ ,* Center of bandpass filter = 0.0625
+ ,* 12 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.09514475
+ ,* Center of bandpass filter = 0.05890805
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.0221335
+ ,* Center of bandpass filter = 0.0625
+ ,* 4 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.02285176
+ ,* Center of bandpass filter = 0.05890805
+ ,* 5 pos/neg frequency pairs will be bandpassed
+#+end_example
+
+**** bp on the gam
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:18]
+:END:
+#+begin_src R
+  filts_gam <-
+    smooth_basic |>
+    nest(.by = c(name, site)) |>
+    # different filters per proxy
+    mutate(flow = case_when(name == "MS" ~ 1 / 12,
+                            name == "Lstar" ~ 1 / 12,
+                            name == "d13C_VPDB" ~ 1 / 12,
+                            TRUE ~ NA_real_),
+           fhigh = case_when(name == "MS" ~ 1 / 24,
+                             name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+                             name == "d13C_VPDB" ~ 1 / 31,
+                             TRUE ~ NA_real_)) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh),
+               \(d, l, h) d |>
+                 select(depth, det) |>
+                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                      genplot = FALSE))
+    ) |>
+    unnest(cols = bp) |>
+    rename(filt = det)
+  # TODO: 100 kyr
+#+end_src
+
+#+RESULTS:
+**** bp on the gam with white/red separation
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:18]
+:END:
+#+begin_src R
+  filts_fancy <-
     smooth |>
     nest(.by = c(name, site)) |>
-    mutate(flow = case_when(site == "Zumaia" & name == "MS" ~ 1 / 12,
-                            site == "Zumaia" & name == "Lstar" ~ 1 / 12,
-                            site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 12,
-                            site == "Sopelana" & name == "MS" ~ 1 / 8.1,
-                            site == "Sopelana" & name == "Lstar" ~ 1 / 7.7,
-                            site == "Sopelana" & name == "d13C_VPDB" ~ 1 / 8.1,
+    # different filters per site
+    ## mutate(flow = case_when(site == "Zumaia" & name == "MS" ~ 1 / 12,
+    ##                         site == "Zumaia" & name == "Lstar" ~ 1 / 12,
+    ##                         site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 12,
+    ##                         # filter intervals from Batenburg 2014 fig 3
+    ##                         site == "Sopelana" & name == "MS" ~ 1 / 8.1,
+    ##                         site == "Sopelana" & name == "Lstar" ~ 1 / 7.7,
+    ##                         site == "Sopelana" & name == "d13C_VPDB" ~ 1 / 8.1,
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(site == "Zumaia" & name == "MS" ~ 1 / 40,
+    ##                          site == "Zumaia" & name == "Lstar" ~ 1 / 22,
+    ##                          site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 31,
+    ##                          site == "Sopelana" & name == "MS" ~ 1 / 15.8,
+    ##                          site == "Sopelana" & name == "Lstar" ~ 1 / 14.3,
+    ##                          ## site == "Sopelana" & name == "d13C_VPDB" ~ 1 /
+    ##                          TRUE ~ NA_real_)) |>
+    # different filters per proxy
+    mutate(flow = case_when(name == "MS" ~ 1 / 12,
+                            name == "Lstar" ~ 1 / 12,
+                            name == "d13C_VPDB" ~ 1 / 12,
                             TRUE ~ NA_real_),
-           fhigh = case_when(site == "Zumaia" & name == "MS" ~ 1 / 40,
-                             site == "Zumaia" & name == "Lstar" ~ 1 / 22,
-                             site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 31,
-                             site == "Sopelana" & name == "MS" ~ 1 / 15.8,
-                             site == "Sopelana" & name == "Lstar" ~ 1 / 14.3,
-                             ## site == "Sopelana" & name == "d13C_VPDB" ~ 1 /
+           fhigh = case_when(name == "MS" ~ 1 / 24,
+                             name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+                             name == "d13C_VPDB" ~ 1 / 31,
                              TRUE ~ NA_real_)) |>
     mutate(
       bp = pmap(list(data, flow, fhigh),
@@ -2738,37 +3113,37 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 386
  ,* Sample interval= 0.375
- ,* Mean value removed= -0.09095434
+ ,* Mean value removed= -0.06151652
  ,* Center of bandpass filter = 0.0577957
  ,* 15 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 1349
  ,* Sample interval= 0.10458
- ,* Mean value removed= 0.03922045
- ,* Center of bandpass filter = 0.05416667
- ,* 16 pos/neg frequency pairs will be bandpassed
+ ,* Mean value removed= 0.02744599
+ ,* Center of bandpass filter = 0.0625
+ ,* 12 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 1344
  ,* Sample interval= 0.105
- ,* Mean value removed= -0.03224345
- ,* Center of bandpass filter = 0.06439394
- ,* 11 pos/neg frequency pairs will be bandpassed
+ ,* Mean value removed= -0.0158664
+ ,* Center of bandpass filter = 0.05890805
+ ,* 14 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 625
  ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618914
- ,* Center of bandpass filter = 0.05416667
- ,* 6 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.01614819
- ,* Center of bandpass filter = 0.06439394
+ ,* Mean value removed= 0.04618908
+ ,* Center of bandpass filter = 0.0625
  ,* 4 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= -0.0161482
+ ,* Center of bandpass filter = 0.05890805
+ ,* 5 pos/neg frequency pairs will be bandpassed
 #+end_example
 
 *** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
@@ -2780,8 +3155,8 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 104.31MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
-: ── Column specification ────────────────────────────────────────────────────────
+: indexing 405_minima.csv [===========================================================] 58.04MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
 : dbl (2): strat_bot, strat_top
@@ -2793,20 +3168,150 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:57]
 :END:
+**** [#A] complicated overview plot
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:19]
+:END:
+
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
+  comp |>
+    filter(site == "Zumaia", name == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    # r/w intervals
+    annotate("rect",
+             xmin = c(-5, 0, 59, 85, 109),
+             xmax = c(0, 59, 85, 109, 145),
+             ymin = 45, ymax = 50,
+             fill = c("gray", "red", "gray", "red", "gray"),
+             alpha = .2
+             ) +
+
+    # "raw" data
+    geom_line(colour = "gray") +
+    annotate("text", x = 145, y = 33, label = "raw - r/w", colour = "gray", hjust = 0) +
+    geom_line(aes(y = lin + 30), colour = "gray", data = smooth |>
+              filter(site == "Zumaia", name == "MS")) +
+    annotate("text", x = 145, y = 10, label = "raw", colour = "gray", hjust = 0) +
+    geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
+    annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 0) +
+    geom_line(aes(y = det - 5), data = smooth_basic |>
+                              filter(site == "Zumaia", name == "MS"),
+              colour = "gray") +
+    annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
+    geom_line(aes(y = det - 10), data = smooth |>
+                              filter(site == "Zumaia", name == "MS"),
+              colour = "gray") +
+    annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
+
+    ## # gam and other trends
+    geom_line(aes(y = gam_pred, colour = "gam"), data = smooth_basic |>
+                              filter(site == "Zumaia", name == "MS")) +
+    geom_line(aes(y = lin_pred, colour = "mean r/w", group = colour), data = smooth |>
+                              filter(site == "Zumaia", name == "MS")) +
+    geom_line(aes(y = gam_pred + 30, colour = "gam pred r/w"), data = smooth |>
+                              filter(site == "Zumaia", name == "MS")) +
+
+    ## # filters
+    geom_line(aes(y = filt, colour = "scaled filt"),
+              data = filts_scl |>
+              filter(site == "Zumaia", name == "MS")) +
+    geom_line(aes(y = filt - 5, colour = "gam filt"),
+              data = filts_gam |>
+              filter(site == "Zumaia", name == "MS")) +
+    geom_line(aes(y = filt - 10, colour = "gam + r/w filt"),
+              data = filts_fancy |>
+              filter(site == "Zumaia", name == "MS")) +
+
+    ## # age model from the log
+    geom_point(aes(x = strat_bot, y = -2,
+                   size = !is.na(comment)),
+               inherit.aes = FALSE,
+               data = agem |>
+                 filter(minmax == "minimum")) +
+    annotate("text", x = 145, y = -2, label = "minima", hjust = 0) +
+    annotate("text", x = 145, y = 2, label = "maxima", hjust = 0) +
+    geom_segment(aes(x = strat_bot, xend = strat_top,
+                     y = 2, yend = 2),
+                 inherit.aes = FALSE,
+                 data = agem |>
+                   filter(minmax == "maximum"),
+                 linewidth = 2) +
+    # try to make it into little sine waves
+    ## geom_segment(aes(x = strat_bot, xend = strat_top,
+    ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
+    ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
+    ##              data = agem) +
+
+    coord_cartesian(xlim = c(0, 150)) +
+    labs(x = "Depth (m)", y = "Proxy value", colour = "Site", size = "Well-defined") #+
+    ## theme(legend.position = "none")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_records.png]]
+
+**** basic gam removal
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 15:36]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
+  smooth_basic |>
+    filter(site == "Zumaia", name == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_line(colour = "gray") +
+    geom_line(aes(y = gam_pred)) +
+    geom_line(aes(y = det)) +
+    geom_line(aes(y = filt, colour = "basic filt"),
+              data = filts_basic |>
+              filter(site == "Zumaia", name == "MS")) +
+    geom_point(aes(x = strat_bot, y = -2,
+                   size = !is.na(comment)),
+               inherit.aes = FALSE,
+               data = agem |>
+               filter(minmax == "minimum")) +
+    geom_segment(aes(x = strat_bot, xend = strat_top,
+                     y = 2, yend = 2),
+                 inherit.aes = FALSE,
+                 data = agem |>
+                   filter(minmax == "maximum"),
+                 linewidth = 2) +
+    # try to make it into little sine waves
+    ## geom_segment(aes(x = strat_bot, xend = strat_top,
+    ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
+    ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
+    ##              data = agem) +
+    labs(x = "Depth (m)", y = "Scaled proxy value", colour = "Site", size = "Well-defined")
+    ## geom_text(aes(x = strat_bot, y = 0,
+    ##                label = desc), data = agem)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_records.png]]
+**** gam removal after subtracting the mean
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 15:42]
+:END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
   smooth |>
-    ggplot(aes(x = depth, y = value)) +
+    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
     facet_grid(rows = vars(name), scales = "free_y") +
     ## geom_line(colour = "gray") +
     ## geom_line(aes(y = gam_pred, group = site))
-    geom_line(aes(y = det, colour = site)) +
-    geom_line(aes(y = filt, colour = site), data = filts2) +
+    geom_line(aes(y = det)) +
+    geom_line(aes(y = filt, colour = "fancy filt"), data = filts) +
+    geom_line(aes(y = filt, colour = "basic filt"), data = filts_basic) +
     geom_point(aes(x = strat_bot, y = -2,
-                   size = !is.na(comment)), data = agem |>
+                   size = !is.na(comment)),
+               inherit.aes = FALSE,
+               data = agem |>
                filter(minmax == "minimum")) +
     geom_segment(aes(x = strat_bot, xend = strat_top,
-                     y = 2, yend = 2), data = agem |>
-                                             filter(minmax == "maximum"),
+                     y = 2, yend = 2),
+                 inherit.aes = FALSE,
+                 data = agem |>
+                   filter(minmax == "maximum"),
                  linewidth = 2) +
     # try to make it into little sine waves
     ## geom_segment(aes(x = strat_bot, xend = strat_top,
