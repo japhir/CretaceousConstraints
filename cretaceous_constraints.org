@@ -1,6 +1,6 @@
 #+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
 #+options: TOC:nil
-* COMMENT libs
+* libs
 #+begin_src R :exports code
   library(tidyverse)
   library(patchwork)
@@ -10,7 +10,7 @@
 #+RESULTS:
 #+begin_example
 ── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
-✔ dplyr     1.1.2     ✔ readr     2.1.4
+✔ dplyr     1.1.3     ✔ readr     2.1.4
 ✔ forcats   1.0.0     ✔ stringr   1.5.0
 ✔ ggplot2   3.4.3     ✔ tibble    3.2.1
 ✔ lubridate 1.9.2     ✔ tidyr     1.3.0
@@ -2794,7 +2794,7 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 
 #+RESULTS:
 
-*** plot long-term trend removal
+*** COMMENT plot long-term trend removal
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 14:30]
 :END:
@@ -2922,9 +2922,10 @@ So instead of fitting a simple gam through the whole record, we fit one for each
     ## scale_x_continuous(trans = "reciprocal")
     ## scale_x_log10() +
     ## scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x, breaks = c(10, 1, .5, .3, .2, .1))) +
-    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
-              inherit.aes = FALSE,
-              alpha = .3, data = filts_fancy |> distinct(name, flow, fhigh))
+    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
+    ##           inherit.aes = FALSE,
+    ##           alpha = .3, data = filts_fancy |> distinct(name, flow, fhigh))
+    labs(x = "Frequency")
 #+end_src
 
 #+RESULTS:
@@ -2962,6 +2963,9 @@ So instead of fitting a simple gam through the whole record, we fit one for each
     rename(filt = value)
   # TODO: 100 kyr
 #+end_src
+
+#+RESULTS:
+
 **** bp on scaled
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:47]
@@ -3146,24 +3150,6 @@ So instead of fitting a simple gam through the whole record, we fit one for each
  ,* 5 pos/neg frequency pairs will be bandpassed
 #+end_example
 
-*** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
-:PROPERTIES:
-:CREATED:  [2023-09-25 Mon 11:01]
-:END:
-#+begin_src R
-  agem <- read_csv("dat/Batenburg2012/405_minima.csv")
-#+end_src
-
-#+RESULTS:
-: indexing 405_minima.csv [===========================================================] 58.04MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
-: Delimiter: ","
-: chr (3): comment, minmax, desc
-: dbl (2): strat_bot, strat_top
-:
-: ℹ Use `spec()` to retrieve the full column specification for this data.
-: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
 *** make plot of records with filters
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:57]
@@ -3173,7 +3159,7 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 :CREATED:  [2023-09-25 Mon 16:19]
 :END:
 
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :width 900
   comp |>
     filter(site == "Zumaia", name == "MS") |>
     ggplot(aes(x = depth, y = value, group = paste(site, name))) +
@@ -3249,13 +3235,13 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia-Sopelana_records.png]]
+[[file:imgs/Zumaia-Sopelana_records_complicated.png]]
 
 **** basic gam removal
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:36]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_gam.png :width 900
   smooth_basic |>
     filter(site == "Zumaia", name == "MS") |>
     ggplot(aes(x = depth, y = value, group = paste(site, name))) +
@@ -3288,12 +3274,12 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia-Sopelana_records.png]]
-**** gam removal after subtracting the mean
+[[file:imgs/Zumaia-Sopelana_records_gam.png]]
+**** COMMENT gam removal after subtracting the mean
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:42]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_gam_demean.png :width 900
   smooth |>
     ggplot(aes(x = depth, y = value, group = paste(site, name))) +
     facet_grid(rows = vars(name), scales = "free_y") +
@@ -3324,10 +3310,11 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia-Sopelana_records.png]]
+[[file:imgs/Zumaia-Sopelana_records_gam_demean.png]]
 
 note that the minima from the field do not map 1:1 to the minima in the records...
-**** NEXT gam removal with specified knots
+**** CANC gam removal with specified knots
+CLOSED: [2023-09-26 Tue 16:59]
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:42]
 :END:
@@ -3362,6 +3349,24 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     ## geom_text(aes(x = strat_bot, y = 0,
     ##                label = desc), data = agem)
 #+end_src
+*** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 11:01]
+:END:
+#+begin_src R
+  agem <- read_csv("dat/Batenburg2012/405_minima.csv")
+#+end_src
+
+#+RESULTS:
+: indexing 405_minima.csv [==========================================================] 179.94MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr (3): comment, minmax, desc
+: dbl (2): strat_bot, strat_top
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
 *** apply the age model from the field
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:16]
@@ -3394,6 +3399,9 @@ note that the minima from the field do not map 1:1 to the minima in the records.
                                      agem_simple$age,
                                      xout = depth)$y)
 #+end_src
+
+#+RESULTS:
+
 *** make sure the linear interpolation is consistent between proxies/sites
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
@@ -3415,6 +3423,8 @@ note that the minima from the field do not map 1:1 to the minima in the records.
                             TRUE ~ NA_real_))
 #+end_src
 
+#+RESULTS:
+
 *** calculate spectra in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
@@ -3433,6 +3443,8 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     ) |>
     unnest(mtm)
 #+end_src
+
+#+RESULTS:
 
 *** calculate bandpass filters in the time domain
 :PROPERTIES:
@@ -3517,6 +3529,115 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     rename(filt = det)
 #+end_src
 
+#+RESULTS:
+#+begin_example
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 391
+ ,* Sample interval= 10
+ ,* Mean value removed= -0.04740806
+ ,* Center of bandpass filter = 0.002469136
+ ,* 12 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.02838345
+ ,* Center of bandpass filter = 0.002469136
+ ,* 11 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.009897727
+ ,* Center of bandpass filter = 0.002469136
+ ,* 11 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.04900637
+ ,* Center of bandpass filter = 0.002469136
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.01805715
+ ,* Center of bandpass filter = 0.002469136
+ ,* 5 pos/neg frequency pairs will be bandpassed
++ +
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 391
+ ,* Sample interval= 10
+ ,* Mean value removed= -0.04740806
+ ,* Center of bandpass filter = 0.01
+ ,* 47 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.02838345
+ ,* Center of bandpass filter = 0.01
+ ,* 46 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.009897727
+ ,* Center of bandpass filter = 0.01
+ ,* 46 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.04900637
+ ,* Center of bandpass filter = 0.01
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.01805715
+ ,* Center of bandpass filter = 0.01
+ ,* 20 pos/neg frequency pairs will be bandpassed
++ +
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 391
+ ,* Sample interval= 10
+ ,* Mean value removed= -0.04740806
+ ,* ERROR: maximum frequency too high, reset to Nyquist-df
+ ,* Center of bandpass filter = 0.04015345
+ ,* 153 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.02838345
+ ,* Center of bandpass filter = 0.04347826
+ ,* 199 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.009897727
+ ,* Center of bandpass filter = 0.04347826
+ ,* 199 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.04900637
+ ,* Center of bandpass filter = 0.04347826
+ ,* 88 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.01805715
+ ,* Center of bandpass filter = 0.04347826
+ ,* 88 pos/neg frequency pairs will be bandpassed
+#+end_example
+
 *** calculate hilbert transform of precession data in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
@@ -3532,11 +3653,40 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     select(-data)
 #+end_src
 
+#+RESULTS:
+#+begin_example
+
+----- PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 391
+ ,* Sample interval= 10
+ ,* Mean value removed= -0.04701458
+
+----- PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.02782609
+
+----- PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 1273
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.009172407
+
+----- PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= 0.04891497
+
+----- PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
+ ,* Number of data points= 562
+ ,* Sample interval= 3
+ ,* Mean value removed= -0.01865478
+#+end_example
+
 *** plot spectra
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
 :END:
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 900
   # plot spectra w/ Freq on x-axis
   specs_age |>
     ggplot(aes(x = Frequency, y = Power, colour = site)) +
@@ -3571,6 +3721,9 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     labs(x = "Frequency (cycles/kyr)", y = "Power", colour = "Site")
 #+end_src
 
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_spectra_filters.png]]
+
 *** COMMENT plot spectra with period on the x-axis
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
@@ -3600,7 +3753,7 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
 :END:
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_records_and_filters.png :width 900
   smooth |>
     ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
     ggplot(aes(x = age / 1e3, y = value, colour = site)) +
@@ -3624,10 +3777,13 @@ note that the minima from the field do not map 1:1 to the minima in the records.
                             mutate(pk = -pk)) +
     scale_x_continuous(breaks = seq(0, 5, 1)) +
     labs(x = "K/Pg + Age (Ma)", y = "Normalized proxy",
-         title = "Zumaia raw proxy record filters"
+         ## title = "Zumaia raw proxy record filters"
          ## title = "Zumaia fancy detrended proxy record filters"
          )
 #+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_records_and_filters.png]]
 
 *** get ZB18a
 :PROPERTIES:
@@ -3641,35 +3797,14 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     mutate(scl = scale(ecc)[, 1])
 #+end_src
 
-*** create eccentricity curve from data
-:PROPERTIES:
-:CREATED:  [2023-09-26 Tue 16:51]
-:END:
-#+begin_src R
-  # construct a fake eccentricity record
-  smooth |>
-    ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
-    ggplot(aes(x = 66 + age / 1e3, y = value, colour = site, group = site)) +
-    facet_grid(rows = vars(name), scales = "free_y") +
-    geom_vline(aes(xintercept = 66 + age / 1e3), data = agem_simple) +
-    geom_line(aes(x = age / 1e3, y = scl), colour = "gray", inherit.aes = FALSE, data = sln) +
-    ## geom_line(aes(y = `405` + `100`, colour = "1:1 filt"), data = data_ecc) +
-    ## geom_line(aes(y = `405` + .5 * `100`, colour = "1:0.5 filt"), data = data_ecc) +
-    geom_line(aes(y = `405` + 2 * envelope, colour = "1:2 filt/hilbert"), data = data_ecc) +
-    geom_line(aes(y = `405` + envelope, colour = "1:1 filt/hilbert"), data = data_ecc) +
-    geom_line(aes(y = `405` + 0.5 * envelope, colour = "1:0.5 filt/hilbert"), data = data_ecc) +
-    ## geom_line(aes(y = envelope + 5.5, group = site), colour = "red", data = hb_age_prec) +
-    scale_x_continuous(breaks = 66 + seq(0, 5, 1), labels = seq(0, 5, 1)) +
-    labs(x = "K/Pg + Age (Ma)", y = "Normalized filtered proxy",
-         ## title = "Zumaia raw proxy record filters"
-         ## title = "Zumaia fancy detrended proxy record filters"
-         )
-#+end_src
+#+RESULTS:
+
 *** add the orbital solution to the ecc curve and plot the MSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
 #+begin_src R
+  kpg_age <- 65970 # age taken from Batenburg et al., 2014
   data_ecc <- filts_age |>
     select(name, site, age, filt) |>
     rename(`405` = filt) |>
@@ -3682,8 +3817,29 @@ note that the minima from the field do not map 1:1 to the minima in the records.
                hb_age_prec |>
                select(name, site, age, envelope)
              ) |>
-    mutate(ZB18a = approx(sln$age, sln$scl, xout = age + 66000)$y)
+    mutate(ZB18a = approx(sln$age, sln$scl, xout = age + kpg_age)$y)
+#+end_src
 
+#+RESULTS:
+#+begin_example
+Joining with `by = join_by(name, site, age)`
+left_join: added one column (100)
+rows only in x       0
+rows only in y  (    0)
+matched rows     4,061
+                =======
+rows total       4,061
+Joining with `by = join_by(name, site, age)`
+left_join: added one column (envelope)
+rows only in x       0
+rows only in y  (    0)
+matched rows     4,061
+                =======
+rows total       4,061
+#+end_example
+
+**** plot
+#+begin_src R
   data_ecc |>
     ggplot(aes(x = age, y = ZB18a, colour = site, group = site)) +
     ## geom_line() +
@@ -3695,11 +3851,40 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     facet_grid(rows = vars(name))
 #+end_src
 
+#+RESULTS:
+
+*** plot data and orbital solution
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:51]
+:END:
+#+begin_src R
+  # construct a fake eccentricity record
+  smooth |>
+    ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
+    ggplot(aes(x = (kpg_age + age) / 1e3, y = value, colour = site, group = site)) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    geom_vline(aes(xintercept = (kpg_age + age) / 1e3), data = agem_simple) +
+    geom_line(aes(x = age / 1e3, y = scl), colour = "gray", inherit.aes = FALSE, data = sln) +
+    ## geom_line(aes(y = `405` + `100`, colour = "1:1 filt"), data = data_ecc) +
+    ## geom_line(aes(y = `405` + .5 * `100`, colour = "1:0.5 filt"), data = data_ecc) +
+    geom_line(aes(y = `405` + 2 * envelope, colour = "1:2 filt/hilbert"), data = data_ecc) +
+    geom_line(aes(y = `405` + envelope, colour = "1:1 filt/hilbert"), data = data_ecc) +
+    geom_line(aes(y = `405` + 0.5 * envelope, colour = "1:0.5 filt/hilbert"), data = data_ecc) +
+    ## geom_line(aes(y = envelope + 5.5, group = site), colour = "red", data = hb_age_prec) +
+    scale_x_continuous() +
+    labs(x = "Age (Ma)", y = "Normalized filtered proxy",
+         ## title = "Zumaia raw proxy record filters"
+         ## title = "Zumaia fancy detrended proxy record filters"
+         )
+#+end_src
+
+#+RESULTS:
+
 *** create a summary of the MSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:52]
 :END:
-#+begin_src R
+#+begin_src R :results value :colnames yes
   # in general, which version gives the best fit?
   data_ecc |>
     summarize(
@@ -3715,8 +3900,55 @@ note that the minima from the field do not map 1:1 to the minima in the records.
       ## msd_1_0.9_env = sqrt(sum((scale(`405` + 0.9 * envelope)[, 1] - ZB18a)^2)),
       msd_1_0.5_env = sqrt(sum((scale(`405` + 0.5 * envelope)[, 1] - ZB18a)^2)),
       ## msd_1_0.1_env = sqrt(sum((scale(`405` + 0.1 * envelope)[, 1] - ZB18a)^2)),
-      .by = c(name, site))
+      .by = c(name, site)) |>
+    rename(proxy = name) |>
+    pivot_longer(msd_1_2:msd_1_0.5_env) |>
+    arrange(value)
 #+end_src
+
+#+RESULTS:
+| proxy     | site     | name          |            value |
+|-----------+----------+---------------+------------------|
+| d13C_VPDB | Zumaia   | msd_1_2       | 29.3598821079939 |
+| d13C_VPDB | Zumaia   | msd_1_1.5     | 29.6581384794546 |
+| d13C_VPDB | Zumaia   | msd_1_1       | 29.9846266540965 |
+| d13C_VPDB | Zumaia   | msd_1_0.5     | 30.2994787661913 |
+| d13C_VPDB | Zumaia   | msd_1_2_env   | 30.3188077230196 |
+| d13C_VPDB | Zumaia   | msd_1_1.5_env | 30.5381119730474 |
+| d13C_VPDB | Zumaia   | msd_1_1_env   | 30.7380319186259 |
+| d13C_VPDB | Zumaia   | msd_1_0.5_env | 30.7867245290165 |
+| MS        | Sopelana | msd_1_2       | 31.1290307431718 |
+| MS        | Sopelana | msd_1_1.5     | 31.2806309294031 |
+| MS        | Sopelana | msd_1_1       | 31.5979866131033 |
+| Lstar     | Sopelana | msd_1_2_env   | 32.0109455469781 |
+| MS        | Sopelana | msd_1_0.5     | 32.4996960192738 |
+| Lstar     | Sopelana | msd_1_1.5_env | 32.5838862334169 |
+| MS        | Sopelana | msd_1_2_env   | 33.1162819006392 |
+| MS        | Sopelana | msd_1_1.5_env |  33.220217937339 |
+| MS        | Sopelana | msd_1_1_env   | 33.4146645790638 |
+| Lstar     | Sopelana | msd_1_1_env   | 33.6447657872902 |
+| MS        | Sopelana | msd_1_0.5_env | 33.8834752737462 |
+| Lstar     | Sopelana | msd_1_2       | 34.9674358794334 |
+| Lstar     | Sopelana | msd_1_1.5     | 35.4537885662001 |
+| Lstar     | Sopelana | msd_1_0.5_env | 35.8804613843147 |
+| Lstar     | Sopelana | msd_1_1       | 36.2790314022912 |
+| Lstar     | Sopelana | msd_1_0.5     | 37.7416472597871 |
+| Lstar     | Zumaia   | msd_1_2_env   | 44.8509657385971 |
+| Lstar     | Zumaia   | msd_1_1.5_env | 45.0940488838285 |
+| Lstar     | Zumaia   | msd_1_1_env   | 45.6709012369143 |
+| Lstar     | Zumaia   | msd_1_0.5_env | 47.0660787794822 |
+| MS        | Zumaia   | msd_1_2_env   | 47.1751100097964 |
+| MS        | Zumaia   | msd_1_1.5_env | 47.4342665569233 |
+| MS        | Zumaia   | msd_1_1_env   | 47.9225909931922 |
+| MS        | Zumaia   | msd_1_0.5_env | 48.9197030810149 |
+| MS        | Zumaia   | msd_1_0.5     | 51.6594934150535 |
+| MS        | Zumaia   | msd_1_1       | 52.2665203096134 |
+| Lstar     | Zumaia   | msd_1_0.5     | 52.2858202454809 |
+| MS        | Zumaia   | msd_1_1.5     | 52.6195669732602 |
+| MS        | Zumaia   | msd_1_2       | 52.8215096044653 |
+| Lstar     | Zumaia   | msd_1_1       | 53.4534743041263 |
+| Lstar     | Zumaia   | msd_1_1.5     | 53.9403036679462 |
+| Lstar     | Zumaia   | msd_1_2       | 54.1797169740796 |
 
 *** do the same analysis with different ages for the K/Pg boundary
 :PROPERTIES:
@@ -3724,7 +3956,7 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :END:
 #+begin_src R
   # which time offset gives the best fit?
-  data_ecc <- filts_age |>
+  data_ecc_off <- filts_age |>
     select(name, site, age, filt) |>
     rename(`405` = filt) |>
     tidylog::left_join(
@@ -3738,12 +3970,12 @@ note that the minima from the field do not map 1:1 to the minima in the records.
              ) |>
     nest(.by = c(name, site)) |>
     ## filter(age > 56000 & age < 80000) |> # this is the age range we got for the solution
-    mutate(age_kpg = list(66000 + seq(-5000, 5000, 5))) |>
+    mutate(age_kpg = list(kpg_age + seq(-2000, 2000, 5))) |>
     unnest(age_kpg) |>
     unnest(data) |>
     mutate(ZB18a = approx(sln$age, sln$scl, xout = age + age_kpg)$y)
 
-  data_ecc |>
+  data_ecc_off_summ <- data_ecc_off |>
     summarize(
       msd_1_2 = sqrt(sum((scale(`405` + 2 * `100`)[, 1] - ZB18a)^2)),
       msd_1_1.5 = sqrt(sum((scale(`405` + 1.5 * `100`)[, 1] - ZB18a)^2)),
@@ -3758,14 +3990,14 @@ note that the minima from the field do not map 1:1 to the minima in the records.
       msd_1_0.5_env = sqrt(sum((scale(`405` + 0.5 * envelope)[, 1] - ZB18a)^2)),
       ## msd_1_0.1_env = sqrt(sum((scale(`405` + 0.1 * envelope)[, 1] - ZB18a)^2)),
       .by = c(name, site, age_kpg)) |>
-    ggplot(aes(x = age_kpg, y = msd_1_2_env, group = site)) +
+    rename(proxy = name) |>
+    pivot_longer(msd_1_2:msd_1_0.5_env) |>
+    arrange(value)
+
+  data_ecc_off_summ |>
+    ggplot(aes(x = age_kpg, y = value, colour = name, group = paste(site, name))) +
     geom_line() +
-    geom_line(aes(y = msd_1_1_env)) +
-    geom_line(aes(y = msd_1_0.5_env)) +
-    geom_line(aes(y = msd_1_1)) +
-    geom_line(aes(y = msd_1_1.5)) +
-    geom_line(aes(y = msd_1_0.5)) +
-    facet_grid(rows = vars(name)) +
+    facet_grid(rows = vars(proxy)) +
     labs(x = "Age of the K/Pg boundary", y = "MSD")
 #+end_src
 
