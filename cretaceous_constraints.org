@@ -1,6 +1,8 @@
+#+title: Cretaceous Constraints
 #+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
-#+options: TOC:nil
-* libs
+#+options: TOC:nil broken-links:mark
+#+startup: overview
+* libraries
 #+begin_src R :exports code
   library(tidyverse)
   library(patchwork)
@@ -537,12 +539,13 @@ sorted from young to older, longest records at the end
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:37]
 :END:
-color reflectance a* used in [cite:@ZeebeLourens2019]
+Color reflectance a* used in [cite:@ZeebeLourens2019].
+
 d13C/d18O available in https://doi.pangaea.de/10.1594/PANGAEA.854816
 53 Ma to 58 Ma
 [[https://web.iodp.tamu.edu/janusweb/imaging/photo.cgi][section photo's]]
 
-color reflectance a*/b* used in [cite:@ZeebeLourens2022EPSL]
+Color reflectance a*/b* used in [cite:@ZeebeLourens2022EPSL]
 in combination with site 1209, Zumaia
 56 Ma to 66 Ma
 
@@ -556,7 +559,9 @@ or search for it via https://web.iodp.tamu.edu/janusweb/physprops/colordat.shtml
 figure from initial reports: http://www-odp.tamu.edu/publications/208_IR/chap_03/c3_f9.htm
 
 get conversion between MBSF and MCD here http://web.iodp.tamu.edu/OVERVIEW/?&exp=208&site=1263
+
 figure of conversion between MBSF and MCD, 3 linear fits for different holes
+
 http://www-odp.tamu.edu/publications/208_IR/chap_03/c3_f5.htm
 
 I'm not going to put too much effort in, Richard should have this analysis according to Luc.
@@ -589,13 +594,14 @@ I'm not going to put too much effort in, Richard should have this analysis accor
 via [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frits Hilgen]]
 [[mu4e:msgid:AS8PR05MB10601D055071F8CD08F7C0153DBFBA@AS8PR05MB10601.eurprd05.prod.outlook.com][RE: Paper: Earth beyond six of nine planetary boundaries]]
 66 Ma until 64 Ma
-multi-proxy study of the interval from the K/Pg boundary up to cycle 20 of [cite:@Dinares-Turell2003].
 
-only photos for now
-linked to Zumaia, but no turbidites
+Multi-proxy study of the interval from the K/Pg boundary up to cycle 20 of [cite:@Dinares-Turell2003].
+
+Only photos for now.
+Linked to Zumaia, but no turbidites
 [[file:imgs/Hendaye_tuning_Frits-Hilgen.pdf::3]]
 
-shows expression of weak 200 kyr eccentricity cycle and oldest node of 2-Myr cycle
+Shows expression of weak 200 kyr eccentricity cycle and oldest node of 2-Myr cycle
 Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in the 200 kyr cycle.
 
 ** [#C] IODP Leg 198 Site 1209
@@ -603,7 +609,8 @@ Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in 
 :CREATED:  [2023-08-31 Thu 17:29]
 :END:
 56 Ma to 66 Ma
-color reflectance used in [cite:@ZeebeLourens2022EPSL]
+
+Color reflectance used in [cite:@ZeebeLourens2022EPSL]
 #+begin_src R :results output graphics file :file imgs/198-1209_color_ZeebeLourens2019-2022.png :width 900 :height 500
   ODP198_1209_col <- readr::read_tsv("dat/ODP198_1209_color_reflectance.dat")
   ## spl <- readr::read_tsv("dat/ODP198_1209_splice.dat")
@@ -623,11 +630,14 @@ color reflectance used in [cite:@ZeebeLourens2022EPSL]
 :CREATED:  [2023-09-05 Tue 15:59]
 :END:
 [cite:@Sinnesael2016] https://doi.pangaea.de/10.1594/PANGAEA.864450
+
 MS, CaCO3, d13C, d18O
+
 uppermost Maastrichtian to lower Danian
+
 62.5 Ma to 67 Ma
 
-combined with Bottaccione
+Combined with Bottaccione
 #+begin_src R :results output graphics file :file imgs/Contessa_MS_Sinnesael2016.png :width 900 :height 500
   Contessa <- pangaear::pg_data("10.1594/PANGAEA.864450")[[1]]
 
@@ -647,17 +657,21 @@ combined with Bottaccione
 :CREATED:  [2023-08-31 Thu 12:49]
 :END:
 via [cite:@Husson2011] figure 3 and 4
+
 Ma_{405}1 to Ma_{405}6 or 7
+
 66 Ma to ~68.6
-raw magsus data from [cite:@Blum2005] https://doi.pangaea.de/10.1594/PANGAEA.266605
+
+Raw magsus data from [cite:@Blum2005] https://doi.pangaea.de/10.1594/PANGAEA.266605
+
 also related: [cite:@Zachos2004]
 
 *** Magsus data analyzed similarly to [cite:@Husson2011]
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:22]
 :END:
-depth sed [m] from 0.05 to 329 m
-depth comp [mcd] from 0.05 to 368 m
+- depth sed [m] from 0.05 to 329 m
+- depth comp [mcd] from 0.05 to 368 m
 
 208-1267B-1H-1,5 to 208-1267B-36X-7,37.5
 
@@ -675,7 +689,7 @@ depth comp [mcd] from 0.05 to 368 m
   # so we have Depth (mbsf) and would like to convert it to the new rmcd
 #+end_src
 
-**** same plot as in [cite:@Husson2011] figure 4
+**** reproduce [cite:@Husson2011] figure 4
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 13:17]
 :END:
@@ -812,18 +826,17 @@ https://doi.pangaea.de/10.1594/PANGAEA.592301
 another PDF :S
 [[file:~/Downloads/208-1267_TabS7_tie_points.pdf]]
 
-this has hole core section interval depth_mbsf depth_rmcd
+This has hole core section interval depth_mbsf depth_rmcd
 tie to / append to / end of splice
 new mbsf / rmcd
 
-manually converted to csv again (using tabula/copy-paste).
-this one was a bit easier than the one with many sites)
+Manually converted to csv again (using tabula/copy-paste) (this one was a bit easier than the one with many sites).
 
-this links hole A to hole B and vice-versa
+This links hole A to hole B and vice-versa
 depth_mbsf from 25.2 m to 329
 depth_rmcd from 28.6 m to 367 m
 
-same as shipboard MCD above 180.25 MCD, adjusted below
+Same as shipboard MCD above 180.25 MCD, adjusted below.
 
 #+begin_src R :results none
   # the full splice table
@@ -852,7 +865,7 @@ same as shipboard MCD above 180.25 MCD, adjusted below
            Sec = ifelse(Sec == "cc", "7", Sec))
 #+end_src
 
-***** plots to try to understand the splice table
+***** plots to try to understand the splice table      :noexport:
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 17:15]
 :END:
@@ -1317,6 +1330,12 @@ this is to inspect how the moving average affects the outcome
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_mtm.png]]
 
+Ehhm... there are no spectral peaks in the range that they filter!
+
+**** NEXT remake this figure using ggplot marking the region that they taner filter
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 19:25]
+:END:
 **** do wavelet analysis
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 16:45]
@@ -1373,17 +1392,6 @@ from 1 Ma to 66 Ma
     geom_line() +
     geom_line(aes(x = `Depth (mcd)`), data = agem_sb, colour = "red")
 #+end_src
-
-#+RESULTS:
-: indexing agem.csv [=================================================================] 59.00MB/s, eta:  0s                                                                                                                                            Rows: 22 Columns: 4
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
-: Delimiter: "\t"
-: chr (2): Hole, Comment
-: dbl (2): Age (Ma), Depth (mbsf)
-:
-: ℹ Use `spec()` to retrieve the full column specification for this data.
-: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-: Error: object 'agem_sb' not found
 
 **** agemodels from [cite:@Westerhold2008]
 :PROPERTIES:
@@ -1452,7 +1460,7 @@ age from 56 Ma to 69.1 Ma
 
 #+RESULTS:
 [[file:imgs/208-1267B_agem.png]]
-*** plot the age model on top of the depth MS data
+*** plot the taner age model on top of the depth MS data
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 09:32]
 :END:
@@ -1464,13 +1472,6 @@ age from 56 Ma to 69.1 Ma
     geom_point(aes(x = depth_rmcd, y = 0, age = age_ma, strat_event = strat_event),
                inherit.aes = FALSE, data = agem2)
 #+end_src
-
-#+RESULTS:
-: Warning messages:
-: 1: In geom_point(aes(x = depth_rmcd, y = 0, age = age_ma, strat_event = strat_event),  :
-:   Ignoring unknown aesthetics: age and strat_event
-: 2: Using alpha for a discrete variable is not advised.
-: 3: Removed 2230 rows containing missing values (`geom_line()`).
 
 *** apply the agemodel to the MS data
 :PROPERTIES:
@@ -1517,11 +1518,6 @@ age from 56 Ma to 69.1 Ma
                             add_abline_h = c(0.405, 0.125, 0.027)
                             )
 #+end_src
-
-#+RESULTS:
-: Warning message:
-: In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-:   collapsing to unique 'x' values
 
 **** filter MS in time
 :PROPERTIES:
@@ -1587,7 +1583,9 @@ age from 56 Ma to 69.1 Ma
 :END:
 I've added this myself, may be nicer than just MS?
 https://web.iodp.tamu.edu/janusweb/physprops/colordat.cgi?leg=208&site=1267
-they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@Batenburg2018a] (56.042 Ma to 69.070 Ma)
+
+They did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@Batenburg2018a] (56.042 Ma to 69.070 Ma).
+
 **** read in the data and calculate normalized a*/b*
 #+begin_src R
   ODP208_1267_color_A <- readr::read_tsv("dat/ODP208_1267_color-reflectance.dat")
@@ -1612,27 +1610,6 @@ they did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
     geom_smooth(method = "gam", color = "orange")
 #+end_src
 
-#+RESULTS:
-#+begin_example
-indexed 0B in  0s, 0B/sindexed 1.00TB in  0s, 38.17TB/s                                                                                                       Rows: 25316 Columns: 15
-── Column specification ─────────────────────────────────────────────────────────────────────────────────
-Delimiter: "\t"
-chr  (4): H, T, Sec, Munsell_HVC
-dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-indexing ODP208_1267_color-reflectance_B.dat [=====================================] 143.06GB/s, eta:  0s                                                                                                                                            Rows: 13263 Columns: 15
-── Column specification ─────────────────────────────────────────────────────────────────────────────────
-Delimiter: "\t"
-chr  (4): H, T, Sec, Munsell_HVC
-dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-`geom_smooth()` using formula = 'y ~ x'
-`geom_smooth()` using formula = 'y ~ s(x, bs = "cs")'
-#+end_example
 **** do analysis of hole B in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 12:42]
@@ -1656,24 +1633,6 @@ dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
   ##   astrochron::linterp(genplot = FALSE) |>
   ##   astrochron::bandpass(flow = .1, fhigh = .5, win = 1, xmax = 5)
 #+end_src
-
-#+RESULTS:
-#+begin_example
------ TANER BANDPASS FILTERING STRATIGRAPHIC SERIES-----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= 11.30448
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
-#+end_example
 
 ***** COMMENT do spectral analysis
 :PROPERTIES:
@@ -1762,88 +1721,6 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
     astrochron::mtm(xmax = .06)
 #+end_src
 
-#+RESULTS:
-#+begin_example
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 1733
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 9
-
- ,* No filtering of peaks applied.
------ TUNING STRATIGRAPHIC SERIES -----
- ,* Number of data points= 1840
- ,* Number of time control points= 9
- ,* Sorting datasets into ensure increasing order, removing empty entries
-
-,**** WARNING: duplicate depth/height datum found in dat
-
- ,* Mean sampling interval= 2.096929
- ,* Median sampling interval= 2.154255
- ,* Maximum sampling interval= 7.941176
- ,* Minimum sampling interval= 0
-
------ PERFORMING Multitaper Spectral Analysis -----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 2.154255
- ,* New number of samples= 1791
- ,* Number of data points in stratigraphic series: 1791
- ,* Stratigraphic series length (space or time): 3856.117
- ,* Sampling interval (space or time): 2.154255
- ,* Will use default setting of 5 DPSS tapers
- ,* Mean value subtracted= 0.00882429
- ,* Linear trend NOT subtracted
- ,* Nyquist frequency: 0.2320988
- ,* Rayleigh frequency: 0.0002591834
- ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.0007775503
- ,* Padded to 8956 points
-
- ,* Searching for significant spectral peaks that satisfy 90 % CL
-     requirements outlined in Meyers (2012):
- ,* Number of significant F-test peaks identified = 33
-ID  / Frequency / Period / Harmonic_CL / Rednoise_CL
-1   0.002798869   357.2872   90.68548   98.53344
-2   0.003835487   260.7231   96.06114   96.35961
-3   0.007256326   137.8108   97.68282   82.70286
-4   0.02752221   36.33429   97.5   80.64475
-5   0.02829967   35.3361   93.87141   79.03028
-6   0.02933629   34.08747   99.54662   93.66677
-7   0.0411019   24.32977   98.98623   84.84235
-8   0.0531785   18.80459   95.4257   74.80281
-9   0.05447427   18.35729   99.89771   95.87553
-10   0.06287088   15.90561   95.22755   97.11556
-11   0.06395933   15.63494   93.02414   89.89813
-12   0.06696552   14.93306   91.90037   73.29973
-13   0.0681058   14.68304   98.00992   82.16992
-14   0.07474016   13.37969   99.96271   91.50175
-15   0.07852381   12.73499   97.43281   65.44862
-16   0.09231083   10.83296   95.61134   89.70635
-17   0.09422857   10.61249   99.31377   99.89063
-18   0.1000855   9.991461   93.88109   76.57064
-19   0.1010184   9.899185   98.41569   72.34155
-20   0.102677   9.739278   90.12556   94.56918
-21   0.1049576   9.52766   97.28039   85.37081
-22   0.1077564   9.280188   91.26549   72.50968
-23   0.1085339   9.213711   97.25827   90.16475
-24   0.1096224   9.122227   94.33675   77.94989
-25   0.112784   8.866503   96.57953   69.30783
-26   0.1211806   8.252143   96.03697   56.31232
-27   0.1220099   8.196054   98.88495   84.78227
-28   0.1249643   8.002286   99.84032   79.34508
-29   0.1367817   7.310917   91.50361   88.80223
-30   0.1441936   6.935122   90.96567   94.40426
-31   0.1635265   6.115217   95.39002   85.09184
-32   0.167051   5.986196   95.01506   91.9216
-33   0.1933293   5.172523   94.30443   84.0192
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
-#+end_example
-
 ***** remove long-term trends in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 11:39]
@@ -1891,25 +1768,6 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
     geom_line(aes(y = ma_scl + 9), colour = "indianred")
 #+end_src
 
-#+RESULTS:
-#+begin_example
------ LOWPASS FILTERING STRATIGRAPHIC SERIES-----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= 0.01953956
- ,* 5 pos/neg frequency pairs and f(0) will be bandpassed
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
-#+end_example
-
 ***** do mtm analysis  in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 11:55]
@@ -1928,97 +1786,6 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
     astrochron::mtm(output = 1, xmax = 10) |>
     as_tibble()
 #+end_src
-
-#+RESULTS:
-#+begin_example
------ PERFORMING Multitaper Spectral Analysis -----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points in stratigraphic series: 1733
- ,* Stratigraphic series length (space or time): 43.3
- ,* Sampling interval (space or time): 0.025
- ,* Will use default setting of 5 DPSS tapers
- ,* Mean value subtracted= -0.007338007
- ,* Linear trend NOT subtracted
- ,* Nyquist frequency: 20
- ,* Rayleigh frequency: 0.02308136
- ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.06924409
- ,* Padded to 8666 points
-
- ,* Searching for significant spectral peaks that satisfy 90 % CL
-     requirements outlined in Meyers (2012):
- ,* Number of significant F-test peaks identified = 46
-ID  / Frequency / Period / Harmonic_CL / Rednoise_CL
-1   0.1477037   6.770312   97.81888   70.95153
-2   0.3507962   2.850658   96.15821   99.83479
-3   0.549273   1.820588   99.93298   95.71491
-4   0.6600508   1.515035   91.60759   59.35608
-5   2.506347   0.3989871   99.90005   97.14331
-6   2.594046   0.3854982   92.58703   84.48891
-7   4.264943   0.2344697   92.27711   88.87931
-8   5.67736   0.1761382   96.11432   89.04281
-9   6.106624   0.1637566   99.97548   64.3143
-10   7.957535   0.1256671   98.05545   84.35803
-11   8.156012   0.1226089   99.56947   93.36902
-12   8.636049   0.1157937   93.82859   89.15123
-13   9.162243   0.1091436   94.41139   94.81218
-14   9.254558   0.1080549   97.05078   90.86573
-15   9.780752   0.1022416   99.25119   89.55859
-16   10.58389   0.09448321   97.63315   95.10522
-17   11.0547   0.09045929   95.32547   71.18952
-18   11.17009   0.08952479   93.37106   94.26625
-19   11.23933   0.08897331   94.40806   69.16598
-20   11.34549   0.08814076   97.58416   82.10638
-21   11.65474   0.08580198   96.48069   92.10786
-22   12.3748   0.0808094   95.1167   97.58248
-23   12.6379   0.0791271   93.62709   93.73139
-24   12.91946   0.07740264   93.56098   98.65819
-25   13.021   0.07679901   99.36458   62.45722
-26   13.99954   0.07143093   93.03784   69.10545
-27   14.09647   0.07093975   99.06973   99.20623
-28   14.3688   0.06959525   98.68524   64.65251
-29   14.43803   0.06926151   98.14767   87.79034
-30   14.62266   0.06838699   93.01484   71.31289
-31   14.81652   0.06749221   93.2065   96.91767
-32   14.92269   0.06701206   98.81679   88.57128
-33   15.26425   0.06551255   90.33441   64.59363
-34   15.31964   0.06527569   90.22784   91.29449
-35   15.62428   0.06400295   97.42037   85.11671
-36   16.00277   0.06248918   97.92532   68.65022
-37   17.09208   0.05850662   94.69208   88.55884
-38   17.56751   0.05692328   94.97037   98.45663
-39   17.70598   0.0564781   95.89307   66.52896
-40   17.7706   0.05627273   94.15521   82.41941
-41   17.80291   0.0561706   94.19327   72.928
-42   17.91369   0.05582324   99.42919   89.47333
-43   18.30141   0.05464061   90.11566   73.50925
-44   18.47681   0.05412191   99.35983   57.57737
-45   18.5645   0.05386624   99.42766   59.69106
-46   19.87076   0.0503252   99.85037   87.35517
-# A tibble: 4,332 × 8
-   Frequency   Power Harmonic_CL AR1_CL AR1_fit AR1_90_power AR1_95_power AR1_99_power
-       <dbl>   <dbl>       <dbl>  <dbl>   <dbl>        <dbl>        <dbl>        <dbl>
- 1   0.00462 0.00286        13.7   56.8 0.00283      0.00452      0.00518      0.00656
- 2   0.00923 0.00276        10.4   53.9 0.00283      0.00452      0.00518      0.00656
- 3   0.0138  0.00263        11.0   49.5 0.00283      0.00452      0.00518      0.00656
- 4   0.0185  0.00248        25.8   44.7 0.00283      0.00452      0.00518      0.00656
- 5   0.0231  0.00232        57.8   39.0 0.00283      0.00452      0.00518      0.00656
- 6   0.0277  0.00214        87.9   33.0 0.00283      0.00452      0.00518      0.00656
- 7   0.0323  0.00201        98.8   28.5 0.00283      0.00452      0.00518      0.00656
- 8   0.0369  0.00193       100.    25.8 0.00283      0.00452      0.00518      0.00656
- 9   0.0415  0.00186       100.    23.4 0.00283      0.00452      0.00518      0.00656
-10   0.0462  0.00175        99.1   20.0 0.00283      0.00452      0.00518      0.00656
-# ℹ 4,322 more rows
-# ℹ Use `print(n = ...)` to see more rows
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
-#+end_example
 
 ***** bandpass filtering in the depth domain
 :PROPERTIES:
@@ -2085,62 +1852,6 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
     ## astrochron::peak() |>
     as_tibble()
 #+end_src
-
-#+RESULTS:
-#+begin_example
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= -0.01994842
- ,* Center of bandpass filter = 2.5
- ,* 86 pos/neg frequency pairs will be bandpassed
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= -0.01994842
- ,* Center of bandpass filter = 4
- ,* 86 pos/neg frequency pairs will be bandpassed
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= -0.01994842
- ,* Center of bandpass filter = 6.7
- ,* 86 pos/neg frequency pairs will be bandpassed
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
------ PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= -0.01987432
-#+end_example
 
 ***** plot the filters
 :PROPERTIES:
@@ -2264,9 +1975,6 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
                                                    before = 200,
                                                    after = 200)))
 #+end_src
-
-#+RESULTS:
-: filter: removed 35,321 rows (92%), 3,258 rows remaining
 
 **** create wavelet with rmcd vs L*
 #+begin_src R :results graphics file :file imgs/ODP208_1267_color_wavelet.png :width 800
@@ -2427,9 +2135,11 @@ interesting! There's almost no 405 kyr cyclicity in there, probably b/c it was t
 overview of all supplementary data on PANGAEA
 https://doi.pangaea.de/10.1594/PANGAEA.667122
 
-title says "astronomical calibration of the Paleocene time"
-depth sed [m] from 234 m to 295 m
-depth revised [m] from 265 m to 330 m
+Title says "astronomical calibration of the Paleocene time".
+
+- depth sed [m] from 234 m to 295 m
+- depth revised [m] from 265 m to 330 m
+
 #+begin_src R :results graphics file :file imgs/ODP208_1267_Fe.png :width 800
   ODP208_1267_Fe <- pangaear::pg_data("10.1594/PANGAEA.666120")
 
@@ -2478,9 +2188,10 @@ depth revised [m] from 265 m to 330 m
 :END:
 Too young!
 
-depth sed [m] from 154 m to 163 m.
-depth comp [mcd] from to 168 m to 180 m
-age [ka BP] from 47800 ka to 50002 ka.
+- depth sed [m] from 154 m to 163 m.
+- depth comp [mcd] from to 168 m to 180 m
+- age [ka BP] from 47800 ka to 50002 ka.
+
 #+begin_src R
   ODP208_1267_CaCO3 <- pangaear::pg_data("10.1594/PANGAEA.763155")
 #+end_src
@@ -2489,9 +2200,10 @@ age [ka BP] from 47800 ka to 50002 ka.
 :CREATED:  [2023-08-31 Thu 15:29]
 :END:
 [cite:@Batenburg2018]
-d18O data between 66 Ma and 68.8 Ma
-XRF ln(Fe/Ca) data between 66 Ma and 68.8 Ma
-that /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
+- d18O data between 66 Ma and 68.8 Ma
+- XRF ln(Fe/Ca) data between 66 Ma and 68.8 Ma
+
+That /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
 
 #+begin_src R :results output graphics file :file imgs/342-U1403A_d18O_Batenburg2018-fig7.png :width 900 :height 500
   IODP342_U1403A <- pangaear::pg_data("10.1594/PANGAEA.875741")[[1]]
@@ -2544,19 +2256,21 @@ that /should/ correspond to approximately Ma_{405}1 to Ma_{405}7
 #+RESULTS:
 [[file:imgs/342-U1403A_FeCa_Batenburg2018-fig6.png]]
 
-** Zumaia and Sopelana
+** [#A] Zumaia and Sopelana
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:37]
+:VISIBILITY: content
 :END:
 [cite:@Batenburg2012]
 Ma_{405}1 to Ma_{405}9
 66 Ma to ~70 Ma
-has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frits Hilgen]]
+
+Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frits Hilgen]]
 
 [cite:@Batenburg2014] has Sopelana expansion downwards
 
 *** read the data from the supplementary info
-#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
+#+begin_src R :results none
   # Batenburg et al., 2012
   Zumaia <- readxl::read_excel("dat/Batenburg2012/1-s2.0-S0012821X12005742-mmc2.xls") |>
     rename(depth = Depth,
@@ -2575,8 +2289,25 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
   ## mutate(same = depth_comp_m == depth_comp_mm) |>
   ## filter(!same)
 
+  # assemble them all in a single df
+  comp <- Zumaia |>
+    pivot_longer(MS:d13C_VPDB) |>
+    mutate(comment = if_else(name == "d13C_VPDB", comment, NA_character_)) |>
+    tidylog::filter(is.na(comment) | comment != "outlier") |>
+    tidylog::filter(!is.na(value)) |>
+    mutate(site = "Zumaia") |>
+    bind_rows(
+      Sopelana |>
+      pivot_longer(MS:Lstar) |>
+      mutate(site = "Sopelana")
+    )
+#+end_src
 
-
+*** make a plot
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 18:49]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
   library(patchwork)
 
   (Zumaia |>
@@ -2596,19 +2327,6 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
     (Sopelana |>
      ggplot(aes(x = depth, y = Lstar)) +
      geom_line())
-
-  # assmeble them all in a single df
-  comp <- Zumaia |>
-    pivot_longer(MS:d13C_VPDB) |>
-    mutate(comment = if_else(name == "d13C_VPDB", comment, NA_character_)) |>
-    tidylog::filter(is.na(comment) | comment != "outlier") |>
-    tidylog::filter(!is.na(value)) |>
-    mutate(site = "Zumaia") |>
-    bind_rows(
-      Sopelana |>
-      pivot_longer(MS:Lstar) |>
-      mutate(site = "Sopelana")
-    )
 
   comp |>
     ggplot(aes(x = depth, y = value, colour = site)) +
@@ -2732,11 +2450,11 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
 #+RESULTS:
 
-**** did the linear trend removal work?
+*** did the linear trend removal work?
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 10:57]
 :END:
-***** lines
+**** lines
 #+begin_src R
   smooth |>
     ggplot(aes(x = depth, y = value)) +
@@ -2747,7 +2465,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
 #+RESULTS:
 
-***** gam
+**** gam
 #+begin_src R
   smooth |>
     ggplot(aes(x = depth, y = lin)) +
@@ -2758,7 +2476,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
 #+RESULTS:
 
-***** final result
+**** final result
 #+begin_src R
   smooth |>
     ggplot(aes(x = depth, y = det)) +
@@ -2914,13 +2632,14 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     ) |>
     mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
 
+  freq_perc <- 0.4
   my_filters <- tribble(
     ~ target, ~ center,
     "405 kyr", 16,
     "100 kyr", 4,
     "prec", 0.72
   ) |>
-    mutate(f = 1 / center, range = 0.4 * f, flow = f - range, fhigh = f + range,
+    mutate(f = 1 / center, range = freq_perc * f, flow = f - range, fhigh = f + range,
            ref = "This study")
 #+end_src
 
@@ -2972,7 +2691,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
-#+begin_src R
+#+begin_src R :results none
   filts_basic <-
     comp |>
     nest(.by = c(name, site)) |>
@@ -2986,126 +2705,17 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                  astrochron::bandpass(flow = l, fhigh = h, win = 0,
                                       genplot = FALSE))
     ) |>
+    select(-data) |>
     unnest(cols = bp) |>
     rename(filt = value)
   # TODO: 100 kyr
 #+end_src
 
-#+RESULTS:
-#+begin_example
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= 1.563119
- ,* Center of bandpass filter = 0.0625
- ,* 15 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= 1.563119
- ,* Center of bandpass filter = 0.25
- ,* 58 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= 1.563119
- ,* ERROR: maximum frequency too high, reset to Nyquist-df
- ,* Center of bandpass filter = 1.081606
- ,* 144 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 11.55601
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 11.55601
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 11.55601
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= 49.65039
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= 49.65039
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= 49.65039
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 7.718317
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 7.718317
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 7.718317
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 55.91772
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 55.91772
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 55.91772
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-#+end_example
-
 **** bp on scaled
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:47]
 :END:
-#+begin_src R
+#+begin_src R :results none
   filts_scl <- comp |>
       nest(.by = c(name, site)) |>
       mutate(filt = list(my_filters)) |>
@@ -3119,125 +2729,16 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                    astrochron::bandpass(flow = l, fhigh = h, win = 0,
                                         genplot = FALSE))
       ) |>
+      select(-data) |>
       unnest(cols = bp) |>
       rename(filt = scl)
 #+end_src
-
-#+RESULTS:
-#+begin_example
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.07309613
- ,* Center of bandpass filter = 0.0625
- ,* 15 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.07309613
- ,* Center of bandpass filter = 0.25
- ,* 58 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.07309613
- ,* ERROR: maximum frequency too high, reset to Nyquist-df
- ,* Center of bandpass filter = 1.081606
- ,* 144 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.09609354
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.09609354
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.09609354
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.09514475
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.09514475
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.09514475
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.0221335
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.0221335
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.0221335
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.02285176
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.02285176
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.02285176
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-#+end_example
 
 **** bp on the gam
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
-#+begin_src R
+#+begin_src R :results none
   filts_gam <-
     smooth_basic |>
     nest(.by = c(name, site)) |>
@@ -3251,125 +2752,17 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                  astrochron::bandpass(flow = l, fhigh = h, win = 0,
                                       genplot = FALSE))
     ) |>
+    select(-data) |>
     unnest(cols = bp) |>
     rename(filt = det)
   # TODO: 100 kyr
 #+end_src
 
-#+RESULTS:
-#+begin_example
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.09095434
- ,* Center of bandpass filter = 0.0625
- ,* 15 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.09095434
- ,* Center of bandpass filter = 0.25
- ,* 58 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.09095434
- ,* ERROR: maximum frequency too high, reset to Nyquist-df
- ,* Center of bandpass filter = 1.081606
- ,* 144 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.03922045
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.03922045
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.03922045
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.03224345
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.03224345
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.03224345
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618914
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618914
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618914
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.01614819
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.01614819
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.01614819
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-#+end_example
 **** bp on the gam with white/red separation
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
-#+begin_src R
+#+begin_src R :results none
   filts_fancy <-
     smooth |>
     nest(.by = c(name, site)) |>
@@ -3383,137 +2776,37 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                  astrochron::bandpass(flow = l, fhigh = h, win = 0,
                                       genplot = FALSE))
     ) |>
+    select(-data) |>
     unnest(cols = bp) |>
     rename(filt = det)
 #+end_src
 
-#+RESULTS:
-#+begin_example
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.06151652
- ,* Center of bandpass filter = 0.0625
- ,* 15 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.06151652
- ,* Center of bandpass filter = 0.25
- ,* 58 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 386
- ,* Sample interval= 0.375
- ,* Mean value removed= -0.06151652
- ,* ERROR: maximum frequency too high, reset to Nyquist-df
- ,* Center of bandpass filter = 1.081606
- ,* 144 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.02744599
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.02744599
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1349
- ,* Sample interval= 0.10458
- ,* Mean value removed= 0.02744599
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.0158664
- ,* Center of bandpass filter = 0.0625
- ,* 14 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.0158664
- ,* Center of bandpass filter = 0.25
- ,* 56 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1344
- ,* Sample interval= 0.105
- ,* Mean value removed= -0.0158664
- ,* Center of bandpass filter = 1.388889
- ,* 313 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618908
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618908
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= 0.04618908
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.0161482
- ,* Center of bandpass filter = 0.0625
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.0161482
- ,* Center of bandpass filter = 0.25
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 625
- ,* Sample interval= 0.08
- ,* Mean value removed= -0.0161482
- ,* Center of bandpass filter = 1.388889
- ,* 111 pos/neg frequency pairs will be bandpassed
-#+end_example
+**** hilbert transform of the precession bp filter
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 10:54]
+:END:
+#+begin_src R :results none
+  filts_hil <- filts_fancy |>
+    tidylog::filter(target == "prec") |>
+    nest(.by = c(name, site, target, center, f, range, flow, fhigh, ref)) |>
+    mutate(
+      hil = map(data, \(d) d |>
+                           select(depth, filt) |>
+                           astrochron::hilbert(genplot = FALSE))
+    ) |>
+    select(-data) |>
+    ## unnest()
+    unnest(hil)
+#+end_src
 
 *** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:01]
 :END:
-#+begin_src R
+#+begin_src R :results none
   agem <- read_csv("dat/Batenburg2012/405_minima.csv")
 #+end_src
 
-#+RESULTS:
-: indexing 405_minima.csv [==========================================================] 149.95MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
-: Delimiter: ","
-: chr (3): comment, minmax, desc
-: dbl (2): strat_bot, strat_top
-:
-: ℹ Use `spec()` to retrieve the full column specification for this data.
-: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 *** make plot of records with filters
 :PROPERTIES:
@@ -3638,7 +2931,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_complicated.png]]
-**** simple overview plot
+**** simpler overview plot
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 17:27]
 :END:
@@ -3781,6 +3074,194 @@ CLOSED: [2023-09-26 Tue 16:59]
     ## geom_text(aes(x = strat_bot, y = 0,
     ##                label = desc), data = agem)
 #+end_src
+*** [#B] get orbital solutions to compare the record with
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 18:50]
+:END:
+**** get ZB18a
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:51]
+:END:
+#+begin_src R
+  # get the first orbital solution in there
+  sln <- snvecR::get_ZB18a() |>
+    select(age, ecc = ee) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "ZB18a")
+#+end_src
+
+#+RESULTS:
+**** get ZB20a
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 17:22]
+:END:
+#+begin_src R
+  ## sln2 <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
+  ##                           comment = "%",
+  ##                           col_names = c("age", "ecc", "inc")) |>
+  ##   write_rds("out/ZB20a.rds")
+
+  sln2 <- read_rds("out/ZB20a.rds") |>
+    select(age, ecc) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "ZB20a")
+#+end_src
+
+#+RESULTS:
+**** NEXT now filter out the 405 kyr and 100 kyr of the solution and generate a curve from that!
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 19:19]
+:END:
+*** construct an eccentricity curve from the filters in the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 10:50]
+:END:
+#+begin_src R :results none
+  data_ecc <-
+    filts_scl |>
+    ## filts_fancy |>
+    select(-center, -f, -range, -flow, -fhigh, -ref) |>
+    pivot_wider(id_cols = c(name, site, depth),
+                names_from = target, values_from = filt) |>
+    tidylog::left_join(filts_hil |>
+                       select(-target, -center, -range, -f, -flow, -fhigh, -ref)) |>
+    mutate(
+      fracs = list(tribble( ~ comb, ~ s405, ~ s100,
+                          "1:1", 1, 1,
+                          "0.5:1", 0.5, 1,
+                          "1:0.5", 1, 0.5))
+    ) |>
+    unnest(fracs) |>
+    mutate(filter = scale(s405 * `405 kyr` + s100 * `100 kyr`)[, 1],
+           hilbert = scale(s405 * `405 kyr` + s100 * envelope)[, 1]) |>
+    pivot_longer(c(filter, hilbert), names_to = "filt_env", values_to = "ecc") |>
+    arrange(rev(site), rev(name), filt_env, comb, depth)
+#+end_src
+
+*** plot extracted eccentricity curve
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 18:51]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_depth.png :width 900
+  data_ecc |>
+    ggplot(aes(x = depth, y = ecc, group = paste(site, comb, filt_env), colour = paste(comb, filt_env))) +
+    facet_grid(rows = vars(name)) +
+    ## geom_line(aes(y = `405 kyr`, colour = "405 kyr")) +
+    ## geom_line(aes(y = `100 kyr`, colour = "100 kyr")) +
+    ## geom_line(aes(y = prec, colour = "prec")) +
+    ## geom_line(aes(y = envelope, colour = "envelope")) +
+    geom_line() +
+    labs(x = "Depth (m)", y = "Normalized scaled combination of filters",
+         colour = "Method to generate ecc")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_ecc_depth.png]]
+
+*** add the orbital solution to the data and calculate the MSD
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 11:20]
+:END:
+#+begin_src R
+  kpg_age <- 65970 # age taken from Batenburg et al., 2014
+  tau <- (13 * 405) / 183 # sedimentation rate, 13 405 kyr cycles in 183 m of sediment, m/kyr
+
+  diffs <- data_ecc |>
+    select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
+    # let's put some uncertainty on the K/Pg boundary age
+    mutate(kpg_age = list(c(65500, 65600, 65700, 65800, 65900,
+                            66000, #65970, # the estimate from Batenburg et al., 2014
+                            66100, 66200, 66300, 66400, 66500))) |>
+    unnest(kpg_age) |>
+    # TODO
+    # what if we're off by a whopping ONE 405 kyr cycle in either direction?
+    mutate(tau = list(seq(
+    ## (10 * 405) / 183, (16 * 405) / 183, # that's from 22.13 to 35.41
+    ## c((12 * 405) / 183, (14 * 405) / 183), # that's from 26.56 to 30.98
+             ## length.out = 10
+             26, 31,
+             by = 1
+             ))) |>
+    unnest(tau) |>
+    mutate(age = depth * tau + kpg_age) |>
+    # add target orbital solutions
+    mutate(sol = list(c("ZB18a", "ZB20a"))) |>
+    unnest(sol) |>
+    mutate(ecc_sln = case_when(
+             sol == "ZB18a" ~ approx(sln$age, sln$scl, xout = age)$y,
+             sol == "ZB20a" ~ approx(sln2$age, sln2$scl, xout = age)$y,
+             TRUE ~ NA_real_),
+           squared_diff = (ecc - ecc_sln)^2
+           )
+
+  msd <- diffs |>
+    summarize(MSD = sqrt(sum(squared_diff)),
+              .by = c(name, site, comb, filt_env, tau, kpg_age, sol)) |>
+    arrange(MSD)
+#+end_src
+
+#+RESULTS:
+
+*** plot the curves with the lowest overall MSD
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 19:03]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 900
+  # this plot crashes if I plot them all
+  diffs |>
+    tidylog::filter(comb == "0.5:1") |> # to ~5 M
+    tidylog::filter(filt_env == "hilbert") |> # to ~2.4 M
+    tidylog::filter(site == "Zumaia") |>
+    # I first didn't filter to find the ones with the lowest MSD
+    ## summarize(MSD = sqrt(sum(diff)), .by = c(name, site, comb, filt_env, tau, kpg_age, sol)) |>
+    ## arrange(MSD)
+    tidylog::filter((kpg_age == 66200 & sol == "ZB20a") |
+                    (kpg_age == 65800 & sol == "ZB18a")) |>
+    tidylog::filter(tau == 26) |>
+    ggplot(aes(x = age, group = paste(comb, filt_env, site, tau, kpg_age),
+               ## colour = tau,
+               ## colour = kpg_age,
+               )) +
+    facet_grid(rows = vars(name), cols = vars(sol)) +
+    geom_line(aes(y = ecc)) +
+    geom_line(aes(y = ecc_sln), alpha = .6, colour = "purple") +
+    ## geom_line(sln)
+    labs(x = "Age (kyr)", y = "squared diff between ZB18a and proxy ecc")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_ecc_ZB18a.png]]
+
+*** plot MSD as a function of orbital solution, tau, K/Pg age, ...
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 19:04]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_MSD.png :width 1920 :height 1080
+  msd |>
+    # let's simplify a bit
+    ## filter(comb == "1:1", filt_env == "filter", site == "Zumaia") |>
+    ggplot(aes(x = kpg_age * 0.001, y = tau,
+               ## group = paste(comb, filt_env, site, tau, sol),
+               ## colour = tau
+               fill = MSD
+               )) +
+    facet_grid(rows = vars(name), cols = vars(sol, filt_env, comb)) +
+    ## geom_line() +
+    geom_raster() +
+    scale_fill_viridis_c() +
+    labs(x = "Age of the K/Pg boundary (Ma)",
+         y = "Sedimentation rate (m / kyr)",
+         fill = "SMSD")
+    ## theme_gray()
+    ## geom_vline(xintercept = (c(12:14) * 405) / 183) #+
+    ## annotate("text", x = (c(12:14) * 405) / 183, y = 70, label = paste(12:14, "cycles"))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_ecc_MSD.png]]
+
 *** apply the age model from the field
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:16]
@@ -3864,7 +3345,7 @@ CLOSED: [2023-09-26 Tue 16:59]
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
 :END:
-#+begin_src R
+#+begin_src R :results none
   filts_age <- smooth |>
     nest(.by = c(name, site, dt, strt)) |>
     mutate(flow = 1 / 405 - .3 * 1 / 405, fhigh = 1 / 405 + .3 * 1 / 405) |>
@@ -3943,120 +3424,11 @@ CLOSED: [2023-09-26 Tue 16:59]
     rename(filt = det)
 #+end_src
 
-#+RESULTS:
-#+begin_example
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 391
- ,* Sample interval= 10
- ,* Mean value removed= -0.04740806
- ,* Center of bandpass filter = 0.002469136
- ,* 12 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= 0.02838345
- ,* Center of bandpass filter = 0.002469136
- ,* 11 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= -0.009897727
- ,* Center of bandpass filter = 0.002469136
- ,* 11 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= 0.04900637
- ,* Center of bandpass filter = 0.002469136
- ,* 5 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= -0.01805715
- ,* Center of bandpass filter = 0.002469136
- ,* 5 pos/neg frequency pairs will be bandpassed
-+ +
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 391
- ,* Sample interval= 10
- ,* Mean value removed= -0.04740806
- ,* Center of bandpass filter = 0.01
- ,* 47 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= 0.02838345
- ,* Center of bandpass filter = 0.01
- ,* 46 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= -0.009897727
- ,* Center of bandpass filter = 0.01
- ,* 46 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= 0.04900637
- ,* Center of bandpass filter = 0.01
- ,* 20 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= -0.01805715
- ,* Center of bandpass filter = 0.01
- ,* 20 pos/neg frequency pairs will be bandpassed
-+ +
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 391
- ,* Sample interval= 10
- ,* Mean value removed= -0.04740806
- ,* ERROR: maximum frequency too high, reset to Nyquist-df
- ,* Center of bandpass filter = 0.04015345
- ,* 153 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= 0.02838345
- ,* Center of bandpass filter = 0.04347826
- ,* 199 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= -0.009897727
- ,* Center of bandpass filter = 0.04347826
- ,* 199 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= 0.04900637
- ,* Center of bandpass filter = 0.04347826
- ,* 88 pos/neg frequency pairs will be bandpassed
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= -0.01805715
- ,* Center of bandpass filter = 0.04347826
- ,* 88 pos/neg frequency pairs will be bandpassed
-#+end_example
-
 *** calculate hilbert transform of precession data in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
 :END:
-#+begin_src R
+#+begin_src R :results none
   hb_age_prec <- filts_age_prec |>
     select(-data) |>
     nest(.by = c(site, name, flow, fhigh)) |>
@@ -4066,35 +3438,6 @@ CLOSED: [2023-09-26 Tue 16:59]
     unnest(hb) |>
     select(-data)
 #+end_src
-
-#+RESULTS:
-#+begin_example
-
------ PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
- ,* Number of data points= 391
- ,* Sample interval= 10
- ,* Mean value removed= -0.04701458
-
------ PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= 0.02782609
-
------ PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
- ,* Number of data points= 1273
- ,* Sample interval= 3
- ,* Mean value removed= -0.009172407
-
------ PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= 0.04891497
-
------ PERFORMING HILBERT TRANSFORM ON STRATIGRAPHIC SERIES -----
- ,* Number of data points= 562
- ,* Sample interval= 3
- ,* Mean value removed= -0.01865478
-#+end_example
 
 *** plot spectra
 :PROPERTIES:
@@ -4112,8 +3455,8 @@ CLOSED: [2023-09-26 Tue 16:59]
     ## geom_line(aes(y = Harmonic_CL)) +
     coord_cartesian(xlim = c(1 / 5000, 1 / 10)) +
     scale_y_log10() +
-    ## scale_x_log10(
-    scale_x_continuous(
+    scale_x_log10(
+    ## scale_x_continuous(
       sec.axis = sec_axis(trans = ~ 1 / .,
                                            breaks = c(2400, 1600, 1200, 405, 100, 23))) +
     annotation_logticks() +
@@ -4199,25 +3542,11 @@ CLOSED: [2023-09-26 Tue 16:59]
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters.png]]
 
-*** get ZB18a
-:PROPERTIES:
-:CREATED:  [2023-09-26 Tue 16:51]
-:END:
-#+begin_src R
-  # get the first orbital solution in there
-  sln <- snvecR::get_ZB18a() |>
-    select(age, ecc = ee) |>
-    filter(age > 56000 & age < 80000) |>
-    mutate(scl = scale(ecc)[, 1])
-#+end_src
-
-#+RESULTS:
-
 *** add the orbital solution to the ecc curve and plot the MSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
-#+begin_src R
+#+begin_src R :results none
   kpg_age <- 65970 # age taken from Batenburg et al., 2014
   data_ecc <- filts_age |>
     select(name, site, age, filt) |>
@@ -4233,24 +3562,6 @@ CLOSED: [2023-09-26 Tue 16:59]
              ) |>
     mutate(ZB18a = approx(sln$age, sln$scl, xout = age + kpg_age)$y)
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Joining with `by = join_by(name, site, age)`
-left_join: added one column (100)
-rows only in x       0
-rows only in y  (    0)
-matched rows     4,061
-                =======
-rows total       4,061
-Joining with `by = join_by(name, site, age)`
-left_join: added one column (envelope)
-rows only in x       0
-rows only in y  (    0)
-matched rows     4,061
-                =======
-rows total       4,061
-#+end_example
 
 **** plot
 #+begin_src R
@@ -4412,7 +3723,7 @@ This slides the whole time series along the time axis and checks the MSD w/ resp
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_time-slider.png :width 900
   data_ecc_off_summ |>
-    ggplot(aes(x = age_kpg, y = value, colour = name, group = paste(site, name))) +
+    ggplot(aes(x = age_kpg * 0.001, y = value, colour = name, group = paste(site, name))) +
     geom_line() +
     facet_grid(rows = vars(proxy)) +
     labs(x = "Age of the K/Pg boundary", y = "MSD")
@@ -4428,12 +3739,16 @@ This slides the whole time series along the time axis and checks the MSD w/ resp
 via [cite:@Batenburg2018] fig 7
 
 Umbria--March Basin, Italy
+
 66 Ma to ~76 Ma
+
 Ma_{405}1 to at least Ma_{405}12ish?
+
 [cite:@Voigt2012]
 https://doi.pangaea.de/10.1594/PANGAEA.778969
 
-also MS from [cite:@Husson2014] https://doi.pangaea.de/10.1594/PANGAEA.829778
+Also MS from [cite:@Husson2014] https://doi.pangaea.de/10.1594/PANGAEA.829778
+
 #+begin_src R :results output graphics file :file imgs/Gubbio_MS_Husson2014.png :width 900 :height 500
   Gubbio <- pangaear::pg_data("10.1594/PANGAEA.829778")[[1]]
 
@@ -4448,7 +3763,8 @@ also MS from [cite:@Husson2014] https://doi.pangaea.de/10.1594/PANGAEA.829778
 #+RESULTS:
 [[file:imgs/Gubbio_MS_Husson2014.png]]
 
-also this newer composite by [cite:@Gabriella2023]
+Also this newer composite by [cite:@Gabriella2023]
+
 malformed forams
 OAE-2
 https://doi.pangaea.de/10.1594/PANGAEA.954540
@@ -4458,11 +3774,14 @@ https://doi.pangaea.de/10.1594/PANGAEA.954540
 :CREATED:  [2023-08-31 Thu 15:52]
 :END:
 found via [cite:@Batenburg2018]
+
 Shatsky Rise equatorial Pacific [cite:@Jung2012]
+
 Ma_{405}2 to at least Ma_{405}12 ish?
+
 66.25 Ma to ~71.5 Ma
 
-table in the supplement:
+Table in the supplement:
 #+begin_src R :results output graphics file :file imgs/198-1210B_d13C_Jung2012.png :width 900 :height 500
   ODP198_1210B <- readxl::read_excel("dat/Jung2012/1-s2.0-S0195667112000547-mmc1.xls",
                                      range = "B2:E618",
@@ -4484,7 +3803,7 @@ table in the supplement:
 #+RESULTS:
 [[file:imgs/198-1210B_d13C_Jung2012.png]]
 
-but the data are also available on pangaea now in [cite:@Ji-Eun2022]
+But the data are also available on pangaea now in [cite:@Ji-Eun2022]
 refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
 #+begin_src R :results output graphics file :file imgs/198-1210_d13C_Jung2012-fig6.png :width 900 :height 500
   IODP198_1210B <- pangaear::pg_data("10.1594/PANGAEA.950806")[[1]]
@@ -4508,8 +3827,11 @@ refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
 :CREATED:  [2023-08-31 Thu 14:57]
 :END:
 Ma_{405}6 to Ma_{405}8.5
+
 67.8 Ma to 69 Ma
+
 [cite:@Husson2011] grayscale log
+
 *** WAIT waiting for grayscale log in email
 :LOGBOOK:
 - State "WAIT"       from              [2023-08-31 Thu 15:20]
@@ -4594,11 +3916,13 @@ analysis copies [cite:@Husson2011]
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:24]
 :END:
-grayscale log from [cite:@Husson2011,Thibault2012]
+Grayscale log from [cite:@Husson2011,Thibault2012]
+
 Ma_{405}8 until Ma_{408}17 and then on to Ca_{405}4
+
 ~69 Ma to ~77.5 Ma?
 
-these were sent to me by Nicolas Thibault upon request, also cite [cite:@Thibault2012]
+These were sent to me by Nicolas Thibault upon request, also cite [cite:@Thibault2012]
 reproduce [cite:@Husson2011] figure 3 and 4
 
 #+begin_src R :results output graphics file :file imgs/122-762B_grayscale_Husson-fig4.png :width 900 :height 500
@@ -4651,7 +3975,9 @@ reproduce [cite:@Husson2011] figure 3 and 4
 :CREATED:  [2023-08-31 Thu 16:09]
 :END:
 d13C and d18O data from [cite:@Sabatino2018]
+
 ~ 72.1 Ma to 84.2 Ma (a little more, these are the ages of the Campanian/Maastrichtian and Santonian/Campanian boundaries)
+
 about 12 405 kyr minima
 
 ah, slightly too old? -> can stitch w/ 1210B!
@@ -4678,7 +4004,9 @@ ah, slightly too old? -> can stitch w/ 1210B!
 :END:
 [cite:@Batenburg2016]
 color reflectance, carbon/oxygen isotopes from Furlo https://doi.pangaea.de/10.1594/PANGAEA.864715
+
 something like 90 Ma to 96 Ma
+
 straight through the Bonarelli level OAE-2
 
 ** Jordanian Levant Platform
@@ -4686,16 +4014,12 @@ straight through the Bonarelli level OAE-2
 :CREATED:  [2023-09-05 Tue 16:06]
 :END:
 TOC, d13C, d18O
+
 90.86 Ma to 96.24 Ma
+
 [cite:@Wendler2014]
 https://doi.pangaea.de/10.1594/PANGAEA.834794
 
-* NEXT COMMENT figure out how to group by contiguous sections
-:PROPERTIES:
-:CREATED:  [2023-08-31 Thu 15:17]
-:END:
-currently linterp does just that
-I want to select adjacent areas, group by them, then ignore split-apply-combine for each spectral analysis etc.
 * References
 :PROPERTIES:
 :UNNUMBERED: t
