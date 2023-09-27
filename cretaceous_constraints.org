@@ -2688,8 +2688,8 @@ has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:35]
 :END:
-we have to be careful of the white/red intervals in the record!
-So instead of fitting a simple gam through the whole record, we fit one for each coloured interval separately.
+We have to be careful of the white/red intervals in the record!
+So instead of fitting a simple gam through the whole record, we fit +one for+ a line for each coloured interval separately.
 
 #+begin_src R
   smooth <- comp |>
@@ -2841,6 +2841,7 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 [[file:imgs/Zumaia_long-term-trend.png]]
 
 *** calculate spectra
+**** on raw data
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
@@ -2859,38 +2860,12 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 
 #+RESULTS:
 
-**** make plot of spectra
-:PROPERTIES:
-:CREATED:  [2023-09-25 Mon 10:57]
-:END:
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900
-  specs |>
-    ggplot(aes(x = Frequency/100, y = Power, colour = site)) +
-    facet_grid(## cols = vars(site),
-               rows = vars(name)) +
-    geom_line() +
-    geom_line(aes(y = AR1_fit)) +
-    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
-    ## geom_line(aes(y = Harmonic_CL)) +
-    ## coord_cartesian(xlim = c(0.0001, 0.05)) +
-    scale_y_log10()# +
-    ## scale_x_continuous(trans = "reciprocal")
-    ## scale_x_log10() #+
-    ## scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x, breaks = c(10, 1, .5, .3, .2, .1))) +
-    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
-              ## inherit.aes = FALSE,
-              ## alpha = .3, data = filts2 |> distinct(name, flow, fhigh))
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia-Sopelana_mtm.png]]
-
-*** calculate spectra on artificially chopped up record
+**** on artificially chopped up record
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
 #+begin_src R
-  specs <- smooth |>
+  specs_fancy <- smooth |>
     nest(.by = c(name, site)) |>
     mutate(
       mtm = map(data,
@@ -2904,32 +2879,91 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 
 #+RESULTS:
 
-**** make plot of spectra
+*** create tables with ranges of bp filters
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 10:05]
+:END:
+#+begin_src R
+  # for wavelet analysis: notch filter that removes periods >25 m
+  bat_filters_old <- tribble(
+    ~ target, ~ name, ~ center, ~ plow, ~ phigh,
+    "405 kyr", "Lstar", 15.7, 12, 22,
+    "405 kyr", "MS", 18.9, 12, 40,
+    "405 kyr", "d13C_VPDB", 16.6, 11, 31,
+    ) |>
+    mutate(flow = 1 / plow, fhigh = 1 / phigh, site = "Zumaia", ref = "Batenburg et al., 2011")
+
+  # these are from Batenburg et al., 2014 figure 3
+  bat_filters <- tribble(
+    ~ target, ~ name, ~ center, ~ plow, ~ phigh, ~site,
+    "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
+    "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
+    ## "prec", "Lstar", 4, 3.0, 6.0, "both",
+    "100 kyr", "Lstar", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "Lstar", 4, 3.0, 6.0, "Sopelana",
+    "prec", "Lstar", 0.72, 0.53, 1.1, "Zumaia",
+    "prec", "Lstar", 0.49, 0.37, 0.75, "Sopelana",
+    "405 kyr", "MS", 17, 12, 24, "Zumaia",
+    "405 kyr", "MS", 12, 8.8, 19, "Sopelana",
+    ## "prec", "MS", 4, 3.0, 6.0, "both",
+    "100 kyr", "MS", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "MS", 4, 3.0, 6.0, "Sopelana",
+    ## "prec", "MS", 0.72, 0.50, 1.3, "both",
+    "prec", "MS", 0.72, 0.50, 1.3, "Zumaia",
+    "prec", "MS", 0.72, 0.50, 1.3, "Sopelana",
+    ) |>
+    mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
+
+  my_filters <- tribble(
+    ~ target, ~ center,
+    "405 kyr", 16,
+    "100 kyr", 4,
+    "prec", 0.72
+  ) |>
+    mutate(f = 1 / center, range = 0.4 * f, flow = f - range, fhigh = f + range,
+           ref = "This study")
+#+end_src
+
+#+RESULTS:
+
+*** make plot of spectra and annotate the target frequency ranges for bp filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:57]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900 :height 800
   specs |>
-    ggplot(aes(x = Frequency, y = Power, colour = site)) +
+    mutate(type = "raw") |>
+    bind_rows(
+      specs_fancy |>
+      mutate(type = "fancy")
+    ) |>
+    ggplot(aes(x = Frequency, y = Power, colour = site, linetype = type, group = type)) +
     facet_grid(## cols = vars(site),
-               rows = vars(name)) +
+               rows = vars(site, name)) +
     geom_line() +
     geom_line(aes(y = AR1_fit)) +
-    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
-    ## geom_line(aes(y = Harmonic_CL)) +
-    coord_cartesian(xlim = c(0.01, 5)) +
+    geom_line(aes(y = AR1_95_power), alpha = .3) +
     scale_y_log10() +
-    ## scale_x_continuous(trans = "reciprocal")
-    ## scale_x_log10() +
-    ## scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x, breaks = c(10, 1, .5, .3, .2, .1))) +
-    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = name),
-    ##           inherit.aes = FALSE,
-    ##           alpha = .3, data = filts_fancy |> distinct(name, flow, fhigh))
-    labs(x = "Frequency")
+    annotation_logticks() +
+    coord_cartesian(xlim = c(1e-4, 0.0625) * 100) +
+    ## scale_x_continuous(
+    scale_x_log10(
+      sec.axis = sec_axis(trans = ~ 1 / .x,
+                                           name = "Period (m)",
+                                           breaks = c(50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
+    # annotate the Batenburg 2014 filters
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+              inherit.aes = FALSE,
+              alpha = .3, data = bat_filters |> bind_rows(bat_filters_old)) +
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+              inherit.aes = FALSE,
+              alpha = .3, data = my_filters) +
+    labs(x = "Frequency (m/cycle)", y = "Spectral power")
 #+end_src
 
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_mtm.png]]
+
 *** do bandpass filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
@@ -2942,15 +2976,17 @@ So instead of fitting a simple gam through the whole record, we fit one for each
   filts_basic <-
     comp |>
     nest(.by = c(name, site)) |>
+    mutate(filt = list(my_filters)) |>
+    unnest(filt) |>
     # different filters per proxy
-    mutate(flow = case_when(name == "MS" ~ 1 / 12,
-                            name == "Lstar" ~ 1 / 12,
-                            name == "d13C_VPDB" ~ 1 / 12,
-                            TRUE ~ NA_real_),
-           fhigh = case_when(name == "MS" ~ 1 / 24,
-                             name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
-                             name == "d13C_VPDB" ~ 1 / 31,
-                             TRUE ~ NA_real_)) |>
+    ## mutate(flow = case_when(name == "MS" ~ 1 / 12,
+    ##                         name == "Lstar" ~ 1 / 12,
+    ##                         name == "d13C_VPDB" ~ 1 / 12,
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(name == "MS" ~ 1 / 24,
+    ##                          name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+    ##                          name == "d13C_VPDB" ~ 1 / 31,
+    ##                          TRUE ~ NA_real_)) |>
     mutate(
       bp = pmap(list(data, flow, fhigh),
                \(d, l, h) d |>
@@ -2965,6 +3001,114 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 #+end_src
 
 #+RESULTS:
+#+begin_example
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= 1.563119
+ ,* Center of bandpass filter = 0.0625
+ ,* 15 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= 1.563119
+ ,* Center of bandpass filter = 0.25
+ ,* 58 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= 1.563119
+ ,* ERROR: maximum frequency too high, reset to Nyquist-df
+ ,* Center of bandpass filter = 1.081606
+ ,* 144 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 11.55601
+ ,* Center of bandpass filter = 0.0625
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 11.55601
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 11.55601
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= 49.65039
+ ,* Center of bandpass filter = 0.0625
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= 49.65039
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= 49.65039
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 7.718317
+ ,* Center of bandpass filter = 0.0625
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 7.718317
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 7.718317
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 55.91772
+ ,* Center of bandpass filter = 0.0625
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 55.91772
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 55.91772
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
+#+end_example
 
 **** bp on scaled
 :PROPERTIES:
@@ -2973,15 +3117,17 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 #+begin_src R
   filts_scl <- comp |>
       nest(.by = c(name, site)) |>
+      mutate(filt = list(my_filters)) |>
+      unnest(filt) |>
       # different filters per proxy
-      mutate(flow = case_when(name == "MS" ~ 1 / 12,
-                              name == "Lstar" ~ 1 / 12,
-                              name == "d13C_VPDB" ~ 1 / 12,
-                              TRUE ~ NA_real_),
-             fhigh = case_when(name == "MS" ~ 1 / 24,
-                               name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
-                               name == "d13C_VPDB" ~ 1 / 31,
-                               TRUE ~ NA_real_)) |>
+      ## mutate(flow = case_when(name == "MS" ~ 1 / 12,
+      ##                         name == "Lstar" ~ 1 / 12,
+      ##                         name == "d13C_VPDB" ~ 1 / 12,
+      ##                         TRUE ~ NA_real_),
+      ##        fhigh = case_when(name == "MS" ~ 1 / 24,
+      ##                          name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+      ##                          name == "d13C_VPDB" ~ 1 / 31,
+      ##                          TRUE ~ NA_real_)) |>
       mutate(
         bp = pmap(list(data, flow, fhigh),
                  \(d, l, h) d |>
@@ -3002,36 +3148,107 @@ So instead of fitting a simple gam through the whole record, we fit one for each
  ,* Number of data points= 386
  ,* Sample interval= 0.375
  ,* Mean value removed= -0.07309613
- ,* Center of bandpass filter = 0.0577957
+ ,* Center of bandpass filter = 0.0625
  ,* 15 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.07309613
+ ,* Center of bandpass filter = 0.25
+ ,* 58 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.07309613
+ ,* ERROR: maximum frequency too high, reset to Nyquist-df
+ ,* Center of bandpass filter = 1.081606
+ ,* 144 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 1349
  ,* Sample interval= 0.10458
  ,* Mean value removed= 0.09609354
  ,* Center of bandpass filter = 0.0625
- ,* 12 pos/neg frequency pairs will be bandpassed
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.09609354
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.09609354
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 1344
  ,* Sample interval= 0.105
  ,* Mean value removed= -0.09514475
- ,* Center of bandpass filter = 0.05890805
+ ,* Center of bandpass filter = 0.0625
  ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.09514475
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.09514475
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 625
  ,* Sample interval= 0.08
  ,* Mean value removed= 0.0221335
  ,* Center of bandpass filter = 0.0625
- ,* 4 pos/neg frequency pairs will be bandpassed
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.0221335
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.0221335
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 625
  ,* Sample interval= 0.08
  ,* Mean value removed= 0.02285176
- ,* Center of bandpass filter = 0.05890805
+ ,* Center of bandpass filter = 0.0625
  ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.02285176
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.02285176
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
 #+end_example
 
 **** bp on the gam
@@ -3042,62 +3259,17 @@ So instead of fitting a simple gam through the whole record, we fit one for each
   filts_gam <-
     smooth_basic |>
     nest(.by = c(name, site)) |>
-    # different filters per proxy
-    mutate(flow = case_when(name == "MS" ~ 1 / 12,
-                            name == "Lstar" ~ 1 / 12,
-                            name == "d13C_VPDB" ~ 1 / 12,
-                            TRUE ~ NA_real_),
-           fhigh = case_when(name == "MS" ~ 1 / 24,
-                             name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
-                             name == "d13C_VPDB" ~ 1 / 31,
-                             TRUE ~ NA_real_)) |>
-    mutate(
-      bp = pmap(list(data, flow, fhigh),
-               \(d, l, h) d |>
-                 select(depth, det) |>
-                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE))
-    ) |>
-    unnest(cols = bp) |>
-    rename(filt = det)
-  # TODO: 100 kyr
-#+end_src
-
-#+RESULTS:
-**** bp on the gam with white/red separation
-:PROPERTIES:
-:CREATED:  [2023-09-25 Mon 16:18]
-:END:
-#+begin_src R
-  filts_fancy <-
-    smooth |>
-    nest(.by = c(name, site)) |>
-    # different filters per site
-    ## mutate(flow = case_when(site == "Zumaia" & name == "MS" ~ 1 / 12,
-    ##                         site == "Zumaia" & name == "Lstar" ~ 1 / 12,
-    ##                         site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 12,
-    ##                         # filter intervals from Batenburg 2014 fig 3
-    ##                         site == "Sopelana" & name == "MS" ~ 1 / 8.1,
-    ##                         site == "Sopelana" & name == "Lstar" ~ 1 / 7.7,
-    ##                         site == "Sopelana" & name == "d13C_VPDB" ~ 1 / 8.1,
+    mutate(filt = list(my_filters)) |>
+    unnest(filt) |>
+    ## # different filters per proxy
+    ## mutate(flow = case_when(name == "MS" ~ 1 / 12,
+    ##                         name == "Lstar" ~ 1 / 12,
+    ##                         name == "d13C_VPDB" ~ 1 / 12,
     ##                         TRUE ~ NA_real_),
-    ##        fhigh = case_when(site == "Zumaia" & name == "MS" ~ 1 / 40,
-    ##                          site == "Zumaia" & name == "Lstar" ~ 1 / 22,
-    ##                          site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 31,
-    ##                          site == "Sopelana" & name == "MS" ~ 1 / 15.8,
-    ##                          site == "Sopelana" & name == "Lstar" ~ 1 / 14.3,
-    ##                          ## site == "Sopelana" & name == "d13C_VPDB" ~ 1 /
+    ##        fhigh = case_when(name == "MS" ~ 1 / 24,
+    ##                          name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+    ##                          name == "d13C_VPDB" ~ 1 / 31,
     ##                          TRUE ~ NA_real_)) |>
-    # different filters per proxy
-    mutate(flow = case_when(name == "MS" ~ 1 / 12,
-                            name == "Lstar" ~ 1 / 12,
-                            name == "d13C_VPDB" ~ 1 / 12,
-                            TRUE ~ NA_real_),
-           fhigh = case_when(name == "MS" ~ 1 / 24,
-                             name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
-                             name == "d13C_VPDB" ~ 1 / 31,
-                             TRUE ~ NA_real_)) |>
     mutate(
       bp = pmap(list(data, flow, fhigh),
                \(d, l, h) d |>
@@ -3117,38 +3289,283 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 386
  ,* Sample interval= 0.375
- ,* Mean value removed= -0.06151652
- ,* Center of bandpass filter = 0.0577957
+ ,* Mean value removed= -0.09095434
+ ,* Center of bandpass filter = 0.0625
  ,* 15 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.09095434
+ ,* Center of bandpass filter = 0.25
+ ,* 58 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.09095434
+ ,* ERROR: maximum frequency too high, reset to Nyquist-df
+ ,* Center of bandpass filter = 1.081606
+ ,* 144 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.03922045
+ ,* Center of bandpass filter = 0.0625
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.03922045
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.03922045
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.03224345
+ ,* Center of bandpass filter = 0.0625
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.03224345
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.03224345
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.04618914
+ ,* Center of bandpass filter = 0.0625
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.04618914
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.04618914
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= -0.01614819
+ ,* Center of bandpass filter = 0.0625
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= -0.01614819
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= -0.01614819
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
+#+end_example
+**** bp on the gam with white/red separation
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:18]
+:END:
+#+begin_src R
+  filts_fancy <-
+    smooth |>
+    nest(.by = c(name, site)) |>
+    mutate(filt = list(my_filters)) |>
+    unnest(filt) |>
+    # different filters per site
+    ## mutate(flow = case_when(site == "Zumaia" & name == "MS" ~ 1 / 12,
+    ##                         site == "Zumaia" & name == "Lstar" ~ 1 / 12,
+    ##                         site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 12,
+    ##                         # filter intervals from Batenburg 2014 fig 3
+    ##                         site == "Sopelana" & name == "MS" ~ 1 / 8.1,
+    ##                         site == "Sopelana" & name == "Lstar" ~ 1 / 7.7,
+    ##                         site == "Sopelana" & name == "d13C_VPDB" ~ 1 / 8.1,
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(site == "Zumaia" & name == "MS" ~ 1 / 40,
+    ##                          site == "Zumaia" & name == "Lstar" ~ 1 / 22,
+    ##                          site == "Zumaia" & name == "d13C_VPDB" ~ 1 / 31,
+    ##                          site == "Sopelana" & name == "MS" ~ 1 / 15.8,
+    ##                          site == "Sopelana" & name == "Lstar" ~ 1 / 14.3,
+    ##                          ## site == "Sopelana" & name == "d13C_VPDB" ~ 1 /
+    ##                          TRUE ~ NA_real_)) |>
+    ## # different filters per proxy
+    ## mutate(flow = case_when(name == "MS" ~ 1 / 12,
+    ##                         name == "Lstar" ~ 1 / 12,
+    ##                         name == "d13C_VPDB" ~ 1 / 12,
+    ##                         TRUE ~ NA_real_),
+    ##        fhigh = case_when(name == "MS" ~ 1 / 24,
+    ##                          name == "Lstar" ~ 1 / 29, # this was 22 in Batenburg 2012, 29 in 2014.
+    ##                          name == "d13C_VPDB" ~ 1 / 31,
+    ##                          TRUE ~ NA_real_)) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh),
+               \(d, l, h) d |>
+                 select(depth, det) |>
+                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                      genplot = FALSE))
+    ) |>
+    unnest(cols = bp) |>
+    rename(filt = det)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.06151652
+ ,* Center of bandpass filter = 0.0625
+ ,* 15 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.06151652
+ ,* Center of bandpass filter = 0.25
+ ,* 58 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 386
+ ,* Sample interval= 0.375
+ ,* Mean value removed= -0.06151652
+ ,* ERROR: maximum frequency too high, reset to Nyquist-df
+ ,* Center of bandpass filter = 1.081606
+ ,* 144 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 1349
  ,* Sample interval= 0.10458
  ,* Mean value removed= 0.02744599
  ,* Center of bandpass filter = 0.0625
- ,* 12 pos/neg frequency pairs will be bandpassed
+ ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.02744599
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1349
+ ,* Sample interval= 0.10458
+ ,* Mean value removed= 0.02744599
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 1344
  ,* Sample interval= 0.105
  ,* Mean value removed= -0.0158664
- ,* Center of bandpass filter = 0.05890805
+ ,* Center of bandpass filter = 0.0625
  ,* 14 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.0158664
+ ,* Center of bandpass filter = 0.25
+ ,* 56 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 1344
+ ,* Sample interval= 0.105
+ ,* Mean value removed= -0.0158664
+ ,* Center of bandpass filter = 1.388889
+ ,* 313 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 625
  ,* Sample interval= 0.08
  ,* Mean value removed= 0.04618908
  ,* Center of bandpass filter = 0.0625
- ,* 4 pos/neg frequency pairs will be bandpassed
+ ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.04618908
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= 0.04618908
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
 
 ----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
  ,* Number of data points= 625
  ,* Sample interval= 0.08
  ,* Mean value removed= -0.0161482
- ,* Center of bandpass filter = 0.05890805
+ ,* Center of bandpass filter = 0.0625
  ,* 5 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= -0.0161482
+ ,* Center of bandpass filter = 0.25
+ ,* 20 pos/neg frequency pairs will be bandpassed
+
+----- BANDPASS FILTERING STRATIGRAPHIC SERIES-----
+ ,* Number of data points= 625
+ ,* Sample interval= 0.08
+ ,* Mean value removed= -0.0161482
+ ,* Center of bandpass filter = 1.388889
+ ,* 111 pos/neg frequency pairs will be bandpassed
 #+end_example
+
+*** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 11:01]
+:END:
+#+begin_src R
+  agem <- read_csv("dat/Batenburg2012/405_minima.csv")
+#+end_src
+
+#+RESULTS:
+: indexing 405_minima.csv [==========================================================] 149.95MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr (3): comment, minmax, desc
+: dbl (2): strat_bot, strat_top
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 *** make plot of records with filters
 :PROPERTIES:
@@ -3158,7 +3575,6 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:19]
 :END:
-
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :width 900
   comp |>
     filter(site == "Zumaia", name == "MS") |>
@@ -3199,13 +3615,13 @@ So instead of fitting a simple gam through the whole record, we fit one for each
                               filter(site == "Zumaia", name == "MS")) +
 
     ## # filters
-    geom_line(aes(y = filt, colour = "scaled filt"),
+    geom_line(aes(y = filt, colour = "scaled filt", group = target),
               data = filts_scl |>
               filter(site == "Zumaia", name == "MS")) +
-    geom_line(aes(y = filt - 5, colour = "gam filt"),
+    geom_line(aes(y = filt - 5, colour = "gam filt", group = target),
               data = filts_gam |>
               filter(site == "Zumaia", name == "MS")) +
-    geom_line(aes(y = filt - 10, colour = "gam + r/w filt"),
+    geom_line(aes(y = filt - 10, colour = "gam + r/w filt", group = target),
               data = filts_fancy |>
               filter(site == "Zumaia", name == "MS")) +
 
@@ -3236,6 +3652,74 @@ So instead of fitting a simple gam through the whole record, we fit one for each
 
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_complicated.png]]
+**** simple overview plot
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 17:27]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_simple.png :width 900
+  comp |>
+    filter(site == "Zumaia", name == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
+    facet_grid(rows = vars(name), scales = "free_y") +
+    # r/w intervals
+    annotate("rect",
+             xmin = c(-5, 0, 59, 85, 109),
+             xmax = c(0, 59, 85, 109, 145),
+             ymin = 2, ymax = 3,
+             fill = c("gray", "red", "gray", "red", "gray"),
+             alpha = .2
+             ) +
+
+    # "raw" data
+    geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
+    annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 0) +
+    geom_line(aes(y = det - 5), data = smooth_basic |>
+                              filter(site == "Zumaia", name == "MS"),
+              colour = "gray") +
+    annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
+    geom_line(aes(y = det - 10), data = smooth |>
+                              filter(site == "Zumaia", name == "MS"),
+              colour = "gray") +
+    annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
+
+    # 405 kyr filters
+    geom_line(aes(y = filt, colour = "scaled filt"),
+              data = filts_scl |>
+                filter(target == "405 kyr", site == "Zumaia", name == "MS")) +
+    geom_line(aes(y = filt - 5, colour = "gam filt"),
+              data = filts_gam |>
+                filter(target == "405 kyr", site == "Zumaia", name == "MS")) +
+    geom_line(aes(y = filt - 10, colour = "gam + r/w filt"),
+              data = filts_fancy |>
+                filter(target == "405 kyr", site == "Zumaia", name == "MS")) +
+
+    ## # age model from the log
+    geom_point(aes(x = strat_bot, y = -2,
+                   size = !is.na(comment)),
+               inherit.aes = FALSE,
+               data = agem |>
+                 filter(minmax == "minimum")) +
+    annotate("text", x = 145, y = -2, label = "minima", hjust = 0) +
+    annotate("text", x = 145, y = 2, label = "maxima", hjust = 0) +
+    geom_segment(aes(x = strat_bot, xend = strat_top,
+                     y = 2, yend = 2),
+                 inherit.aes = FALSE,
+                 data = agem |>
+                   filter(minmax == "maximum"),
+                 linewidth = 2) +
+    # try to make it into little sine waves
+    ## geom_segment(aes(x = strat_bot, xend = strat_top,
+    ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
+    ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
+    ##              data = agem) +
+
+    coord_cartesian(xlim = c(0, 150)) +
+    labs(x = "Depth (m)", y = "Proxy value", colour = "Site", size = "Well-defined") #+
+    ## theme(legend.position = "none")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_records_simple.png]]
 
 **** basic gam removal
 :PROPERTIES:
@@ -3249,7 +3733,7 @@ So instead of fitting a simple gam through the whole record, we fit one for each
     geom_line(colour = "gray") +
     geom_line(aes(y = gam_pred)) +
     geom_line(aes(y = det)) +
-    geom_line(aes(y = filt, colour = "basic filt"),
+    geom_line(aes(y = filt, colour = "basic filt", group = target),
               data = filts_basic |>
               filter(site == "Zumaia", name == "MS")) +
     geom_point(aes(x = strat_bot, y = -2,
@@ -3349,24 +3833,6 @@ CLOSED: [2023-09-26 Tue 16:59]
     ## geom_text(aes(x = strat_bot, y = 0,
     ##                label = desc), data = agem)
 #+end_src
-*** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
-:PROPERTIES:
-:CREATED:  [2023-09-25 Mon 11:01]
-:END:
-#+begin_src R
-  agem <- read_csv("dat/Batenburg2012/405_minima.csv")
-#+end_src
-
-#+RESULTS:
-: indexing 405_minima.csv [==========================================================] 179.94MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
-: Delimiter: ","
-: chr (3): comment, minmax, desc
-: dbl (2): strat_bot, strat_top
-:
-: ℹ Use `spec()` to retrieve the full column specification for this data.
-: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
 *** apply the age model from the field
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:16]
@@ -3954,6 +4420,7 @@ rows total       4,061
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:52]
 :END:
+This slides the whole time series along the time axis and checks the MSD w/ respect to ZB18a.
 #+begin_src R
   # which time offset gives the best fit?
   data_ecc_off <- filts_age |>
@@ -3993,7 +4460,9 @@ rows total       4,061
     rename(proxy = name) |>
     pivot_longer(msd_1_2:msd_1_0.5_env) |>
     arrange(value)
+#+end_src
 
+#+begin_src R :results output graphics file :file imgs/Zumaia_time-slider.png :width 900
   data_ecc_off_summ |>
     ggplot(aes(x = age_kpg, y = value, colour = name, group = paste(site, name))) +
     geom_line() +
@@ -4002,6 +4471,7 @@ rows total       4,061
 #+end_src
 
 #+RESULTS:
+[[file:imgs/Zumaia_time-slider.png]]
 
 ** Gubbio
 :PROPERTIES:
