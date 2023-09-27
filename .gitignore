@@ -1,0 +1,16 @@
+/auto/
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+/cretaceous_constraints.log
+/cretaceous_constraints.pdf
+/cretaceous_constraints.run.xml
+/cretaceous_constraints.tex
+*.ods
+/imgs/*.png
+*.pdf
+*.xlsx
+*.xls
