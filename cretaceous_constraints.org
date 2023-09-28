@@ -806,6 +806,31 @@ table also available in ASCII: http://www-odp.tamu.edu/publications/208_IR/VOLUM
   mcd <- readr::read_tsv("dat/ODP208_1267_splice-mcd.dat") |>
     mutate(length = `MCD Bot` - `MCD Top`)
 #+end_src
+
+#+RESULTS:
+#+begin_example
+indexing ODP208_1267_core-section-summary.dat [====================================] 509.52MB/s, eta:  0s                                                                                                                                            Rows: 267 Columns: 10
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (4): H, T, Sc, Comment
+dbl (6): Leg, Site, Cor, LL(m), CL(m), Top(mbsf)
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Warning message:
+One or more parsing issues, call `problems()` on your data frame for details, e.g.:
+  dat <- vroom(...)
+  problems(dat)
+indexing ODP208_1267_splice-mcd.dat [==============================================] 132.44MB/s, eta:  0s                                                                                                                                            Rows: 68 Columns: 5
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (1): H
+dbl (4): Leg, Site, MCD Top, MCD Bot
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+#+end_example
+
 **** CANC janus web tool
 CLOSED: [2023-09-20 Wed 11:32]
 does this do what I want?
@@ -975,6 +1000,43 @@ understand the splice table
     readr::write_csv("out/ODP208_1267_MS.csv")
 #+end_src
 
+#+RESULTS:
+#+begin_example
+Joining with `by = join_by(Site, H, Core, T)`
+left_join: added 8 columns (top, to, section, interval, depth_mbsf, …)
+rows only in x    2,494
+rows only in y  (     1)
+matched rows     20,745
+                ========
+rows total       23,239
+Joining with `by = join_by(Site, H, Core, T)`
+left_join: added 8 columns (from, bot, section2, interval2, depth_mbsf2, …)
+rows only in x    2,510
+rows only in y  (     1)
+matched rows     20,729
+                ========
+#+end_example
+
+**** read in the processed ODP208 1267 MS
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 10:53]
+:END:
+#+begin_src R
+  MS <- readr::read_csv("out/ODP208_1267_MS.csv",
+                        guess_max = 23000)
+#+end_src
+
+#+RESULTS:
+: indexing ODP208_1267_MS.csv [============-------------------------------------------] 37.98GB/s, eta:  0sindexing ODP208_1267_MS.csv [======================================================] 237.15MB/s, eta:  0s                                                                                                                                            Rows: 23239 Columns: 28
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr  (8): H, T, Sec, top, to, section, from, bot
+: dbl (19): Leg, Site, Core, Top (cm), Depth (mbsf), Magnetic Suscept., Corrected Suscept., interval, d...
+: lgl  (1): on_splice
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
 **** COMMENT apply splice table using linear interpolation/extrapolation
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 13:01]
@@ -1103,7 +1165,7 @@ I think that did it!
 :CREATED:  [2023-09-21 Thu 16:42]
 :END:
 
-**** create a shiny interface
+**** COMMENT create a shiny interface
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 08:42]
 :END:
@@ -1316,26 +1378,62 @@ this is to inspect how the moving average affects the outcome
 :CREATED:  [2023-09-21 Thu 16:52]
 :END:
 #+begin_src R :results graphics file :file imgs/ODP208_1267_MS_mtm.png :width 800
+  hus_filters <- tribble(
+    ~ target, ~ flow, ~ fhigh,
+    "100 kyr", 0, 0.09,
+    "405 kyr", 0, 0.25,
+    ) |>
+    mutate(ref = "Husson et al., 2011")
+
+  my_1267_filters <- tribble(
+    ~ target, ~ f,
+    "405 kyr", 0.08,
+    "100 kyr", 0.16,
+    ) |>
+    mutate(fr = 0.7 * f,
+           flow = f - fr * f,
+           fhigh = f + fr * f) |>
+    mutate(ref = "This study")
+
   MS_ |>
-    select(my_rmcd,
-           var
-           ## scl_ma
-           ## scl_gam
-           ## scl_loess
-           ) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::mtm(detrend = TRUE, demean = TRUE, xmax = 5)
+    pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
+                 names_to = "smooth_type") |>
+    nest(.by = c(smooth_type)) |>
+    mutate(spec = map(data, \(d) d |>
+                                 select(my_rmcd, value) |>
+                                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                                 astrochron::mtm(output = 1, detrend = TRUE, demean = TRUE,
+                                                 xmax = 5, genplot = FALSE, verbose = FALSE)
+                      )) |>
+    unnest(spec) |>
+    ggplot(aes(x = Frequency, y = Power, colour = smooth_type)) +
+    geom_line() +
+    geom_line(aes(y = AR1_fit)) +
+    geom_line(aes(y = AR1_95_power), alpha = .3) +
+    scale_y_log10() +
+    annotation_logticks() +
+    coord_cartesian(xlim = c(1e-4, 0.0625) * 100, ylim = c(1e-5, 1)) +
+    ## scale_x_continuous(
+    scale_x_log10(
+      sec.axis = sec_axis(trans = ~ 1 / .x,
+                          name = "Period (m)",
+                          breaks = c(50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
+    # annotate the Husson 2011 filters
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+              inherit.aes = FALSE,
+              alpha = .3, data = hus_filters) +
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+              inherit.aes = FALSE,
+              alpha = .3, data = my_1267_filters) +
+    labs(x = "Frequency (cycle/m)", y = "Spectral power")
 #+end_src
 
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_mtm.png]]
 
-Ehhm... there are no spectral peaks in the range that they filter!
+There are no significant spectral peaks in the range that they filter!
+I've various ways of detrending the record first but it's not coming out too clearly.
 
-**** NEXT remake this figure using ggplot marking the region that they taner filter
-:PROPERTIES:
-:CREATED:  [2023-09-27 Wed 19:25]
-:END:
 **** do wavelet analysis
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 16:45]
