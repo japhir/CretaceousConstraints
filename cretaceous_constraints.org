@@ -2270,7 +2270,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 [cite:@Batenburg2014] has Sopelana expansion downwards
 
 *** read the data from the supplementary info
-#+begin_src R :results none
+#+begin_src R :exports none
   # Batenburg et al., 2012
   Zumaia <- readxl::read_excel("dat/Batenburg2012/1-s2.0-S0012821X12005742-mmc2.xls") |>
     rename(depth = Depth,
@@ -2291,17 +2291,34 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
   # assemble them all in a single df
   comp <- Zumaia |>
-    pivot_longer(MS:d13C_VPDB) |>
-    mutate(comment = if_else(name == "d13C_VPDB", comment, NA_character_)) |>
+    pivot_longer(MS:d13C_VPDB, names_to = "proxy") |>
+    mutate(comment = if_else(proxy == "d13C_VPDB", comment, NA_character_)) |>
     tidylog::filter(is.na(comment) | comment != "outlier") |>
     tidylog::filter(!is.na(value)) |>
-    mutate(site = "Zumaia") |>
+    mutate(site = "Zumaia", .before = depth) |>
     bind_rows(
       Sopelana |>
-      pivot_longer(MS:Lstar) |>
+      pivot_longer(MS:Lstar, names_to = "proxy") |>
       mutate(site = "Sopelana")
-    )
+    ) |>
+    tidylog::select(site, proxy, depth, value, comment)
 #+end_src
+
+#+RESULTS:
+#+begin_example
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.26GB/s, eta:  0s                                                                                                                                            New names:
+• `` -> `...3`
+Rows: 629 Columns: 3
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (3): depth, MS, Lstar
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+filter: removed 5 rows (<1%), 4,159 rows remaining
+filter: removed 1,045 rows (25%), 3,114 rows remaining
+select: columns reordered (site, proxy, depth, value, comment)
+#+end_example
 
 *** make a plot
 :PROPERTIES:
@@ -2330,7 +2347,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
   comp |>
     ggplot(aes(x = depth, y = value, colour = site)) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_line() +
     geom_smooth()
     ## geom_smooth(aes(group = "all"))
@@ -2386,7 +2403,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 #+begin_src R
   smooth_basic <- comp |>
     ## pivot_wider() |>
-    nest(.by = c(name, site,)) |> # nest_by is different!!
+    nest(.by = c(proxy, site)) |> # nest_by is different!!
     mutate(
       gam = map(data,
                      ~ mgcv::gam(value ~ s(depth, bs = "cs"),
@@ -2397,7 +2414,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
     ) |>
     select(-gam) |>
     unnest(cols = c(data, gam_pred)) |>
-    mutate(det = scale(value - gam_pred)[, 1], .by = c(name, site))
+    mutate(det = scale(value - gam_pred)[, 1], .by = c(proxy, site))
 #+end_src
 
 #+RESULTS:
@@ -2421,18 +2438,18 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
              depth > 108.5 & depth <= 109.8 ~ "pink3",
              depth > 109.8 ~ "white3",
              TRUE ~ NA_character_)) |>
-    ## mutate(mean_colour = mean(value), .by = c(site, name, colour)) |>
+    ## mutate(mean_colour = mean(value), .by = c(site, proxy, colour)) |>
     ## mutate(dec = value - mean_colour) |>
     ## pivot_wider() |>
     # first calculate a lm for each slice of colour interval
-    nest(.by = c(name, site, colour)) |> # nest_by is different!!
+    nest(.by = c(proxy, site, colour)) |> # nest_by is different!!
     mutate(
       lim = map(data, ~ lm(value ~ depth, data = .x)),
       lin_pred = map(lim, predict)) |>
     select(-lim) |>
     unnest(c(data, lin_pred)) |>
     mutate(lin = value - lin_pred) |>
-    nest(.by = c(name, site)) |> # nest_by is different!!
+    nest(.by = c(proxy, site)) |> # nest_by is different!!
     mutate(
       gamm = map(data,
                 ## ~ loess(dec ~ depth, data = ., span = .9)
@@ -2445,7 +2462,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     unnest(cols = c(data, gam_pred)) |>
     mutate(gam = lin - gam_pred,
            det = scale(gam)[, 1],
-           .by = c(name, site))
+           .by = c(proxy, site))
 #+end_src
 
 #+RESULTS:
@@ -2455,37 +2472,40 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :CREATED:  [2023-09-26 Tue 10:57]
 :END:
 **** lines
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/Zumaia_linear-trend-removal.png :width 900
   smooth |>
     ggplot(aes(x = depth, y = value)) +
     geom_line() +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_line(aes(y = lin_pred, group = paste(site, colour)), colour = "red", linewidth = 2)
 #+end_src
 
 #+RESULTS:
+[[file:imgs/Zumaia_linear-trend-removal.png]]
 
 **** gam
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/Zumaia_gam-trend-removal.png :width 900
   smooth |>
     ggplot(aes(x = depth, y = lin)) +
     geom_line() +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_line(aes(y = gam_pred, group = paste(site)), colour = "red", linewidth = 2)
 #+end_src
 
 #+RESULTS:
+[[file:imgs/Zumaia_gam-trend-removal.png]]
 
-**** final result
-#+begin_src R
+**** detrended result
+#+begin_src R :results output graphics file :file imgs/Zumaia_linear-gam-trend-removal.png :width 900
   smooth |>
     ggplot(aes(x = depth, y = det)) +
     geom_line() +
-    facet_grid(rows = vars(name), scales = "free_y") #+
+    facet_grid(rows = vars(proxy), scales = "free_y") #+
     ## geom_line(aes(y = gam_pred, group = paste(site)), colour = "red", linewidth = 2)
 #+end_src
 
 #+RESULTS:
+[[file:imgs/Zumaia_linear-gam-trend-removal.png]]
 
 
 **** COMMENT gam with custom knots around the colour transitions
@@ -2494,7 +2514,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R
   smooth_k <- comp |>
-    nest(.by = c(name, site,)) |> # nest_by is different!!
+    nest(.by = c(proxy, site)) |> # nest_by is different!!
     mutate(
       gam = map(data,
                      ~ mgcv::gam(value ~ s(depth, bs = "cs"),
@@ -2507,7 +2527,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     ) |>
     select(-gam) |>
     unnest(cols = c(data, gam_pred)) |>
-    mutate(det = scale(value - gam_pred)[, 1], .by = c(name, site))
+    mutate(det = scale(value - gam_pred)[, 1], .by = c(proxy, site))
 #+end_src
 
 #+RESULTS:
@@ -2518,7 +2538,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia_long-term-trend.png :width 900 :height 500
   (smooth |>
-   filter(site == "Zumaia", name == "MS") |>
+   filter(site == "Zumaia", proxy == "MS") |>
    ggplot(aes(x = depth, y = dec)) +
    geom_line(aes(y = value), colour = "gray") +
    ## geom_line(aes(y = det), smooth_basic) +
@@ -2528,8 +2548,8 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
    geom_line(aes(y = gam_pred, group = site), colour = "blue", linewidth = 2) +
    geom_line(aes(y = gam_pred, group = site), linewidth = 2,
              colour = "red",
-             data = smooth_basic |> filter(site == "Zumaia", name == "MS")) +
-   facet_grid(rows = vars(name), scales = "free_y") #+
+             data = smooth_basic |> filter(site == "Zumaia", proxy == "MS")) +
+   facet_grid(rows = vars(proxy), scales = "free_y") #+
     ## geom_vline(xintercept = c(59, 85, 109)) +
     ## annotate("rect",
     ##          xmin = c(-5, 0, 58.75, 85, 109),
@@ -2540,11 +2560,11 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
    ##          )
    ) /
   (smooth |>
-   filter(site == "Zumaia", name == "MS") |>
+   filter(site == "Zumaia", proxy == "MS") |>
    ggplot(aes(x = depth, y = det)) +
    geom_line() +
    ## geom_smooth(method = "loess", span = .05) +
-   facet_grid(rows = vars(name), scales = "free_y") +
+   facet_grid(rows = vars(proxy), scales = "free_y") +
    ## geom_vline(xintercept = c(59, 85, 109)) +
    annotate("rect",
             xmin = c(-5, 0, 59, 85, 109),
@@ -2565,7 +2585,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R
   specs <- comp |>
-    nest(.by = c(name, site)) |>
+    nest(.by = c(proxy, site)) |>
     mutate(
       mtm = map(data,
                 ~ . |>
@@ -2584,7 +2604,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R
   specs_fancy <- smooth |>
-    nest(.by = c(name, site)) |>
+    nest(.by = c(proxy, site)) |>
     mutate(
       mtm = map(data,
                 ~ . |>
@@ -2604,7 +2624,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 #+begin_src R
   # for wavelet analysis: notch filter that removes periods >25 m
   bat_filters_old <- tribble(
-    ~ target, ~ name, ~ center, ~ plow, ~ phigh,
+    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh,
     "405 kyr", "Lstar", 15.7, 12, 22,
     "405 kyr", "MS", 18.9, 12, 40,
     "405 kyr", "d13C_VPDB", 16.6, 11, 31,
@@ -2613,7 +2633,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
   # these are from Batenburg et al., 2014 figure 3
   bat_filters <- tribble(
-    ~ target, ~ name, ~ center, ~ plow, ~ phigh, ~site,
+    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh, ~site,
     "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
     "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
     ## "prec", "Lstar", 4, 3.0, 6.0, "both",
@@ -2658,7 +2678,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     ) |>
     ggplot(aes(x = Frequency, y = Power, colour = site, linetype = type, group = type)) +
     facet_grid(## cols = vars(site),
-               rows = vars(site, name)) +
+               rows = vars(site, proxy)) +
     geom_line() +
     geom_line(aes(y = AR1_fit)) +
     geom_line(aes(y = AR1_95_power), alpha = .3) +
@@ -2691,10 +2711,10 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
-#+begin_src R :results none
+#+begin_src R
   filts_basic <-
     comp |>
-    nest(.by = c(name, site)) |>
+    nest(.by = c(proxy, site)) |>
     mutate(filt = list(my_filters)) |>
     unnest(filt) |>
     mutate(
@@ -2703,7 +2723,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                  select(depth, value) |>
                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
                  astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE))
+                                      genplot = FALSE, verbose = FALSE))
     ) |>
     select(-data) |>
     unnest(cols = bp) |>
@@ -2711,13 +2731,15 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
   # TODO: 100 kyr
 #+end_src
 
+#+RESULTS:
+
 **** bp on scaled
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:47]
 :END:
-#+begin_src R :results none
+#+begin_src R
   filts_scl <- comp |>
-      nest(.by = c(name, site)) |>
+      nest(.by = c(proxy, site)) |>
       mutate(filt = list(my_filters)) |>
       unnest(filt) |>
       mutate(
@@ -2727,21 +2749,23 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                    select(depth, scl) |>
                    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
                    astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                        genplot = FALSE))
+                                        genplot = FALSE, verbose = FALSE))
       ) |>
       select(-data) |>
       unnest(cols = bp) |>
       rename(filt = scl)
 #+end_src
 
+#+RESULTS:
+
 **** bp on the gam
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
-#+begin_src R :results none
+#+begin_src R
   filts_gam <-
     smooth_basic |>
-    nest(.by = c(name, site)) |>
+    nest(.by = c(proxy, site)) |>
     mutate(filt = list(my_filters)) |>
     unnest(filt) |>
     mutate(
@@ -2750,22 +2774,23 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                  select(depth, det) |>
                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
                  astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE))
+                                      genplot = FALSE, verbose = FALSE))
     ) |>
     select(-data) |>
     unnest(cols = bp) |>
     rename(filt = det)
-  # TODO: 100 kyr
 #+end_src
+
+#+RESULTS:
 
 **** bp on the gam with white/red separation
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
-#+begin_src R :results none
+#+begin_src R
   filts_fancy <-
     smooth |>
-    nest(.by = c(name, site)) |>
+    nest(.by = c(proxy, site)) |>
     mutate(filt = list(my_filters)) |>
     unnest(filt) |>
     mutate(
@@ -2774,39 +2799,53 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
                  select(depth, det) |>
                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
                  astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE))
+                                      genplot = FALSE, verbose = FALSE))
     ) |>
     select(-data) |>
     unnest(cols = bp) |>
     rename(filt = det)
 #+end_src
 
+#+RESULTS:
+
 **** hilbert transform of the precession bp filter
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:54]
 :END:
-#+begin_src R :results none
+#+begin_src R :exports none
   filts_hil <- filts_fancy |>
     tidylog::filter(target == "prec") |>
-    nest(.by = c(name, site, target, center, f, range, flow, fhigh, ref)) |>
+    nest(.by = c(proxy, site, target, center, f, range, flow, fhigh, ref)) |>
     mutate(
       hil = map(data, \(d) d |>
                            select(depth, filt) |>
-                           astrochron::hilbert(genplot = FALSE))
+                           astrochron::hilbert(genplot = FALSE, verbose = FALSE))
     ) |>
     select(-data) |>
     ## unnest()
     unnest(hil)
 #+end_src
 
+#+RESULTS:
+: filter: removed 8,658 rows (67%), 4,329 rows remaining
+
 *** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:01]
 :END:
-#+begin_src R :results none
+#+begin_src R :exports none
   agem <- read_csv("dat/Batenburg2012/405_minima.csv")
 #+end_src
 
+#+RESULTS:
+: indexing 405_minima.csv [==========================================================] 179.94MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr (3): comment, minmax, desc
+: dbl (2): strat_bot, strat_top
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 *** make plot of records with filters
 :PROPERTIES:
@@ -2818,15 +2857,15 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_gam.png :width 900
   smooth_basic |>
-    filter(site == "Zumaia", name == "MS") |>
-    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    filter(site == "Zumaia", proxy == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_line(colour = "gray") +
     geom_line(aes(y = gam_pred)) +
     geom_line(aes(y = det)) +
     geom_line(aes(y = filt, colour = "basic filt", group = target),
               data = filts_basic |>
-              filter(site == "Zumaia", name == "MS")) +
+              filter(site == "Zumaia", proxy == "MS")) +
     geom_point(aes(x = strat_bot, y = -2,
                    size = !is.na(comment)),
                inherit.aes = FALSE,
@@ -2856,9 +2895,9 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :width 900
   comp |>
-    filter(site == "Zumaia", name == "MS") |>
-    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    filter(site == "Zumaia", proxy == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     # r/w intervals
     annotate("rect",
              xmin = c(-5, 0, 59, 85, 109),
@@ -2872,37 +2911,37 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     geom_line(colour = "gray") +
     annotate("text", x = 145, y = 33, label = "raw - r/w", colour = "gray", hjust = 0) +
     geom_line(aes(y = lin + 30), colour = "gray", data = smooth |>
-              filter(site == "Zumaia", name == "MS")) +
+              filter(site == "Zumaia", proxy == "MS")) +
     annotate("text", x = 145, y = 10, label = "raw", colour = "gray", hjust = 0) +
     geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
     annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 0) +
     geom_line(aes(y = det - 5), data = smooth_basic |>
-                              filter(site == "Zumaia", name == "MS"),
+                              filter(site == "Zumaia", proxy == "MS"),
               colour = "gray") +
     annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
     geom_line(aes(y = det - 10), data = smooth |>
-                              filter(site == "Zumaia", name == "MS"),
+                              filter(site == "Zumaia", proxy == "MS"),
               colour = "gray") +
     annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
 
     ## # gam and other trends
     geom_line(aes(y = gam_pred, colour = "gam"), data = smooth_basic |>
-                              filter(site == "Zumaia", name == "MS")) +
+                              filter(site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = lin_pred, colour = "mean r/w", group = colour), data = smooth |>
-                              filter(site == "Zumaia", name == "MS")) +
+                              filter(site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = gam_pred + 30, colour = "gam pred r/w"), data = smooth |>
-                              filter(site == "Zumaia", name == "MS")) +
+                              filter(site == "Zumaia", proxy == "MS")) +
 
     ## # filters
     geom_line(aes(y = filt, colour = "scaled filt", group = target),
               data = filts_scl |>
-              filter(site == "Zumaia", name == "MS")) +
+              filter(site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = filt - 5, colour = "gam filt", group = target),
               data = filts_gam |>
-              filter(site == "Zumaia", name == "MS")) +
+              filter(site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = filt - 10, colour = "gam + r/w filt", group = target),
               data = filts_fancy |>
-              filter(site == "Zumaia", name == "MS")) +
+              filter(site == "Zumaia", proxy == "MS")) +
 
     ## # age model from the log
     geom_point(aes(x = strat_bot, y = -2,
@@ -2925,7 +2964,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     ##              data = agem) +
 
     coord_cartesian(xlim = c(0, 150)) +
-    labs(x = "Depth (m)", y = "Proxy value", colour = "Site", size = "Well-defined") #+
+    labs(x = "Depth (m)", y = "Proxy value", colour = "Filter type", size = "Well-defined") #+
     ## theme(legend.position = "none")
 #+end_src
 
@@ -2937,9 +2976,9 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_simple.png :width 900
   comp |>
-    filter(site == "Zumaia", name == "MS") |>
-    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    filter(site == "Zumaia", proxy == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     # r/w intervals
     annotate("rect",
              xmin = c(-5, 0, 59, 85, 109),
@@ -2953,24 +2992,24 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
     annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 0) +
     geom_line(aes(y = det - 5), data = smooth_basic |>
-                              filter(site == "Zumaia", name == "MS"),
+                              filter(site == "Zumaia", proxy == "MS"),
               colour = "gray") +
     annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
     geom_line(aes(y = det - 10), data = smooth |>
-                              filter(site == "Zumaia", name == "MS"),
+                              filter(site == "Zumaia", proxy == "MS"),
               colour = "gray") +
     annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
 
     # 405 kyr filters
     geom_line(aes(y = filt, colour = "scaled filt"),
               data = filts_scl |>
-                filter(target == "405 kyr", site == "Zumaia", name == "MS")) +
+                filter(target == "405 kyr", site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = filt - 5, colour = "gam filt"),
               data = filts_gam |>
-                filter(target == "405 kyr", site == "Zumaia", name == "MS")) +
+                filter(target == "405 kyr", site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = filt - 10, colour = "gam + r/w filt"),
               data = filts_fancy |>
-                filter(target == "405 kyr", site == "Zumaia", name == "MS")) +
+                filter(target == "405 kyr", site == "Zumaia", proxy == "MS")) +
 
     ## # age model from the log
     geom_point(aes(x = strat_bot, y = -2,
@@ -3006,8 +3045,8 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_gam_demean.png :width 900
   smooth |>
-    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     ## geom_line(colour = "gray") +
     ## geom_line(aes(y = gam_pred, group = site))
     geom_line(aes(y = det)) +
@@ -3045,15 +3084,15 @@ CLOSED: [2023-09-26 Tue 16:59]
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records.png :width 900
   smooth_basic |>
-    filter(site == "Zumaia", name == "MS") |>
-    ggplot(aes(x = depth, y = value, group = paste(site, name))) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    filter(site == "Zumaia", proxy == "MS") |>
+    ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_line(colour = "gray") +
     geom_line(aes(y = gam_pred)) +
     geom_line(aes(y = det)) +
     geom_line(aes(y = filt, colour = "basic filt"),
               data = filts_basic |>
-              filter(site == "Zumaia", name == "MS")) +
+                filter(site == "Zumaia", proxy == "MS", target == "405 kyr")) +
     geom_point(aes(x = strat_bot, y = -2,
                    size = !is.na(comment)),
                inherit.aes = FALSE,
@@ -3074,6 +3113,10 @@ CLOSED: [2023-09-26 Tue 16:59]
     ## geom_text(aes(x = strat_bot, y = 0,
     ##                label = desc), data = agem)
 #+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_records.png]]
+
 *** [#B] get orbital solutions to compare the record with
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:50]
@@ -3096,12 +3139,16 @@ CLOSED: [2023-09-26 Tue 16:59]
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 17:22]
 :END:
-#+begin_src R
-  ## sln2 <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
-  ##                           comment = "%",
-  ##                           col_names = c("age", "ecc", "inc")) |>
-  ##   write_rds("out/ZB20a.rds")
+Download the solution once from the website, then save to file locally.
+#+begin_src R :eval never
+  sln2 <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
+                            comment = "%",
+                            col_names = c("age", "ecc", "inc")) |>
+    write_rds("out/ZB20a.rds")
+#+end_src
 
+Load the saved file, then process it further.
+#+begin_src R
   sln2 <- read_rds("out/ZB20a.rds") |>
     select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
@@ -3123,7 +3170,7 @@ CLOSED: [2023-09-26 Tue 16:59]
     filts_scl |>
     ## filts_fancy |>
     select(-center, -f, -range, -flow, -fhigh, -ref) |>
-    pivot_wider(id_cols = c(name, site, depth),
+    pivot_wider(id_cols = c(proxy, site, depth),
                 names_from = target, values_from = filt) |>
     tidylog::left_join(filts_hil |>
                        select(-target, -center, -range, -f, -flow, -fhigh, -ref)) |>
@@ -3137,7 +3184,7 @@ CLOSED: [2023-09-26 Tue 16:59]
     mutate(filter = scale(s405 * `405 kyr` + s100 * `100 kyr`)[, 1],
            hilbert = scale(s405 * `405 kyr` + s100 * envelope)[, 1]) |>
     pivot_longer(c(filter, hilbert), names_to = "filt_env", values_to = "ecc") |>
-    arrange(rev(site), rev(name), filt_env, comb, depth)
+    arrange(rev(site), rev(proxy), filt_env, comb, depth)
 #+end_src
 
 *** plot extracted eccentricity curve
@@ -3147,7 +3194,7 @@ CLOSED: [2023-09-26 Tue 16:59]
 #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_depth.png :width 900
   data_ecc |>
     ggplot(aes(x = depth, y = ecc, group = paste(site, comb, filt_env), colour = paste(comb, filt_env))) +
-    facet_grid(rows = vars(name)) +
+    facet_grid(rows = vars(proxy)) +
     ## geom_line(aes(y = `405 kyr`, colour = "405 kyr")) +
     ## geom_line(aes(y = `100 kyr`, colour = "100 kyr")) +
     ## geom_line(aes(y = prec, colour = "prec")) +
@@ -3198,7 +3245,7 @@ CLOSED: [2023-09-26 Tue 16:59]
 
   msd <- diffs |>
     summarize(MSD = sqrt(sum(squared_diff)),
-              .by = c(name, site, comb, filt_env, tau, kpg_age, sol)) |>
+              .by = c(proxy, site, comb, filt_env, tau, kpg_age, sol)) |>
     arrange(MSD)
 #+end_src
 
@@ -3215,7 +3262,7 @@ CLOSED: [2023-09-26 Tue 16:59]
     tidylog::filter(filt_env == "hilbert") |> # to ~2.4 M
     tidylog::filter(site == "Zumaia") |>
     # I first didn't filter to find the ones with the lowest MSD
-    ## summarize(MSD = sqrt(sum(diff)), .by = c(name, site, comb, filt_env, tau, kpg_age, sol)) |>
+    ## summarize(MSD = sqrt(sum(diff)), .by = c(proxy, site, comb, filt_env, tau, kpg_age, sol)) |>
     ## arrange(MSD)
     tidylog::filter((kpg_age == 66200 & sol == "ZB20a") |
                     (kpg_age == 65800 & sol == "ZB18a")) |>
@@ -3224,7 +3271,7 @@ CLOSED: [2023-09-26 Tue 16:59]
                ## colour = tau,
                ## colour = kpg_age,
                )) +
-    facet_grid(rows = vars(name), cols = vars(sol)) +
+    facet_grid(rows = vars(proxy), cols = vars(sol)) +
     geom_line(aes(y = ecc)) +
     geom_line(aes(y = ecc_sln), alpha = .6, colour = "purple") +
     ## geom_line(sln)
@@ -3247,7 +3294,7 @@ CLOSED: [2023-09-26 Tue 16:59]
                ## colour = tau
                fill = MSD
                )) +
-    facet_grid(rows = vars(name), cols = vars(sol, filt_env, comb)) +
+    facet_grid(rows = vars(proxy), cols = vars(sol, filt_env, comb)) +
     ## geom_line() +
     geom_raster() +
     scale_fill_viridis_c() +
@@ -3301,24 +3348,34 @@ CLOSED: [2023-09-26 Tue 16:59]
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
 :END:
-#+begin_src R
-  # what Δt do we want for linear interpolation?
-  # where should the linear interpolation start?
-  smooth |>
-    summarize(min(age), .by = c(name, site))
+What Δt do we want for linear interpolation?
+Where should the linear interpolation start?
 
+#+begin_src R :results value :colnames yes
+  smooth |>
+    summarize(min(age), .by = c(proxy, site))
+#+end_src
+
+#+RESULTS:
+| proxy     | site     |         min(age) |
+|-----------+----------+------------------|
+| d13C_VPDB | Zumaia   |        -91.63125 |
+| MS        | Zumaia   |      1.233984375 |
+| Lstar     | Zumaia   |      1.233984375 |
+| MS        | Sopelana | 3651.94285714286 |
+| Lstar     | Sopelana | 3651.94285714286 |
+
+#+begin_src R :results value :colnames yes
   smooth <- smooth |>
-    mutate(dt = case_when(name == "d13C_VPDB" ~ 10,
-                          name == "MS" ~ 3,
-                          name == "Lstar" ~ 3,
+    mutate(dt = case_when(proxy == "d13C_VPDB" ~ 10,
+                          proxy == "MS" ~ 3,
+                          proxy == "Lstar" ~ 3,
                           TRUE ~ NA_real_),
-           strt = case_when(name == "d13C_VPDB" ~ - 91,
+           strt = case_when(proxy == "d13C_VPDB" ~ - 91,
                             site == "Zumaia" ~ 2,
                             site == "Sopelana" ~ 3653,
                             TRUE ~ NA_real_))
 #+end_src
-
-#+RESULTS:
 
 *** calculate spectra in the time domain
 :PROPERTIES:
@@ -3326,7 +3383,7 @@ CLOSED: [2023-09-26 Tue 16:59]
 :END:
 #+begin_src R
   specs_age <- smooth |>
-    nest(.by = c(name, site, dt, strt)) |>
+    nest(.by = c(proxy, site, dt, strt)) |>
     mutate(
       mtm = pmap(list(d = data, dt = dt, strt = strt),
                 \(d, dt, strt) d |>
@@ -3347,15 +3404,15 @@ CLOSED: [2023-09-26 Tue 16:59]
 :END:
 #+begin_src R :results none
   filts_age <- smooth |>
-    nest(.by = c(name, site, dt, strt)) |>
+    nest(.by = c(proxy, site, dt, strt)) |>
     mutate(flow = 1 / 405 - .3 * 1 / 405, fhigh = 1 / 405 + .3 * 1 / 405) |>
-    ## mutate(flow = case_when(name == "MS" ~ 1 / 308,
-    ##                         name == "Lstar" ~ 1 / 311,
-    ##                         name == "d13C_VPDB" ~ 1 / 326,
+    ## mutate(flow = case_when(proxy == "MS" ~ 1 / 308,
+    ##                         proxy == "Lstar" ~ 1 / 311,
+    ##                         proxy == "d13C_VPDB" ~ 1 / 326,
     ##                         TRUE ~ NA_real_),
-    ##        fhigh = case_when(name == "MS" ~ 1 / 609,
-    ##                          name == "Lstar" ~ 1 / 621,
-    ##                          name == "d13C_VPDB" ~ 1 / 675,
+    ##        fhigh = case_when(proxy == "MS" ~ 1 / 609,
+    ##                          proxy == "Lstar" ~ 1 / 621,
+    ##                          proxy == "d13C_VPDB" ~ 1 / 675,
     ##                          TRUE ~ NA_real_)) |>
     ## filter(!is.na(flow)) |>
     mutate(
@@ -3366,21 +3423,21 @@ CLOSED: [2023-09-26 Tue 16:59]
                            astrochron::linterp(dt = dt, start = strt,
                                                genplot = FALSE, verbose = FALSE) |>
                            astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                                genplot = FALSE))
+                                                genplot = FALSE, verbose = FALSE))
     ) |>
     unnest(cols = bp) |>
     rename(filt = det)
 
   filts_age_100 <- smooth |>
-    nest(.by = c(name, site, dt, strt)) |>
+    nest(.by = c(proxy, site, dt, strt)) |>
     mutate(flow = 1 / 100 - .3 * 1 / 100, fhigh = 1 / 100 + .3 * 1 / 100) |>
-    ## mutate(flow = case_when(name == "MS" ~ 1 / 75,
-    ##                         name == "Lstar" ~ 1 / 75,
-    ##                         ## name == "d13C_VPDB" ~ 1 / 12, # this isn't significant in the spectrum!
+    ## mutate(flow = case_when(proxy == "MS" ~ 1 / 75,
+    ##                         proxy == "Lstar" ~ 1 / 75,
+    ##                         ## proxy == "d13C_VPDB" ~ 1 / 12, # this isn't significant in the spectrum!
     ##                         TRUE ~ NA_real_),
-    ##        fhigh = case_when(name == "MS" ~ 1 / 150,
-    ##                          name == "Lstar" ~ 1 / 150,
-    ##                          ## name == "d13C_VPDB" ~ 1 / 31,
+    ##        fhigh = case_when(proxy == "MS" ~ 1 / 150,
+    ##                          proxy == "Lstar" ~ 1 / 150,
+    ##                          ## proxy == "d13C_VPDB" ~ 1 / 31,
     ##                          TRUE ~ NA_real_)) |>
     ## filter(!is.na(flow)) |>
     mutate(
@@ -3392,22 +3449,22 @@ CLOSED: [2023-09-26 Tue 16:59]
                                          dt = dt, start = strt,
                                          genplot = FALSE, verbose = FALSE) |>
                            astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                                genplot = FALSE))
+                                                genplot = FALSE, verbose = FALSE))
     ) |>
     unnest(cols = bp) |>
     rename(filt = det)
 
   filts_age_prec <- smooth |>
-    nest(.by = c(name, site, dt, strt)) |>
+    nest(.by = c(proxy, site, dt, strt)) |>
     mutate(flow = 1 / 23 - .3 * 1 / 23, fhigh = 1 / 23 + .3 * 1 / 23) |>
     # filter values from Batenburg et al., 2014 (these seem a bit arbitrary)
-    ## mutate(flow = case_when(name == "MS" ~ 1 / 17.8,
-    ##                         name == "Lstar" ~ 1 / 13.4,
-    ##                         name == "d13C_VPDB" ~ 1 / 21.3, # I did these myself
+    ## mutate(flow = case_when(proxy == "MS" ~ 1 / 17.8,
+    ##                         proxy == "Lstar" ~ 1 / 13.4,
+    ##                         proxy == "d13C_VPDB" ~ 1 / 21.3, # I did these myself
     ##                         TRUE ~ NA_real_),
-    ##        fhigh = case_when(name == "MS" ~ 1 / 35.3,
-    ##                          name == "Lstar" ~ 1 / 27.2,
-    ##                          name == "d13C_VPDB" ~ 1 / 30, # I did these myself
+    ##        fhigh = case_when(proxy == "MS" ~ 1 / 35.3,
+    ##                          proxy == "Lstar" ~ 1 / 27.2,
+    ##                          proxy == "d13C_VPDB" ~ 1 / 30, # I did these myself
     ##                          TRUE ~ NA_real_)) |>
     filter(!is.na(flow)) |>
     mutate(
@@ -3418,7 +3475,7 @@ CLOSED: [2023-09-26 Tue 16:59]
                            astrochron::linterp(dt = dt, start = strt,
                                                genplot = FALSE, verbose = FALSE) |>
                            astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                                genplot = FALSE))
+                                                genplot = FALSE, verbose = FALSE))
     ) |>
     unnest(cols = bp) |>
     rename(filt = det)
@@ -3431,10 +3488,10 @@ CLOSED: [2023-09-26 Tue 16:59]
 #+begin_src R :results none
   hb_age_prec <- filts_age_prec |>
     select(-data) |>
-    nest(.by = c(site, name, flow, fhigh)) |>
+    nest(.by = c(site, proxy, flow, fhigh)) |>
     mutate(hb = map(data, \(d) d |>
                                select(age, filt) |>
-                               astrochron::hilbert(genplot = FALSE))) |>
+                               astrochron::hilbert(genplot = FALSE, verbose = FALSE))) |>
     unnest(hb) |>
     select(-data)
 #+end_src
@@ -3448,12 +3505,12 @@ CLOSED: [2023-09-26 Tue 16:59]
   specs_age |>
     ggplot(aes(x = Frequency, y = Power, colour = site)) +
     facet_grid(## cols = vars(site),
-               rows = vars(name)) +
+               rows = vars(proxy)) +
     geom_line() +
     geom_line(aes(y = AR1_fit)) +
     geom_line(aes(y = AR1_95_power), linetype = "dashed") +
     ## geom_line(aes(y = Harmonic_CL)) +
-    coord_cartesian(xlim = c(1 / 5000, 1 / 10)) +
+    coord_cartesian(xlim = c(1 / 1000, 1 / 10)) +
     scale_y_log10() +
     scale_x_log10(
     ## scale_x_continuous(
@@ -3466,7 +3523,7 @@ CLOSED: [2023-09-26 Tue 16:59]
               data = filts_age |>
                 bind_rows(filts_age_100) |>
                 bind_rows(filts_age_prec) |>
-                distinct(name, flow, fhigh) |>
+                distinct(proxy, flow, fhigh) |>
                 mutate(fmean = flow + (fhigh - flow) / 2, pmean = 1 / fmean)) +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1),
               inherit.aes = FALSE,
@@ -3474,7 +3531,7 @@ CLOSED: [2023-09-26 Tue 16:59]
               data = filts_age |>
                 bind_rows(filts_age_100) |>
                 bind_rows(filts_age_prec) |>
-                distinct(name, flow, fhigh)) +
+                distinct(proxy, flow, fhigh)) +
     labs(x = "Frequency (cycles/kyr)", y = "Power", colour = "Site")
 #+end_src
 
@@ -3490,7 +3547,7 @@ CLOSED: [2023-09-26 Tue 16:59]
   specs_age |>
     ggplot(aes(x = 1 / Frequency, y = Power, colour = site)) +
     facet_grid(## cols = vars(site),
-               rows = vars(name)) +
+               rows = vars(proxy)) +
     geom_line() +
     geom_line(aes(y = AR1_fit)) +
     geom_line(aes(y = AR1_95_power), linetype = "dashed") +
@@ -3503,7 +3560,7 @@ CLOSED: [2023-09-26 Tue 16:59]
     geom_rect(aes(xmin = 1 / flow, xmax = 1 / fhigh, ymin = 1e-5, ymax = 1),
               inherit.aes = FALSE,
               alpha = .3, fill = "yellow",
-              data = filts_age |> distinct(name, flow, fhigh)) +
+              data = filts_age |> distinct(proxy, flow, fhigh)) +
     labs(x = "Period (kyr)", y = "Power", colour = "Site")
 #+end_src
 *** plot the data with the filters
@@ -3512,9 +3569,9 @@ CLOSED: [2023-09-26 Tue 16:59]
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_records_and_filters.png :width 900
   smooth |>
-    ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
+    ## mutate(det = scale(value)[, 1], .by = c(site, proxy)) |>
     ggplot(aes(x = age / 1e3, y = value, colour = site)) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_vline(aes(xintercept = age / 1e3), data = agem_simple) +
     geom_line(aes(y = det)) +
     geom_line(aes(y = filt + 1.5), data = filts_age) +
@@ -3524,11 +3581,11 @@ CLOSED: [2023-09-26 Tue 16:59]
     geom_point(aes(y = pk + 1.5),
                colour = "red",
                data = filts_age |>
-                            nest(.by = c(name, site, flow, fhigh)) |>
+                            nest(.by = c(proxy, site, flow, fhigh)) |>
                             mutate(pk = map(data, \(d) d |>
                                                        select(age, filt) |>
                                                        mutate(filt = -filt) |> # we want minima rather than maxima
-                                                       astrochron::peak(genplot = FALSE))) |>
+                                                       astrochron::peak(genplot = FALSE, verbose = FALSE))) |>
                             unnest(pk) |>
                             rename(age = Location, pk = Peak_Value) |>
                             mutate(pk = -pk)) +
@@ -3549,22 +3606,22 @@ CLOSED: [2023-09-26 Tue 16:59]
 #+begin_src R :results none
   kpg_age <- 65970 # age taken from Batenburg et al., 2014
   data_ecc <- filts_age |>
-    select(name, site, age, filt) |>
+    select(proxy, site, age, filt) |>
     rename(`405` = filt) |>
     tidylog::left_join(
       filts_age_100 |>
-      select(name, site, age, filt) |>
+      select(proxy, site, age, filt) |>
       rename(`100` = filt)
       ) |>
     tidylog::left_join(
                hb_age_prec |>
-               select(name, site, age, envelope)
+               select(proxy, site, age, envelope)
              ) |>
     mutate(ZB18a = approx(sln$age, sln$scl, xout = age + kpg_age)$y)
 #+end_src
 
 **** plot
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/Zumaia_MSD-vs-age.png :width 900
   data_ecc |>
     ggplot(aes(x = age, y = ZB18a, colour = site, group = site)) +
     ## geom_line() +
@@ -3573,21 +3630,21 @@ CLOSED: [2023-09-26 Tue 16:59]
     geom_line(aes(y = (`405` + 2 * envelope - ZB18a)^2, colour = "1:2 env")) +
     geom_line(aes(y = (`405` + envelope - ZB18a)^2, colour = "1:1 env")) +
     geom_line(aes(y = (`405` + 0.5 * envelope - ZB18a)^2, colour = "1:0.5 env")) +
-    facet_grid(rows = vars(name))
+    facet_grid(rows = vars(proxy))
 #+end_src
 
 #+RESULTS:
+[[file:imgs/Zumaia_MSD-vs-age.png]]
 
 *** plot data and orbital solution
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
-#+begin_src R
-  # construct a fake eccentricity record
+#+begin_src R :results output graphics file :file imgs/Zumaia_OS-ecc-vs-age.png :width 900
   smooth |>
-    ## mutate(det = scale(value)[, 1], .by = c(site, name)) |>
+    ## mutate(det = scale(value)[, 1], .by = c(site, proxy)) |>
     ggplot(aes(x = (kpg_age + age) / 1e3, y = value, colour = site, group = site)) +
-    facet_grid(rows = vars(name), scales = "free_y") +
+    facet_grid(rows = vars(proxy), scales = "free_y") +
     geom_vline(aes(xintercept = (kpg_age + age) / 1e3), data = agem_simple) +
     geom_line(aes(x = age / 1e3, y = scl), colour = "gray", inherit.aes = FALSE, data = sln) +
     ## geom_line(aes(y = `405` + `100`, colour = "1:1 filt"), data = data_ecc) +
@@ -3604,77 +3661,32 @@ CLOSED: [2023-09-26 Tue 16:59]
 #+end_src
 
 #+RESULTS:
+[[file:imgs/Zumaia_OS-ecc-vs-age.png]]
 
 *** create a summary of the MSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:52]
 :END:
+
 #+begin_src R :results value :colnames yes
   # in general, which version gives the best fit?
-  data_ecc |>
-    summarize(
-      msd_1_2 = sqrt(sum((scale(`405` + 2 * `100`)[, 1] - ZB18a)^2)),
-      msd_1_1.5 = sqrt(sum((scale(`405` + 1.5 * `100`)[, 1] - ZB18a)^2)),
-      msd_1_1 = sqrt(sum((scale(`405` + `100`)[, 1] - ZB18a)^2)),
-      ## msd_1_0.9 = sqrt(sum((scale(`405` + 0.9 * `100`)[, 1] - ZB18a)^2)),
-      msd_1_0.5 = sqrt(sum((scale(`405` + 0.5 * `100`)[, 1] - ZB18a)^2)),
-      ## msd_1_0.1 = sqrt(sum((scale(`405` + 0.1 * `100`)[, 1] - ZB18a)^2)),
-      msd_1_2_env = sqrt(sum((scale(`405` + 2 * envelope)[, 1] - ZB18a)^2)), # <3
-      msd_1_1.5_env = sqrt(sum((scale(`405` + 1.5 * envelope)[, 1] - ZB18a)^2)), # <3
-      msd_1_1_env = sqrt(sum((scale(`405` + envelope)[, 1] - ZB18a)^2)), # <3
-      ## msd_1_0.9_env = sqrt(sum((scale(`405` + 0.9 * envelope)[, 1] - ZB18a)^2)),
-      msd_1_0.5_env = sqrt(sum((scale(`405` + 0.5 * envelope)[, 1] - ZB18a)^2)),
-      ## msd_1_0.1_env = sqrt(sum((scale(`405` + 0.1 * envelope)[, 1] - ZB18a)^2)),
-      .by = c(name, site)) |>
-    rename(proxy = name) |>
-    pivot_longer(msd_1_2:msd_1_0.5_env) |>
-    arrange(value)
+  msd |> arrange(MSD) |> head()
 #+end_src
 
 #+RESULTS:
-| proxy     | site     | name          |            value |
-|-----------+----------+---------------+------------------|
-| d13C_VPDB | Zumaia   | msd_1_2       | 29.3598821079939 |
-| d13C_VPDB | Zumaia   | msd_1_1.5     | 29.6581384794546 |
-| d13C_VPDB | Zumaia   | msd_1_1       | 29.9846266540965 |
-| d13C_VPDB | Zumaia   | msd_1_0.5     | 30.2994787661913 |
-| d13C_VPDB | Zumaia   | msd_1_2_env   | 30.3188077230196 |
-| d13C_VPDB | Zumaia   | msd_1_1.5_env | 30.5381119730474 |
-| d13C_VPDB | Zumaia   | msd_1_1_env   | 30.7380319186259 |
-| d13C_VPDB | Zumaia   | msd_1_0.5_env | 30.7867245290165 |
-| MS        | Sopelana | msd_1_2       | 31.1290307431718 |
-| MS        | Sopelana | msd_1_1.5     | 31.2806309294031 |
-| MS        | Sopelana | msd_1_1       | 31.5979866131033 |
-| Lstar     | Sopelana | msd_1_2_env   | 32.0109455469781 |
-| MS        | Sopelana | msd_1_0.5     | 32.4996960192738 |
-| Lstar     | Sopelana | msd_1_1.5_env | 32.5838862334169 |
-| MS        | Sopelana | msd_1_2_env   | 33.1162819006392 |
-| MS        | Sopelana | msd_1_1.5_env |  33.220217937339 |
-| MS        | Sopelana | msd_1_1_env   | 33.4146645790638 |
-| Lstar     | Sopelana | msd_1_1_env   | 33.6447657872902 |
-| MS        | Sopelana | msd_1_0.5_env | 33.8834752737462 |
-| Lstar     | Sopelana | msd_1_2       | 34.9674358794334 |
-| Lstar     | Sopelana | msd_1_1.5     | 35.4537885662001 |
-| Lstar     | Sopelana | msd_1_0.5_env | 35.8804613843147 |
-| Lstar     | Sopelana | msd_1_1       | 36.2790314022912 |
-| Lstar     | Sopelana | msd_1_0.5     | 37.7416472597871 |
-| Lstar     | Zumaia   | msd_1_2_env   | 44.8509657385971 |
-| Lstar     | Zumaia   | msd_1_1.5_env | 45.0940488838285 |
-| Lstar     | Zumaia   | msd_1_1_env   | 45.6709012369143 |
-| Lstar     | Zumaia   | msd_1_0.5_env | 47.0660787794822 |
-| MS        | Zumaia   | msd_1_2_env   | 47.1751100097964 |
-| MS        | Zumaia   | msd_1_1.5_env | 47.4342665569233 |
-| MS        | Zumaia   | msd_1_1_env   | 47.9225909931922 |
-| MS        | Zumaia   | msd_1_0.5_env | 48.9197030810149 |
-| MS        | Zumaia   | msd_1_0.5     | 51.6594934150535 |
-| MS        | Zumaia   | msd_1_1       | 52.2665203096134 |
-| Lstar     | Zumaia   | msd_1_0.5     | 52.2858202454809 |
-| MS        | Zumaia   | msd_1_1.5     | 52.6195669732602 |
-| MS        | Zumaia   | msd_1_2       | 52.8215096044653 |
-| Lstar     | Zumaia   | msd_1_1       | 53.4534743041263 |
-| Lstar     | Zumaia   | msd_1_1.5     | 53.9403036679462 |
-| Lstar     | Zumaia   | msd_1_2       | 54.1797169740796 |
+| proxy     | site   |  comb | filt_env | tau | kpg_age | sol   |              MSD |
+|-----------+--------+-------+----------+-----+---------+-------+------------------|
+| d13C_VPDB | Zumaia | 0.5:1 | filter   |  27 |   65700 | ZB18a |  21.688969988255 |
+| d13C_VPDB | Zumaia | 0.5:1 | filter   |  26 |   66100 | ZB20a | 21.8343880783517 |
+| d13C_VPDB | Zumaia | 0.5:1 | filter   |  27 |   66100 | ZB18a | 21.8821050513696 |
+| d13C_VPDB | Zumaia | 0.5:1 | filter   |  26 |   65700 | ZB18a | 22.1285556369088 |
+| d13C_VPDB | Zumaia | 0.5:1 | filter   |  27 |   66500 | ZB18a | 22.2471336468092 |
+| d13C_VPDB | Zumaia | 0.5:1 | filter   |  27 |   66500 | ZB20a | 22.3261014944586 |
 
+*** NEXT update the analysis in the time domain with my fancy tricks I learned from the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 10:17]
+:END:
 *** do the same analysis with different ages for the K/Pg boundary
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:52]
@@ -3683,18 +3695,18 @@ This slides the whole time series along the time axis and checks the MSD w/ resp
 #+begin_src R
   # which time offset gives the best fit?
   data_ecc_off <- filts_age |>
-    select(name, site, age, filt) |>
+    select(proxy, site, age, filt) |>
     rename(`405` = filt) |>
     tidylog::left_join(
       filts_age_100 |>
-      select(name, site, age, filt) |>
+      select(proxy, site, age, filt) |>
       rename(`100` = filt)
       ) |>
     tidylog::left_join(
                hb_age_prec |>
-               select(name, site, age, envelope)
+               select(proxy, site, age, envelope)
              ) |>
-    nest(.by = c(name, site)) |>
+    nest(.by = c(proxy, site)) |>
     ## filter(age > 56000 & age < 80000) |> # this is the age range we got for the solution
     mutate(age_kpg = list(kpg_age + seq(-2000, 2000, 5))) |>
     unnest(age_kpg) |>
@@ -3715,15 +3727,14 @@ This slides the whole time series along the time axis and checks the MSD w/ resp
       ## msd_1_0.9_env = sqrt(sum((scale(`405` + 0.9 * envelope)[, 1] - ZB18a)^2)),
       msd_1_0.5_env = sqrt(sum((scale(`405` + 0.5 * envelope)[, 1] - ZB18a)^2)),
       ## msd_1_0.1_env = sqrt(sum((scale(`405` + 0.1 * envelope)[, 1] - ZB18a)^2)),
-      .by = c(name, site, age_kpg)) |>
-    rename(proxy = name) |>
+      .by = c(proxy, site, age_kpg)) |>
     pivot_longer(msd_1_2:msd_1_0.5_env) |>
     arrange(value)
 #+end_src
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_time-slider.png :width 900
   data_ecc_off_summ |>
-    ggplot(aes(x = age_kpg * 0.001, y = value, colour = name, group = paste(site, name))) +
+    ggplot(aes(x = age_kpg * 0.001, y = value, colour = name, group = paste(site, proxy, name))) +
     geom_line() +
     facet_grid(rows = vars(proxy)) +
     labs(x = "Age of the K/Pg boundary", y = "MSD")
