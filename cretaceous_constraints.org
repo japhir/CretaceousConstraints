@@ -22,6 +22,131 @@
 ✖ dplyr::lag()    masks stats::lag()
 ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 #+end_example
+* functions
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 14:00]
+:END:
+** spectral analysis
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 14:00]
+:END:
+#+begin_src R
+  spectral_analysis <- function(data, nest, x, y) {
+    if (! "data.frame" %in% class(data)) {
+      cli::cli_abort(c(
+             "{.var data} must be a {.cls data.frame}",
+             "x" = "You supplied a {.cls {class(data)}}"))
+    }
+    if (! all(nest %in% colnames(data))) {
+      cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
+                       "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
+                       "x" = "You've supplied {.val {nest}}"))
+    }
+
+    data |>
+      nest(.by = c(nest)) |>
+      mutate(
+        mtm = map(data,
+                  ~ . |>
+                    select({{x}}, {{y}}) |>
+                    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                    astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
+      ) |>
+      select(-data) |>
+      unnest(mtm) |>
+      pivot_longer(c(AR1_90_power, AR1_95_power, AR1_99_power),
+                   names_to = c("AR1", ".width"), names_pattern = "^(AR1)_(9[950])",
+                   values_to = "AR1_power") |>
+      select(-AR1) |>
+      mutate(.width = parse_double(paste0(".", .width))) |>
+      rename(freq = Frequency, power = Power, harmonic_cl = Harmonic_CL,
+             AR1_CL = AR1_CL, AR1_fit = AR1_fit, .width = .width)
+      ## pivot_longer(c(Harmonic_CL, AR1_CL, AR1_fit, AR1_90_power, AR1_95_power, AR1_99_power),
+      ## names_to = c("fit_type", "x"), names_pattern = "^([A-z0-9]+)_9?[095]?_?([A-z]+)$", values_to = "power") |>
+      ## separate(fit_type, into = c("fit_type", ".width")) |>
+      ## mutate(.width = parse_integer(.width))
+  }
+#+end_src
+
+#+RESULTS:
+** bandpass filter
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 14:08]
+:END:
+#+begin_src R
+  bandpass_filter <- function(data, freqs, x, y, nest) {
+    if (! "data.frame" %in% class(data)) {
+      cli::cli_abort(c(
+             "{.var data} must be a {.cls data.frame}",
+             "x" = "You supplied a {.cls {class(data)}}"))
+    }
+    if (! "data.frame" %in% class(freqs)) {
+      cli::cli_abort(c(
+             "{.var freqs} must be a {.cls data.frame}",
+             "x" = "You've supplied a {.cls {class(freqs)}}"))
+    }
+    if (! all(c("fhigh", "flow") %in% colnames(freqs))) {
+      cli::cli_abort(c("{.var freqs} must have columns `flow` and `fhigh`",
+                       "i" = "{.var freqs} has column{?s} {.val {colnames(freqs)}}"))
+    }
+    if (! all(nest %in% colnames(data))) {
+      cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
+                       "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
+                       "x" = "You've supplied {.val {nest}}"))
+    }
+
+
+    data |>
+      nest(.by = c(nest)) |>
+      mutate(filt = list(freqs)) |>
+      unnest(filt) |>
+      mutate(
+        bp = pmap(list(data, flow, fhigh),
+                  \(d, l, h) d |>
+                             select({{x}}, {{y}}) |>
+                             astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                             astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                                  genplot = FALSE, verbose = FALSE) |>
+                             rename(filt = {{y}}))
+      ) |>
+      select(-data) |>
+      unnest(cols = c(bp)) #|>
+      ## select(sln, target, {{x}}, filt) |>
+      ## pivot_wider(names_from = target, values_from = filt) |>
+      ## mutate(filter = scale(1 * `405 kyr` + 1 * `100 kyr`)[, 1])
+  }
+#+end_src
+
+#+RESULTS:
+
+** plot spectrum
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 16:16]
+:END:
+#+begin_src R
+  plot_spectrum <- function(spec) {
+    spec |>
+      ggplot(aes(x = freq, y = power)) +
+      geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                      linetype = NA, group = .width),
+                  alpha = .1) +
+      geom_line() +
+      annotation_logticks() +
+      scale_y_log10() +
+      scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
+      labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+  }
+#+end_src
+
+#+RESULTS:
+
+** SOME hilbert transform
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 14:40]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-09-28 Thu 14:48]
+:END:
 
 * COMMENT look at the orbital solution
 :PROPERTIES:
@@ -1401,7 +1526,7 @@ this is to inspect how the moving average affects the outcome
     "100 kyr", 0.57, # these are the two nice non-significant peaks
     "prec", 2.42,
     ) |>
-    mutate(fr = 0.3 * f,
+    mutate(fr = 0.2 * f,
            flow = f - fr,
            fhigh = f + fr) |>
     mutate(ref = "This study")
@@ -1409,41 +1534,57 @@ this is to inspect how the moving average affects the outcome
   MS_ |>
     pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
                  names_to = "smooth_type") |>
-    nest(.by = c(smooth_type)) |>
-    mutate(spec = map(data, \(d) d |>
-                                 select(my_rmcd, value) |>
-                                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                                 astrochron::mtm(output = 1, detrend = TRUE, demean = TRUE,
-                                                 xmax = 5, genplot = FALSE, verbose = FALSE)
-                      )) |>
-    unnest(spec) |>
-    ggplot(aes(x = Frequency, y = Power, colour = smooth_type)) +
+    spectral_analysis(nest = c("smooth_type"), x = my_rmcd, y = value) |>
+    ## filter(smooth_type == "var") |>
+    ## select(-smooth_type) |>
+    ## plot_spectrum() #+ # I don't know how to do this with another, unpredictable mapping
+    ggplot(aes(x = freq, y = power, colour = smooth_type)) +
+    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                    linetype = NA, fill = smooth_type,
+                    group = paste(smooth_type, .width)),
+                alpha = .1) +
     geom_line() +
-    geom_line(aes(y = AR1_fit)) +
-    geom_line(aes(y = AR1_95_power), alpha = .3) +
-    scale_y_log10() +
     annotation_logticks() +
-    coord_cartesian(xlim = c(1e-4, 0.0625) * 100, ylim = c(1e-5, 1)) +
-    ## scale_x_continuous(
+    scale_y_log10() +
+    scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
+    labs(x = "Frequency (cycles/m)", y = "Spectral power (-)") +
+    coord_cartesian(xlim = c(1e-4, 0.0625) * 100, ylim = c(1e-5, .15)) +
     scale_x_log10(
       sec.axis = sec_axis(trans = ~ 1 / .x,
                           name = "Period (m)",
-                          breaks = c(50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
+                          breaks = c(100, 50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
+    ggnewscale::new_scale_fill() +
     # annotate the Husson 2011 filters
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
-              alpha = .3, data = hus_filters) +
+              alpha = .1, data = hus_filters) +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
-              alpha = .3, data = my_1267_filters) +
-    labs(x = "Frequency (cycle/m)", y = "Spectral power")
+              alpha = .4, data = my_1267_filters) +
+    scale_fill_brewer(type = "qual") +
+    labs(fill = "Filter intervals from study")
 #+end_src
 
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_mtm.png]]
 
 There are no significant spectral peaks in the range that they filter!
-I've various ways of detrending the record first but it's not coming out too clearly.
+I've tried various ways of detrending the record first but it's not coming out too clearly.
+
+#+begin_src R
+  # can I do anything useful with the harmonic_cl or the AR1_CL?
+  MS_ |>
+    pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
+                 names_to = "smooth_type") |>
+    spectral_analysis(nest = c("smooth_type"), x = my_rmcd, y = value) |>
+    filter(smooth_type == "var") |>
+    select(-smooth_type) |>
+    ggplot(aes(x = freq, y = AR1_CL)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = 0, ymax = AR1_CL), alpha = .2) #+
+    ## geom_ribbon(aes(ymin = 0, ymax = harmonic_cl))
+
+#+end_src
 
 **** do wavelet analysis
 :PROPERTIES:
@@ -1511,6 +1652,24 @@ I've various ways of detrending the record first but it's not coming out too cle
 : Caused by warning in `regularize.values()`:
 : ! collapsing to unique 'x' values
 : ℹ Run `dplyr::last_dplyr_warnings()` to see the 11 remaining warnings.
+
+**** plot the filters
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 16:43]
+:END:
+Note that the 100 kyr is NOT significantly present in the MTM spectrum.
+
+#+begin_src R :results graphics file output :file imgs/ODP208_1267_MS_my-filters.png :width 800
+  MS_filts |>
+    ggplot(aes(x = my_rmcd, y = filt)) +
+    facet_grid(rows = vars(target)) +
+    geom_line(aes(colour = smooth_type, group = paste(target, smooth_type))) +
+    geom_line(aes(y = scl_gam), data = MS_, alpha = .3) +
+    coord_cartesian(ylim = c(-2.5, 2.5))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/ODP208_1267_MS_my-filters.png]]
 
 **** SOME do Hilbert transform of precession filter
 :PROPERTIES:
@@ -2478,7 +2637,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       + indexing 18696_2.csv [===============================================================] 1.47GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > + indexing 18696_2.csv [=============================================================] 954.88MB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -2639,12 +2798,43 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
 #+RESULTS:
 
+**** combine the trend removal dataframes into smooth_pred
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 14:26]
+:END:
+#+begin_src R
+  smooth_all <- smooth_basic |>
+    mutate(scl = scale(value)[, 1], .before = gam_pred, .by = c(proxy, site)) |>
+    rename(gam_det = det) |>
+    tidylog::left_join(
+               smooth |>
+               rename(lin_gam_pred = gam_pred,
+                      lin_gam = gam,
+                      lin_gam_det = det)) |>
+    pivot_longer(c(value, scl, gam_pred, gam_det, lin_pred, lin_gam_pred, lin_gam_det),
+                 names_to = "detrend_type", values_to = "value") #|>
+    ## ggplot(aes(x = depth, y = value, colour = preprocess_type, group = paste(proxy, site, preprocess_type))) + geom_line() +
+    ## facet_grid(rows = vars(proxy), scales = "free_y")
+
+  smooth_pred <- smooth_all |>
+    filter(detrend_type %in% c("value", "scl", "gam_det", "lin_gam_det"))
+#+end_src
+
+#+RESULTS:
+: Joining with `by = join_by(proxy, site, depth, value, comment)`
+: left_join: added 6 columns (colour, lin_pred, lin, lin_gam_pred, lin_gam, …)
+: rows only in x       0
+: rows only in y  (    0)
+: matched rows     4,372
+:                 =======
+: rows total       4,372
+
 *** did the linear trend removal work?
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 10:57]
 :END:
 **** lines
-#+begin_src R :results output graphics file :file imgs/Zumaia_linear-trend-removal.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia_linear-trend-removal.png :width 800
   smooth |>
     ggplot(aes(x = depth, y = value)) +
     geom_line() +
@@ -2656,7 +2846,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 [[file:imgs/Zumaia_linear-trend-removal.png]]
 
 **** gam
-#+begin_src R :results output graphics file :file imgs/Zumaia_gam-trend-removal.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia_gam-trend-removal.png :width 800
   smooth |>
     ggplot(aes(x = depth, y = lin)) +
     geom_line() +
@@ -2668,7 +2858,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 [[file:imgs/Zumaia_gam-trend-removal.png]]
 
 **** detrended result
-#+begin_src R :results output graphics file :file imgs/Zumaia_linear-gam-trend-removal.png :width 900
+#+begin_src R :results output graphics file :file imgs/Zumaia_linear-gam-trend-removal.png :width 800
   smooth |>
     ggplot(aes(x = depth, y = det)) +
     geom_line() +
@@ -2751,21 +2941,13 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 [[file:imgs/Zumaia_long-term-trend.png]]
 
 *** calculate spectra
-**** on raw data
+**** COMMENT on raw data
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
 #+begin_src R
   specs <- comp |>
-    nest(.by = c(proxy, site)) |>
-    mutate(
-      mtm = map(data,
-                ~ . |>
-                  select(depth, value) |>
-                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                  astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
-    ) |>
-    unnest(mtm)
+    spectral_analysis(nest = c("proxy", "site"), x = depth, y = value)
 #+end_src
 
 #+RESULTS:
@@ -2775,16 +2957,8 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
 #+begin_src R
-  specs_fancy <- smooth |>
-    nest(.by = c(proxy, site)) |>
-    mutate(
-      mtm = map(data,
-                ~ . |>
-                  select(depth, det) |>
-                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                  astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
-    ) |>
-    unnest(mtm)
+  specs_fancy <- smooth_pred |>
+    spectral_analysis(nest = c("proxy", "site", "detrend_type"), x = depth, y = value)
 #+end_src
 
 #+RESULTS:
@@ -2842,18 +3016,16 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :CREATED:  [2023-09-25 Mon 10:57]
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900 :height 800
-  specs |>
-    mutate(type = "raw") |>
-    bind_rows(
-      specs_fancy |>
-      mutate(type = "fancy")
-    ) |>
-    ggplot(aes(x = Frequency, y = Power, colour = site, linetype = type, group = type)) +
-    facet_grid(## cols = vars(site),
-               rows = vars(site, proxy)) +
+  specs_fancy |>
+    ggplot(aes(x = freq, y = power, colour = detrend_type, group = detrend_type)) +
+    facet_grid(rows = vars(site, proxy)) +
     geom_line() +
-    geom_line(aes(y = AR1_fit)) +
-    geom_line(aes(y = AR1_95_power), alpha = .3) +
+    ## geom_line(aes(y = AR1_fit)) +
+    ## geom_line(aes(y = AR1_95_power), alpha = .3) +
+    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                    fill = detrend_type,
+                    linetype = NA, group = paste(detrend_type, .width)),
+                alpha = .1) +
     scale_y_log10() +
     annotation_logticks() +
     coord_cartesian(xlim = c(1e-4, 0.0625) * 100) +
@@ -2862,6 +3034,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
       sec.axis = sec_axis(trans = ~ 1 / .x,
                                            name = "Period (m)",
                                            breaks = c(50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
+    ggnewscale::new_scale_fill() +
     # annotate the Batenburg 2014 filters
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
@@ -2879,6 +3052,26 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
+**** SOME based on our nice function?
+:LOGBOOK:
+- State "SOME"       from              [2023-09-28 Thu 16:53]
+:END:
+#+begin_src R
+  smooth_pred |>
+    select(-lin, -lin_gam) |>
+    bandpass_filter(freqs = my_filters, x = depth, y = value,
+                    nest = c("proxy", "site"))
+#+end_src
+
+#+RESULTS:
+: Error in `mutate()` at /tmp/unknown!6yo0Dz:22:2:
+: ℹ In argument: `bp = pmap(...)`.
+: Caused by error in `pmap()`:
+: ℹ In index: 1.
+: Caused by error in `seq.default()`:
+: ! invalid '(to - from)/by'
+: Run `rlang::last_trace()` to see where the error occurred.
+
 **** bp on raw
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
@@ -2903,7 +3096,6 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 #+end_src
 
 #+RESULTS:
-
 **** bp on scaled
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:47]
@@ -3017,7 +3209,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 137.09MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 115.16MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -3318,36 +3510,6 @@ CLOSED: [2023-09-26 Tue 16:59]
 #+end_src
 
 #+RESULTS:
-**** combine filters
-:PROPERTIES:
-:CREATED:  [2023-09-28 Thu 13:23]
-:END:
-#+begin_src R
-  combine_filters <- function(data, freqs, x, y, nest) {
-    data |>
-      mutate(scl = scale({{y}})[, 1]) |>
-      nest(.by = c(nest)) |>
-      mutate(filt = list(freqs)) |>
-      unnest(filt) |>
-      mutate(
-        bp = pmap(list(data, flow, fhigh),
-                  \(d, l, h) d |>
-                             select({{x}}, scl) |>
-                             astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                             astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                                  genplot = FALSE, verbose = FALSE) |>
-                             rename(filt = scl))
-      ) |>
-      select(-data) |>
-      unnest(cols = c(bp)) |>
-      select(sln, target, age, filt) |>
-      pivot_wider(names_from = target, values_from = filt) |>
-      mutate(filter = scale(1 * `405 kyr` + 1 * `100 kyr`)[, 1])
-  }
-#+end_src
-
-#+RESULTS:
-
 **** get ZB18a
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
@@ -3494,7 +3656,7 @@ Load the saved file, then process it further.
       ## filter(site == "Zumaia") |>
       ## filter(proxy != "d13C") |>
       arrange(MSD) |>
-      head(n = 50)
+      head(n = 20)
     ) |>
     filter(!is.na(MSD)) |>
     ggplot(aes(x = age, group = paste(comb, filt_env, site, tau, kpg_age),
@@ -3575,7 +3737,7 @@ Load the saved file, then process it further.
 
 #+RESULTS:
 
-*** make sure the linear interpolation is consistent between proxies/sites
+*** COMMENT make sure the linear interpolation is consistent between proxies/sites
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
 :END:
@@ -3588,15 +3750,15 @@ Where should the linear interpolation start?
 #+end_src
 
 #+RESULTS:
-| proxy     | site     |         min(age) |
-|-----------+----------+------------------|
-| d13C_VPDB | Zumaia   |        -91.63125 |
-| MS        | Zumaia   |      1.233984375 |
-| Lstar     | Zumaia   |      1.233984375 |
-| MS        | Sopelana | 3651.94285714286 |
-| Lstar     | Sopelana | 3651.94285714286 |
+| proxy | site     |         min(age) |
+|-------+----------+------------------|
+| d13C  | Zumaia   |        -91.63125 |
+| MS    | Zumaia   |      1.233984375 |
+| Lstar | Zumaia   |      1.233984375 |
+| MS    | Sopelana | 3651.94285714286 |
+| Lstar | Sopelana | 3651.94285714286 |
 
-#+begin_src R :results value :colnames yes
+#+begin_src R :results value :colnames yes :eval never
   smooth <- smooth |>
     mutate(dt = case_when(proxy == "d13C" ~ 10,
                           proxy == "MS" ~ 3,
@@ -3608,33 +3770,32 @@ Where should the linear interpolation start?
                             TRUE ~ NA_real_))
 #+end_src
 
+#+RESULTS:
+|---|
+
 *** calculate spectra in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
 :END:
 #+begin_src R
   specs_age <- smooth |>
-    nest(.by = c(proxy, site, dt, strt)) |>
-    mutate(
-      mtm = pmap(list(d = data, dt = dt, strt = strt),
-                \(d, dt, strt) d |>
-                  ## mutate(det = scale(value)[, 1]) |> # this overwrites our fancy detrending approach
-                  select(age, det) |>
-                  astrochron::linterp(dt = dt, start = strt,
-                                      genplot = FALSE, verbose = FALSE) |>
-                  astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
-    ) |>
-    unnest(mtm)
+    spectral_analysis(nest = c("proxy", "site"), x = age, y = det)
 #+end_src
 
 #+RESULTS:
 
+*** NEXT add a tibble with our desired filter intervals here: freqs
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 17:02]
+:END:
 *** calculate bandpass filters in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
 :END:
 #+begin_src R :results none
   filts_age <- smooth |>
+    bandpass_filter(freqs = tribble( ~ p, )
+                    )
     nest(.by = c(proxy, site, dt, strt)) |>
     mutate(flow = 1 / 405 - .3 * 1 / 405, fhigh = 1 / 405 + .3 * 1 / 405) |>
     ## mutate(flow = case_when(proxy == "MS" ~ 1 / 308,
@@ -3712,6 +3873,51 @@ Where should the linear interpolation start?
     rename(filt = det)
 #+end_src
 
+*** plot spectra
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:50]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 900
+  # plot spectra w/ Freq on x-axis
+  specs_age |>
+    ggplot(aes(x = freq, y = power, colour = site)) +
+    facet_grid(## cols = vars(site),
+               rows = vars(proxy)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                    linetype = NA,
+                    fill = site,
+                    group = paste(site, .width)),
+                alpha = .1) +
+    ## geom_line(aes(y = Harmonic_CL)) +
+    coord_cartesian(xlim = c(1 / 1000, 1 / 10)) +
+    scale_y_log10() +
+    scale_x_log10(
+    ## scale_x_continuous(
+      sec.axis = sec_axis(trans = ~ 1 / .,
+                                           breaks = c(2400, 1600, 1200, 405, 100, 23))) +
+    annotation_logticks() +
+    ## geom_text(aes(x = fmean, y = 1, label = round(pmean, 1)),
+    ##           inherit.aes = FALSE,
+    ##           hjust = 0.5,
+    ##           data = filts_age |>
+    ##             bind_rows(filts_age_100) |>
+    ##             bind_rows(filts_age_prec) |>
+    ##             distinct(proxy, flow, fhigh) |>
+    ##             mutate(fmean = flow + (fhigh - flow) / 2, pmean = 1 / fmean)) +
+    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1),
+    ##           inherit.aes = FALSE,
+    ##           alpha = .3, fill = "yellow",
+    ##           data = filts_age |>
+    ##             bind_rows(filts_age_100) |>
+    ##             bind_rows(filts_age_prec) |>
+    ##             distinct(proxy, flow, fhigh)) +
+    labs(x = "Frequency (cycles/kyr)", y = "Power", colour = "Site")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_spectra_filters.png]]
+
 *** calculate hilbert transform of precession data in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
@@ -3726,48 +3932,6 @@ Where should the linear interpolation start?
     unnest(hb) |>
     select(-data)
 #+end_src
-
-*** plot spectra
-:PROPERTIES:
-:CREATED:  [2023-09-26 Tue 16:50]
-:END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 900
-  # plot spectra w/ Freq on x-axis
-  specs_age |>
-    ggplot(aes(x = Frequency, y = Power, colour = site)) +
-    facet_grid(## cols = vars(site),
-               rows = vars(proxy)) +
-    geom_line() +
-    geom_line(aes(y = AR1_fit)) +
-    geom_line(aes(y = AR1_95_power), linetype = "dashed") +
-    ## geom_line(aes(y = Harmonic_CL)) +
-    coord_cartesian(xlim = c(1 / 1000, 1 / 10)) +
-    scale_y_log10() +
-    scale_x_log10(
-    ## scale_x_continuous(
-      sec.axis = sec_axis(trans = ~ 1 / .,
-                                           breaks = c(2400, 1600, 1200, 405, 100, 23))) +
-    annotation_logticks() +
-    geom_text(aes(x = fmean, y = 1, label = round(pmean, 1)),
-              inherit.aes = FALSE,
-              hjust = 0.5,
-              data = filts_age |>
-                bind_rows(filts_age_100) |>
-                bind_rows(filts_age_prec) |>
-                distinct(proxy, flow, fhigh) |>
-                mutate(fmean = flow + (fhigh - flow) / 2, pmean = 1 / fmean)) +
-    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1),
-              inherit.aes = FALSE,
-              alpha = .3, fill = "yellow",
-              data = filts_age |>
-                bind_rows(filts_age_100) |>
-                bind_rows(filts_age_prec) |>
-                distinct(proxy, flow, fhigh)) +
-    labs(x = "Frequency (cycles/kyr)", y = "Power", colour = "Site")
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia_Sopelana_spectra_filters.png]]
 
 *** COMMENT plot spectra with period on the x-axis
 :PROPERTIES:
