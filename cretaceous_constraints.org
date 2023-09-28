@@ -2,7 +2,7 @@
 #+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
 #+options: TOC:nil broken-links:mark
 #+startup: overview
-* libraries
+* libraries :noexport:
 #+begin_src R :exports code
   library(tidyverse)
   library(patchwork)
@@ -675,20 +675,28 @@ also related: [cite:@Zachos2004]
 
 208-1267B-1H-1,5 to 208-1267B-36X-7,37.5
 
-#+begin_src R :results output none
-  library(tidyverse)
-  theme_set(theme_bw())
-
- # get hole A directly from Janus database:
+#+begin_src R :results output :eval never
+  # get hole A directly from Janus database:
   ODP208_1267_MS_A <- readr::read_tsv("https://web.iodp.tamu.edu/janusweb/physprops/msldat.cgi?leg=208&site=1267&hole=A",
-                  comment = "<") |> # this comment gets rid of all the html headers
-    filter(str_detect(Leg, "^208")) # this gets rid of some stuff at the bottom of the page
+                                      comment = "<",
+                                      guess_max = 25000) |> # this comment gets rid of all the html headers
+    filter(str_detect(Leg, "^208")) |> # this gets rid of some stuff at the bottom of the page
+    readr::write_rds("out/ODP208_1267_MS_A.rds")
+
   ODP208_1267_MS_B <- readr::read_tsv("https://web.iodp.tamu.edu/janusweb/physprops/msldat.cgi?leg=208&site=1267&hole=B",
-                  comment = "<") |> # this comment gets rid of all the html headers
-    filter(str_detect(Leg, "^208")) # this gets rid of some stuff at the bottom of the page
-  # so we have Depth (mbsf) and would like to convert it to the new rmcd
+                                      comment = "<",
+                                      guess_max = 25000) |> # this comment gets rid of all the html headers
+    filter(str_detect(Leg, "^208")) |> # this gets rid of some stuff at the bottom of the page
+    readr::write_rds("out/ODP208_1267_MS_B.rds")
+   # so we have Depth (mbsf) and would like to convert it to the new rmcd
 #+end_src
 
+#+RESULTS:
+
+#+begin_src R
+  ODP208_1267_MS_A <- readr::read_rds("out/ODP208_1267_MS_A.rds")
+  ODP208_1267_MS_B <- readr::read_rds("out/ODP208_1267_MS_B.rds")
+#+end_src
 **** reproduce [cite:@Husson2011] figure 4
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 13:17]
@@ -786,7 +794,7 @@ also related: [cite:@Zachos2004]
 why do we need this? It would allow me to apply the agemodel of others' to our record to check, what else?
 I need to integrate hole A and B into a single splice.
 
-**** original shipboard report
+**** COMMENT original shipboard report
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 09:34]
 :END:
@@ -797,7 +805,7 @@ single splice table
 http://www-odp.tamu.edu/publications/208_IR/chap_08/c8_t3.htm#564205
 
 table also available in ASCII: http://www-odp.tamu.edu/publications/208_IR/VOLUME/TABLES/IR208_08/08_T03.TXT
-**** shipboard section mbsf/mcd
+**** COMMENT shipboard section mbsf/mcd
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 11:20]
 :END:
@@ -837,7 +845,7 @@ does this do what I want?
 https://web.iodp.tamu.edu/janusweb/general/splice.cgi
 doesn't work anymore
 
-**** splice table from Röhl 2007
+**** COMMENT splice table from Röhl 2007
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 11:19]
 :END:
@@ -1027,7 +1035,7 @@ matched rows     20,729
 #+end_src
 
 #+RESULTS:
-: indexing ODP208_1267_MS.csv [============-------------------------------------------] 37.98GB/s, eta:  0sindexing ODP208_1267_MS.csv [======================================================] 237.15MB/s, eta:  0s                                                                                                                                            Rows: 23239 Columns: 28
+: indexing ODP208_1267_MS.csv [===============----------------------------------------] 29.93GB/s, eta:  0sindexing ODP208_1267_MS.csv [======================================================] 269.34MB/s, eta:  0s                                                                                                                                            Rows: 23239 Columns: 28
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr  (8): H, T, Sec, top, to, section, from, bot
@@ -1310,8 +1318,8 @@ this is to inspect how the moving average affects the outcome
                my_rmcd > 320.25, # K/Pg
                on_splice) |>
     mutate(var = scale(`Corrected Suscept.`)[, 1],
-           ma = slider::slide_mean(var, before = 200, after = 200),
-           scl_ma = scale(var - ma)[, 1])
+           ma = slider::slide_mean(var, before = 2, after = 2), # 5pt ma
+           scl_ma = scale(ma)[, 1])
 
   fit_loess_MS <- loess(var ~ my_rmcd, data = MS_, span = .75)
   fit_gam_MS <- mgcv::gam(var ~ s(my_rmcd, bs = "cs"),
@@ -1327,7 +1335,7 @@ this is to inspect how the moving average affects the outcome
 
   MS_ |>
     ggplot(aes(x = my_rmcd, y = var)) +
-    geom_line(aes(group = paste(Core, H, Sec))) +
+    geom_line(aes(group = paste(Core, H, Sec)), alpha = .2) +
     geom_line(aes(y = ma, colour = "moving average ± 200")) +
     ## geom_line(aes(y = scl_ma, colour = "moving average ± 200")) +
     ## geom_line(aes(y = scl_gam, colour = "generalized additive model (GAM)"))
@@ -1387,12 +1395,15 @@ this is to inspect how the moving average affects the outcome
 
   my_1267_filters <- tribble(
     ~ target, ~ f,
-    "405 kyr", 0.08,
-    "100 kyr", 0.16,
+    ## "405 kyr", 0.08,
+    "405 kyr", 0.16,
+    ## "100 kyr", 0.65, # this is NOT based on the spectrum!
+    "100 kyr", 0.57, # these are the two nice non-significant peaks
+    "prec", 2.42,
     ) |>
-    mutate(fr = 0.7 * f,
-           flow = f - fr * f,
-           fhigh = f + fr * f) |>
+    mutate(fr = 0.3 * f,
+           flow = f - fr,
+           fhigh = f + fr) |>
     mutate(ref = "This study")
 
   MS_ |>
@@ -1465,6 +1476,69 @@ I've various ways of detrending the record first but it's not coming out too cle
 
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_wavelet.png]]
+
+**** do bandpass filtering in the rmcd domain
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 11:18]
+:END:
+#+begin_src R
+  MS_filts <-
+    MS_ |>
+    pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
+                 names_to = "smooth_type") |>
+    nest(.by = c(smooth_type)) |>
+    mutate(filt = list(my_1267_filters)) |>
+    unnest(filt) |>
+    mutate(
+      bp = pmap(list(data, flow, fhigh),
+               \(d, l, h) d |>
+                 select(my_rmcd, value) |>
+                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                      genplot = FALSE, verbose = FALSE)
+               )
+    ) |>
+    select(-data) |>
+    unnest(cols = bp) |>
+    rename(filt = value)
+#+end_src
+
+#+RESULTS:
+: Warning message:
+: There were 12 warnings in `mutate()`.
+: The first warning was:
+: ℹ In argument: `bp = pmap(...)`.
+: Caused by warning in `regularize.values()`:
+: ! collapsing to unique 'x' values
+: ℹ Run `dplyr::last_dplyr_warnings()` to see the 11 remaining warnings.
+
+**** SOME do Hilbert transform of precession filter
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 12:03]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-09-28 Thu 12:03]
+:END:
+
+**** plot the bandpass filters
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 11:33]
+:END:
+#+begin_src R :results output graphics file :file imgs/ODP208_1267_bandpass_filters.png :width 900
+  MS_filts |>
+    filter(target != "prec")|>
+    ggplot(aes(x = my_rmcd, y = filt)) +
+    # plot gam-detrended record
+    geom_line(aes(y = scl_gam), data = MS_, alpha = .3) +
+    # plot Husson 2011 taner filters
+    geom_line(aes(y = var + 1), data = f100, colour = "skyblue") +
+    geom_line(aes(y = var + 2), data = f405, colour = "black") +
+    # plot my filters
+    geom_line(aes(colour = smooth_type, linetype = target))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/ODP208_1267_bandpass_filters.png]]
 
 *** agemodels
 **** shipboard agemodel [cite:@Zachos2004]
@@ -2374,7 +2448,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
     rename(depth = Depth,
            MS = `Magentic susceptibility (SI)`, # notice typo! XD
            Lstar = `Reflectance, L* (%)`,
-           d13C_VPDB = `δ13C (‰VPDB) outliers in italics`) |>
+           d13C = `δ13C (‰VPDB) outliers in italics`) |>
     mutate(depth = depth / 100) # convert from cm to m?
 
   # Batenburg et. al., 2014
@@ -2389,8 +2463,8 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
   # assemble them all in a single df
   comp <- Zumaia |>
-    pivot_longer(MS:d13C_VPDB, names_to = "proxy") |>
-    mutate(comment = if_else(proxy == "d13C_VPDB", comment, NA_character_)) |>
+    pivot_longer(MS:d13C, names_to = "proxy") |>
+    mutate(comment = if_else(proxy == "d13C", comment, NA_character_)) |>
     tidylog::filter(is.na(comment) | comment != "outlier") |>
     tidylog::filter(!is.na(value)) |>
     mutate(site = "Zumaia", .before = depth) |>
@@ -2404,7 +2478,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.26GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       + indexing 18696_2.csv [===============================================================] 1.47GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -2413,7 +2487,7 @@ dbl (3): depth, MS, Lstar
 
 ℹ Use `spec()` to retrieve the full column specification for this data.
 ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-filter: removed 5 rows (<1%), 4,159 rows remaining
++ filter: removed 5 rows (<1%), 4,159 rows remaining
 filter: removed 1,045 rows (25%), 3,114 rows remaining
 select: columns reordered (site, proxy, depth, value, comment)
 #+end_example
@@ -2432,8 +2506,8 @@ select: columns reordered (site, proxy, depth, value, comment)
     ggplot(aes(x = depth, y = Lstar)) +
     geom_line()) /
   (Zumaia |>
-    filter(!is.na(d13C_VPDB)) |>
-    ggplot(aes(x = depth, y = d13C_VPDB)) +
+    filter(!is.na(d13C)) |>
+    ggplot(aes(x = depth, y = d13C)) +
    geom_line())
 
   (Sopelana |>
@@ -2474,8 +2548,8 @@ select: columns reordered (site, proxy, depth, value, comment)
     as_tibble()
 
   (Zumaia |>
-   filter(!is.na(d13C_VPDB)) |>
-    ggplot(aes(x = depth, y = d13C_VPDB)) +
+   filter(!is.na(d13C)) |>
+    ggplot(aes(x = depth, y = d13C)) +
     geom_line() + labs(title = "Zumaia")) /
   (Zumaia |>
    ggplot(aes(x = depth, y = Lstar)) +
@@ -2725,7 +2799,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     ~ target, ~ proxy, ~ center, ~ plow, ~ phigh,
     "405 kyr", "Lstar", 15.7, 12, 22,
     "405 kyr", "MS", 18.9, 12, 40,
-    "405 kyr", "d13C_VPDB", 16.6, 11, 31,
+    "405 kyr", "d13C", 16.6, 11, 31,
     ) |>
     mutate(flow = 1 / plow, fhigh = 1 / phigh, site = "Zumaia", ref = "Batenburg et al., 2011")
 
@@ -2826,7 +2900,6 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
     select(-data) |>
     unnest(cols = bp) |>
     rename(filt = value)
-  # TODO: 100 kyr
 #+end_src
 
 #+RESULTS:
@@ -2927,6 +3000,14 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 #+RESULTS:
 : filter: removed 8,658 rows (67%), 4,329 rows remaining
 
+**** SOME put all of the above in a single df with map
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 13:25]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-09-28 Thu 13:25]
+:END:
+
 *** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:01]
@@ -2936,7 +3017,7 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 179.94MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 137.09MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -3219,18 +3300,69 @@ CLOSED: [2023-09-26 Tue 16:59]
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:50]
 :END:
+**** orbital frequencies to bandpass filter
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 11:15]
+:END:
+#+begin_src R
+  my_os_freqs <- tribble(
+    ~ target, ~ p,
+    "405 kyr", 405,
+    "100 kyr", 100
+  ) |>
+    mutate(f = 1 / p,
+           fr = 0.3 * f,
+           flow = f - fr,
+           fhigh = f + fr) #|>
+    ## select(target, p, f, flow, fhigh)
+#+end_src
+
+#+RESULTS:
+**** combine filters
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 13:23]
+:END:
+#+begin_src R
+  combine_filters <- function(data, freqs, x, y, nest) {
+    data |>
+      mutate(scl = scale({{y}})[, 1]) |>
+      nest(.by = c(nest)) |>
+      mutate(filt = list(freqs)) |>
+      unnest(filt) |>
+      mutate(
+        bp = pmap(list(data, flow, fhigh),
+                  \(d, l, h) d |>
+                             select({{x}}, scl) |>
+                             astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                             astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                                  genplot = FALSE, verbose = FALSE) |>
+                             rename(filt = scl))
+      ) |>
+      select(-data) |>
+      unnest(cols = c(bp)) |>
+      select(sln, target, age, filt) |>
+      pivot_wider(names_from = target, values_from = filt) |>
+      mutate(filter = scale(1 * `405 kyr` + 1 * `100 kyr`)[, 1])
+  }
+#+end_src
+
+#+RESULTS:
+
 **** get ZB18a
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
 #+begin_src R
   # get the first orbital solution in there
-  sln <- snvecR::get_ZB18a() |>
+  ZB18a <- snvecR::get_ZB18a() |>
     select(age, ecc = ee) |>
     filter(age >= 56000 & age <= 80000) |>
-    mutate(scl = scale(ecc)[, 1]) |>
-    mutate(sln = "ZB18a")
+    mutate(sln = "ZB18a", .before = age) #|>
+
+  sln <- ZB18a |>
+    combine_filters(freqs = my_os_freqs, x = age, y = ecc, nest = "sln")
 #+end_src
+
 
 #+RESULTS:
 **** get ZB20a
@@ -3247,18 +3379,17 @@ Download the solution once from the website, then save to file locally.
 
 Load the saved file, then process it further.
 #+begin_src R
-  sln2 <- read_rds("out/ZB20a.rds") |>
+  ZB20a <- read_rds("out/ZB20a.rds") |>
     select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
-    mutate(sln = "ZB20a")
+    mutate(sln = "ZB20a", .before = age)
+
+  sln2 <- ZB20a |>
+    combine_filters(freqs = my_os_freqs, x = age, y = ecc, nest = "sln")
 #+end_src
 
 #+RESULTS:
-**** NEXT now filter out the 405 kyr and 100 kyr of the solution and generate a curve from that!
-:PROPERTIES:
-:CREATED:  [2023-09-27 Wed 19:19]
-:END:
 *** construct an eccentricity curve from the filters in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:50]
@@ -3335,8 +3466,8 @@ Load the saved file, then process it further.
     mutate(sol = list(c("ZB18a", "ZB20a"))) |>
     unnest(sol) |>
     mutate(ecc_sln = case_when(
-             sol == "ZB18a" ~ approx(sln$age, sln$scl, xout = age)$y,
-             sol == "ZB20a" ~ approx(sln2$age, sln2$scl, xout = age)$y,
+             sol == "ZB18a" ~ approx(sln$age, sln$filter, xout = age)$y,
+             sol == "ZB20a" ~ approx(sln2$age, sln2$filter, xout = age)$y,
              TRUE ~ NA_real_),
            squared_diff = (ecc - ecc_sln)^2
            )
@@ -3356,22 +3487,24 @@ Load the saved file, then process it further.
 #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 900
   # this plot crashes if I plot them all
   diffs |>
-    tidylog::filter(comb == "0.5:1") |> # to ~5 M
-    tidylog::filter(filt_env == "hilbert") |> # to ~2.4 M
-    tidylog::filter(site == "Zumaia") |>
-    # I first didn't filter to find the ones with the lowest MSD
-    ## summarize(MSD = sqrt(sum(diff)), .by = c(proxy, site, comb, filt_env, tau, kpg_age, sol)) |>
-    ## arrange(MSD)
-    tidylog::filter((kpg_age == 66200 & sol == "ZB20a") |
-                    (kpg_age == 65800 & sol == "ZB18a")) |>
-    tidylog::filter(tau == 26) |>
+    filter(proxy != "d13C") |>
+    # filter out some of the best fits
+    left_join(
+      msd |>
+      ## filter(site == "Zumaia") |>
+      ## filter(proxy != "d13C") |>
+      arrange(MSD) |>
+      head(n = 50)
+    ) |>
+    filter(!is.na(MSD)) |>
     ggplot(aes(x = age, group = paste(comb, filt_env, site, tau, kpg_age),
                ## colour = tau,
                ## colour = kpg_age,
                )) +
     facet_grid(rows = vars(proxy), cols = vars(sol)) +
-    geom_line(aes(y = ecc)) +
+    ## scale_alpha_continuous(range = c(1, .1)) +
     geom_line(aes(y = ecc_sln), alpha = .6, colour = "purple") +
+    geom_line(aes(y = ecc, MSD = MSD, colour = paste(comb, filt_env))) +
     ## geom_line(sln)
     labs(x = "Age (kyr)", y = "squared diff between ZB18a and proxy ecc")
 #+end_src
@@ -3383,7 +3516,7 @@ Load the saved file, then process it further.
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:04]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_MSD.png :width 1920 :height 1080
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_MSD.png :width 1920 :height 400
   msd |>
     # let's simplify a bit
     ## filter(comb == "1:1", filt_env == "filter", site == "Zumaia") |>
@@ -3465,11 +3598,11 @@ Where should the linear interpolation start?
 
 #+begin_src R :results value :colnames yes
   smooth <- smooth |>
-    mutate(dt = case_when(proxy == "d13C_VPDB" ~ 10,
+    mutate(dt = case_when(proxy == "d13C" ~ 10,
                           proxy == "MS" ~ 3,
                           proxy == "Lstar" ~ 3,
                           TRUE ~ NA_real_),
-           strt = case_when(proxy == "d13C_VPDB" ~ - 91,
+           strt = case_when(proxy == "d13C" ~ - 91,
                             site == "Zumaia" ~ 2,
                             site == "Sopelana" ~ 3653,
                             TRUE ~ NA_real_))
@@ -3506,11 +3639,11 @@ Where should the linear interpolation start?
     mutate(flow = 1 / 405 - .3 * 1 / 405, fhigh = 1 / 405 + .3 * 1 / 405) |>
     ## mutate(flow = case_when(proxy == "MS" ~ 1 / 308,
     ##                         proxy == "Lstar" ~ 1 / 311,
-    ##                         proxy == "d13C_VPDB" ~ 1 / 326,
+    ##                         proxy == "d13C" ~ 1 / 326,
     ##                         TRUE ~ NA_real_),
     ##        fhigh = case_when(proxy == "MS" ~ 1 / 609,
     ##                          proxy == "Lstar" ~ 1 / 621,
-    ##                          proxy == "d13C_VPDB" ~ 1 / 675,
+    ##                          proxy == "d13C" ~ 1 / 675,
     ##                          TRUE ~ NA_real_)) |>
     ## filter(!is.na(flow)) |>
     mutate(
@@ -3531,11 +3664,11 @@ Where should the linear interpolation start?
     mutate(flow = 1 / 100 - .3 * 1 / 100, fhigh = 1 / 100 + .3 * 1 / 100) |>
     ## mutate(flow = case_when(proxy == "MS" ~ 1 / 75,
     ##                         proxy == "Lstar" ~ 1 / 75,
-    ##                         ## proxy == "d13C_VPDB" ~ 1 / 12, # this isn't significant in the spectrum!
+    ##                         ## proxy == "d13C" ~ 1 / 12, # this isn't significant in the spectrum!
     ##                         TRUE ~ NA_real_),
     ##        fhigh = case_when(proxy == "MS" ~ 1 / 150,
     ##                          proxy == "Lstar" ~ 1 / 150,
-    ##                          ## proxy == "d13C_VPDB" ~ 1 / 31,
+    ##                          ## proxy == "d13C" ~ 1 / 31,
     ##                          TRUE ~ NA_real_)) |>
     ## filter(!is.na(flow)) |>
     mutate(
@@ -3558,11 +3691,11 @@ Where should the linear interpolation start?
     # filter values from Batenburg et al., 2014 (these seem a bit arbitrary)
     ## mutate(flow = case_when(proxy == "MS" ~ 1 / 17.8,
     ##                         proxy == "Lstar" ~ 1 / 13.4,
-    ##                         proxy == "d13C_VPDB" ~ 1 / 21.3, # I did these myself
+    ##                         proxy == "d13C" ~ 1 / 21.3, # I did these myself
     ##                         TRUE ~ NA_real_),
     ##        fhigh = case_when(proxy == "MS" ~ 1 / 35.3,
     ##                          proxy == "Lstar" ~ 1 / 27.2,
-    ##                          proxy == "d13C_VPDB" ~ 1 / 30, # I did these myself
+    ##                          proxy == "d13C" ~ 1 / 30, # I did these myself
     ##                          TRUE ~ NA_real_)) |>
     filter(!is.na(flow)) |>
     mutate(
