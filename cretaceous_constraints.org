@@ -8728,47 +8728,13 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
-***** SOME based on our nice function?
-:LOGBOOK:
-- State "SOME"       from              [2023-09-28 Thu 16:53]
-:END:
-#+begin_src R :exports none
-  smooth_pred |>
-    select(-lin, -lin_gam) |>
-    bandpass_filter(freqs = my_filters, x = depth, y = value,
-                    nest = c("proxy", "site"))
-#+end_src
-
-#+RESULTS:
-: Error in `mutate()` at /tmp/unknown!6yo0Dz:22:2:
-: ℹ In argument: `bp = pmap(...)`.
-: Caused by error in `pmap()`:
-: ℹ In index: 1.
-: Caused by error in `seq.default()`:
-: ! invalid '(to - from)/by'
-: Run `rlang::last_trace()` to see where the error occurred.
-
 ***** bp on raw
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
 #+begin_src R
-  filts_basic <-
-    comp |>
-    nest(.by = c(proxy, site)) |>
-    mutate(filt = list(my_filters)) |>
-    unnest(filt) |>
-    mutate(
-      bp = pmap(list(data, flow, fhigh),
-               \(d, l, h) d |>
-                 select(depth, value) |>
-                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE, verbose = FALSE))
-    ) |>
-    select(-data) |>
-    unnest(cols = bp) |>
-    rename(filt = value)
+  filts_basic <- comp |>
+    bandpass_filter(freqs = my_filters, x = depth, y = value, nest = c("proxy", "site"))
 #+end_src
 
 #+RESULTS:
@@ -8778,21 +8744,8 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 :END:
 #+begin_src R
   filts_scl <- comp |>
-      nest(.by = c(proxy, site)) |>
-      mutate(filt = list(my_filters)) |>
-      unnest(filt) |>
-      mutate(
-        bp = pmap(list(data, flow, fhigh),
-                 \(d, l, h) d |>
-                   mutate(scl = scale(value)[, 1]) |>
-                   select(depth, scl) |>
-                   astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                   astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                        genplot = FALSE, verbose = FALSE))
-      ) |>
-      select(-data) |>
-      unnest(cols = bp) |>
-      rename(filt = scl)
+    mutate(scl = scale(value)[, 1], .by = c(site, proxy)) |>
+    bandpass_filter(freqs = my_filters, x = depth, y = scl, nest = c("proxy", "site"))
 #+end_src
 
 #+RESULTS:
@@ -8802,22 +8755,8 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
 #+begin_src R
-  filts_gam <-
-    smooth_basic |>
-    nest(.by = c(proxy, site)) |>
-    mutate(filt = list(my_filters)) |>
-    unnest(filt) |>
-    mutate(
-      bp = pmap(list(data, flow, fhigh),
-               \(d, l, h) d |>
-                 select(depth, det) |>
-                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE, verbose = FALSE))
-    ) |>
-    select(-data) |>
-    unnest(cols = bp) |>
-    rename(filt = det)
+  filts_gam <- smooth_basic |>
+    bandpass_filter(freqs = my_filters, x = depth, y = det, nest = c("proxy", "site"))
 #+end_src
 
 #+RESULTS:
@@ -8827,22 +8766,9 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 :CREATED:  [2023-09-25 Mon 16:18]
 :END:
 #+begin_src R
-  filts_fancy <-
-    smooth |>
-    nest(.by = c(proxy, site)) |>
-    mutate(filt = list(my_filters)) |>
-    unnest(filt) |>
-    mutate(
-      bp = pmap(list(data, flow, fhigh),
-               \(d, l, h) d |>
-                 select(depth, det) |>
-                 astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE, verbose = FALSE))
-    ) |>
-    select(-data) |>
-    unnest(cols = bp) |>
-    rename(filt = det)
+  filts_fancy <- smooth |>
+    bandpass_filter(freqs = my_filters, x = depth, y = det, nest = c("proxy", "site"))
+
 #+end_src
 
 #+RESULTS:
@@ -8873,6 +8799,8 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 :CREATED:  [2023-09-28 Thu 13:25]
 :END:
 :LOGBOOK:
+- State "SOME"       from "DONE"       [2023-10-03 Tue 13:57]
+- State "DONE"       from "SOME"       [2023-10-03 Tue 13:57]
 - State "SOME"       from              [2023-09-28 Thu 13:25]
 :END:
 
