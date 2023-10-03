@@ -8295,7 +8295,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.78GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.47GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -8537,7 +8537,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:43]
 :END:
-#+begin_src R
+#+begin_src R :eval never
   smooth_k <- comp |>
     nest(.by = c(proxy, site)) |> # nest_by is different!!
     mutate(
@@ -8556,6 +8556,13 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 #+end_src
 
 #+RESULTS:
+: Error in `mutate()`:
+: ℹ In argument: `gam = map(...)`.
+: Caused by error in `map()`:
+: ℹ In index: 1.
+: Caused by error in `data[[txt]]`:
+: ! subscript out of bounds
+: Run `rlang::last_trace()` to see where the error occurred.
 
 *** COMMENT plot long-term trend removal
 :PROPERTIES:
@@ -8603,12 +8610,200 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 #+RESULTS:
 [[file:imgs/Zumaia_long-term-trend.png]]
 
+*** Orbital Solutions
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 18:50]
+:END:
+To compare the record with.
+**** COMMENT orbital frequencies to bandpass filter
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 11:15]
+:END:
+Just 405 kyr and 100 kyr \pm30%.
+
+#+begin_src R
+  my_os_freqs <- tribble(
+    ~ target, ~ p,
+    "405 kyr", 405,
+    "100 kyr", 100,
+  ) |>
+    mutate(f = 1 / p,
+           fr = 0.3 * f,
+           flow = f - fr,
+           fhigh = f + fr) #|>
+    ## select(target, p, f, flow, fhigh)
+#+end_src
+
+#+RESULTS:
+**** get ZB18a
+:PROPERTIES:
+:CREATED:  [2023-09-26 Tue 16:51]
+:END:
+#+begin_src R
+  # get the first orbital solution in there
+  ZB18a <- snvecR::get_ZB18a() |>
+    select(age, ecc = ee) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "ZB18a", .before = age)
+
+  sln <- ZB18a
+    ## bandpass_filter(freqs = my_os_freqs,
+    ##                 x = age, y = ecc,
+    ##                 nest = "sln") |>
+    ## select(-p, -f, -fr, -flow, -fhigh) |>
+    ## pivot_wider(names_from = target, values_from = filt) |>
+    ## mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
+#+end_src
+
+
+#+RESULTS:
+**** get ZB20a
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 17:22]
+:END:
+Download the solution once from the website, then save to file locally.
+#+begin_src R :eval never
+  sln2 <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
+                            comment = "%",
+                            col_names = c("age", "ecc", "inc")) |>
+    write_rds("out/ZB20a.rds")
+#+end_src
+
+Load the saved file, then process it further.
+#+begin_src R
+  ZB20a <- read_rds("out/ZB20a.rds") |>
+    select(age, ecc) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "ZB20a", .before = age)
+
+  sln2 <- ZB20a##  |>
+    ## bandpass_filter(freqs = my_os_freqs,
+    ##                 x = age, y = ecc,
+    ##                 nest = "sln") |>
+    ## select(-p, -f, -fr, -flow, -fhigh) |>
+    ## pivot_wider(names_from = target, values_from = filt) |>
+    ## mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
+#+end_src
+
+#+RESULTS:
+**** get La11
+:PROPERTIES:
+:CREATED:  [2023-10-03 Tue 13:47]
+:END:
+#+begin_src R :eval never :exports none
+  La11 <- astrochron::getLaskar(sol = "la11") |>
+    readr::write_rds("out/La11.rds")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+ ,* Downloading Laskar et al. (2011) astronomical solution: La2011
+
+   Please cite: Laskar, J., Fienga, A., Gastineau, M., Manche, H., 2011,
+   La2010: A new orbital solution for the long-term motion of the Earth:
+   Astron. Astrophys., Volume 532, A89.
+  AND:
+   Laskar, J., Gastineau, M., Delisle, J.-B., Farres, A., Fienga, A.: 2011,
+   Strong chaos induced by close encounters with Ceres and Vesta:
+   Astron. Astrophys., Volume 532, L4.
+trying URL 'http://www.geology.wisc.edu/~smeyers/astrochron/la11.txt.bz2'
+Content type 'application/x-bzip2' length 392736 bytes (383 KB)
+==================================================
+downloaded 383 KB
+
+ ,* Decompressing solution
+#+end_example
+
+#+begin_src R
+  La11 <- readr::read_rds("out/La11.rds") |>
+    as_tibble() |>
+    rename(age = Time_ka, ecc = ecc_LA11) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "La11", .before = age)
+
+  sln3 <- La11##  |>
+    ## bandpass_filter(freqs = my_os_freqs,
+    ##                 x = age, y = ecc,
+    ##                 nest = "sln") |>
+    ## select(-p, -f, -fr, -flow, -fhigh) |>
+    ## pivot_wider(names_from = target, values_from = filt) |>
+    ## mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
+#+end_src
+
+#+RESULTS:
+**** plot orbital solutions
+:PROPERTIES:
+:CREATED:  [2023-10-03 Tue 14:51]
+:END:
+#+begin_src R :results output graphics file :file imgs/orbital_solutions.png :width 900
+  sln |>
+    bind_rows(sln2) |>
+    bind_rows(sln3) |>
+    ggplot(aes(x = age / 1000, y = ecc, colour = sln)) +
+    geom_line(linewidth = 1.2) +
+    coord_cartesian(xlim = c(69, 65)) +
+    labs(x = "Age (Ma)", y = "Eccentricity (-)", colour = "OS")
+#+end_src
+
+#+caption: Example time slice of the different orbital solutions.
+#+RESULTS:
+[[file:imgs/orbital_solutions.png]]
+
+
+*** Age Model
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 11:01]
+:END:
+Load the identified 405-kyr minima from the field of [cite:@Batenburg2012;@Batenburg2014].
+
+Note that I had to read the minima for Sopelana from the figure, so they may be a bit less accurate.
+
+#+begin_src R :exports none
+  agem <- read_csv("dat/Batenburg2012/405_minima.csv")
+
+  # NOTE: original is only the age model for Zumaia!
+  agem_simple <- agem |>
+    mutate(n = 0:(n() - 1), .before = comment, .by = minmax) |>
+    filter(minmax == "minimum") |>
+    select(-strat_top, -minmax, -desc) |>
+    mutate(site = "Zumaia") |>
+    # let's add the age model for Sopelana
+    # copied manually by reading figure 3 in Batenburg et al., 2014!
+    bind_rows(
+      tribble(
+        ~ n, ~ strat_bot,
+        10, 149,
+        11, 160,
+        12, 171,
+        13, 183) |>
+      mutate(site = "Sopelana")
+    ) |>
+    mutate(age = n * 405)
+#+end_src
+
+#+RESULTS:
+: indexing 405_minima.csv [==========================================================] 243.98MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: Delimiter: ","
+: chr (3): comment, minmax, desc
+: dbl (2): strat_bot, strat_top
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
 *** Analysis in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-29 Fri 13:11]
 :END:
-**** calculate spectra
-***** COMMENT on raw data
+**** Spectral Analysis
+:PROPERTIES:
+:CREATED:  [2023-10-03 Tue 16:05]
+:END:
+***** calculate spectra
+****** COMMENT on raw data
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
@@ -8619,7 +8814,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+RESULTS:
 
-***** on artificially chopped up record
+****** on artificially chopped up record
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
@@ -8630,8 +8825,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 #+end_src
 
 #+RESULTS:
-
-**** create tables with ranges of bp filters
+***** create tables with ranges of bp filters
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:05]
 :END:
@@ -8681,7 +8875,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+RESULTS:
 
-**** make plot of spectra and annotate the target frequency ranges for bp filtering
+***** make plot of spectra and annotate the target frequency ranges for bp filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:57]
 :END:
@@ -8724,7 +8918,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_mtm.png]]
 
-**** do bandpass filtering
+**** Bandpass Filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
@@ -8803,24 +8997,6 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 - State "DONE"       from "SOME"       [2023-10-03 Tue 13:57]
 - State "SOME"       from              [2023-09-28 Thu 13:25]
 :END:
-
-**** load in the identified 405-kyr minima from the field of [cite:@Batenburg2012]
-:PROPERTIES:
-:CREATED:  [2023-09-25 Mon 11:01]
-:END:
-#+begin_src R :exports none
-  agem <- read_csv("dat/Batenburg2012/405_minima.csv")
-#+end_src
-
-#+RESULTS:
-: indexing 405_minima.csv [==========================================================] 312.93MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
-: Delimiter: ","
-: chr (3): comment, minmax, desc
-: dbl (2): strat_bot, strat_top
-:
-: ℹ Use `spec()` to retrieve the full column specification for this data.
-: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 **** make plot of records with filters
 :PROPERTIES:
@@ -8996,6 +9172,12 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
                  filter(minmax == "minimum")) +
     annotate("text", x = 145, y = -2, label = "minima", hjust = 0) +
     annotate("text", x = 145, y = 2, label = "maxima", hjust = 0) +
+    # is there any uncertainty on the minima?
+    ## geom_segment(aes(x = strat_bot - 4, xend = strat_bot + 4,
+    ##                  y = -2, yend = -2),
+    ##              inherit.aes = FALSE,
+    ##              data = agem_simple,
+    ##              linewidth = 2) +
     geom_segment(aes(x = strat_bot, xend = strat_top,
                      y = 2, yend = 2),
                  inherit.aes = FALSE,
@@ -9094,125 +9276,6 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records.png]]
 
-**** [#B] get orbital solutions to compare the record with
-:PROPERTIES:
-:CREATED:  [2023-09-27 Wed 18:50]
-:END:
-***** orbital frequencies to bandpass filter
-:PROPERTIES:
-:CREATED:  [2023-09-28 Thu 11:15]
-:END:
-Just 405 kyr and 100 kyr \pm30%.
-
-#+begin_src R
-  my_os_freqs <- tribble(
-    ~ target, ~ p,
-    "405 kyr", 405,
-    "100 kyr", 100,
-  ) |>
-    mutate(f = 1 / p,
-           fr = 0.3 * f,
-           flow = f - fr,
-           fhigh = f + fr) #|>
-    ## select(target, p, f, flow, fhigh)
-#+end_src
-
-#+RESULTS:
-***** get ZB18a
-:PROPERTIES:
-:CREATED:  [2023-09-26 Tue 16:51]
-:END:
-#+begin_src R
-  # get the first orbital solution in there
-  ZB18a <- snvecR::get_ZB18a() |>
-    select(age, ecc = ee) |>
-    filter(age >= 56000 & age <= 80000) |>
-    mutate(sln = "ZB18a", .before = age) #|>
-
-  sln <- ZB18a |>
-    bandpass_filter(freqs = my_os_freqs,
-                    x = age, y = ecc,
-                    nest = "sln") |>
-    select(-p, -f, -fr, -flow, -fhigh) |>
-    pivot_wider(names_from = target, values_from = filt) |>
-    mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
-#+end_src
-
-
-#+RESULTS:
-***** get ZB20a
-:PROPERTIES:
-:CREATED:  [2023-09-27 Wed 17:22]
-:END:
-Download the solution once from the website, then save to file locally.
-#+begin_src R :eval never
-  sln2 <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
-                            comment = "%",
-                            col_names = c("age", "ecc", "inc")) |>
-    write_rds("out/ZB20a.rds")
-#+end_src
-
-Load the saved file, then process it further.
-#+begin_src R
-  ZB20a <- read_rds("out/ZB20a.rds") |>
-    select(age, ecc) |>
-    filter(age >= 56000 & age <= 80000) |>
-    mutate(scl = scale(ecc)[, 1]) |>
-    mutate(sln = "ZB20a", .before = age)
-
-  sln2 <- ZB20a |>
-    bandpass_filter(freqs = my_os_freqs,
-                    x = age, y = ecc,
-                    nest = "sln") |>
-    select(-p, -f, -fr, -flow, -fhigh) |>
-    pivot_wider(names_from = target, values_from = filt) |>
-    mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
-#+end_src
-
-#+RESULTS:
-***** get La11
-:PROPERTIES:
-:CREATED:  [2023-10-03 Tue 13:47]
-:END:
-#+begin_src R :eval never :exports none
-  La11 <- astrochron::getLaskar(sol = "la11") |>
-    readr::write_rds("out/La11.rds")
-#+end_src
-
-#+RESULTS:
-#+begin_example
- ,* Downloading Laskar et al. (2011) astronomical solution: La2011
-
-   Please cite: Laskar, J., Fienga, A., Gastineau, M., Manche, H., 2011,
-   La2010: A new orbital solution for the long-term motion of the Earth:
-   Astron. Astrophys., Volume 532, A89.
-  AND:
-   Laskar, J., Gastineau, M., Delisle, J.-B., Farres, A., Fienga, A.: 2011,
-   Strong chaos induced by close encounters with Ceres and Vesta:
-   Astron. Astrophys., Volume 532, L4.
-trying URL 'http://www.geology.wisc.edu/~smeyers/astrochron/la11.txt.bz2'
-Content type 'application/x-bzip2' length 392736 bytes (383 KB)
-==================================================
-downloaded 383 KB
-
- ,* Decompressing solution
-#+end_example
-
-#+begin_src R
-  La11 <- readr::read_rds("out/La11.rds") |>
-    as_tibble() |>
-    rename(age = Time_ka, ecc = ecc_LA11) |>
-    filter(age >= 56000 & age <= 80000) |>
-    mutate(sln = "La11", .before = age)
-
-  sln3 <- La11 |>
-    bandpass_filter(freqs = my_os_freqs,
-                    x = age, y = ecc,
-                    nest = "sln") |>
-    select(-p, -f, -fr, -flow, -fhigh) |>
-    pivot_wider(names_from = target, values_from = filt) |>
-    mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
-#+end_src
 **** construct an eccentricity curve from the filters in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:50]
@@ -9280,10 +9343,12 @@ downloaded 383 KB
              ##   66100, 66200, 66300, 66400, 66500)
              # sequence of potential ages, increase resolution of x
              ## seq(65500, 66500, 50)
-             seq(65750, 66100, 50) # full range of calib A calib B K/T age in Zeebe and Lourens EPSL 2022
+             seq(65500, 66100, 20)
+             ## seq(65750, 66100, 50) # full range of calib A calib B K/T age in Zeebe and Lourens EPSL 2022
            )
            ) |>
     unnest(cols = c(kpg_age)) |>
+    # a single linear sedimentation rate, could well have varied by quite a bit!
     mutate(tau = list(seq(
              # what if the Batenburg 2014 tuning is off by 3 405 kyr cycles?
              ## (10 * 405) / 183, (16 * 405) / 183,
@@ -9301,24 +9366,24 @@ downloaded 383 KB
              ## length.out = 12 # this is to limit the total number of simulations
              ))) |>
     unnest(cols = c(tau)) |>
-    mutate(age = depth * tau + kpg_age) |>
+    mutate(age = kpg_age + depth * tau) |>
     # add target orbital solutions
     mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
     unnest(cols = c(sol)) |>
     mutate(ecc_sln = case_when(
-             sol == "ZB18a" ~ approx(sln$age, sln$filt,
+             sol == "ZB18a" ~ approx(sln$age, sln$scl,
                                      xout = age)$y,
-             sol == "ZB20a" ~ approx(sln2$age, sln2$filt,
+             sol == "ZB20a" ~ approx(sln2$age, sln2$scl,
                                      xout = age)$y,
-             sol == "La11" ~ approx(sln3$age, sln3$filt,
+             sol == "La11" ~ approx(sln3$age, sln3$scl,
                                     xout = age)$y,
-             TRUE ~ NA_real_),
-           squared_diff = (ecc - ecc_sln)^2
-           )
+             TRUE ~ NA_real_)) |>
+    mutate(SD = (ecc - ecc_sln)^2)
 
   msd <- diffs |>
-    summarize(RMSD = sqrt(mean((ecc - ecc_sln)^2)),
-              .by = c(proxy, site, comb, filt_env, tau, kpg_age, sol)) |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, site, comb, filt_env, tau,
+                      kpg_age, sol)) |>
     arrange(RMSD)
 #+end_src
 
@@ -9370,7 +9435,7 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C o
 :END:
 Here I make a heatmap with the same information as the previous figure.
 
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_MSD.png :width 1920 :height 800
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 1920 :height 800
   msd |>
     # let's simplify a bit
     ## filter(comb == "1:1", filt_env == "filter", site == "Zumaia") |>
@@ -9395,6 +9460,9 @@ Here I make a heatmap with the same information as the previous figure.
 #+attr_latex: :width 1.2\linewidth
 #+caption: The various assumptions for the K/T age on the x-axis versus sedimentation rates on the y-axis. Horizontal panels are grouped by site and proxy, while vertical panels are grouped by orbital solution, filter/Hilbert, and the proportion of the 405 kyr signal compared to the 100 kyr signal.
 #+RESULTS:
+[[file:imgs/Zumaia_ecc_RMSD.png]]
+
+#+caption: Older figure, higher resolution in both \tau and age_kpg, but without La11 solution.
 [[file:imgs/Zumaia_ecc_MSD.png]]
 
 **** plot the curves with the lowest overall RMSD
@@ -9476,10 +9544,50 @@ Here I make a heatmap with the same information as the previous figure.
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_ZB18a.png]]
 
-**** NEXT Do the RMSD analysis with 405 kyr tie-points and variable sedimentation rates
+**** which solution has the overall lowest RMSD?
 :PROPERTIES:
-:CREATED:  [2023-10-02 Mon 17:25]
+:CREATED:  [2023-10-03 Tue 16:14]
 :END:
+#+begin_src R :results value :colnames yes
+  msd |>
+    # let's limit ourselves a little
+    filter(site == "Zumaia") |>
+    filter(proxy != "d13C") |>
+    # which one is the lowest for each solution?
+    mutate(low = min(RMSD),
+              .by = c(## proxy, site,
+                      sol)) |>
+    # have a closer look at that one
+    filter(low == RMSD) |>
+    arrange(RMSD) |>
+    select(-low)
+#+end_src
+
+#+caption: Zumaia non-d13C records with the lowest RMSD score per OS.
+#+RESULTS:
+| proxy | site   |  comb | filt_env | tau | kpg_age | sol   |             RMSD |
+|-------+--------+-------+----------+-----+---------+-------+------------------|
+| Lstar | Zumaia | 1:0.5 | filter   |  25 |   65740 | ZB18a | 1.02265982866026 |
+| Lstar | Zumaia | 1:0.5 | filter   |  24 |   65800 | ZB20a | 1.07609327533125 |
+| Lstar | Zumaia | 1:0.5 | filter   |  24 |   65500 | La11  | 1.07683523869387 |
+
+Or just blindly calculate the average RMSD of all the different approaches.
+
+#+begin_src R :results value :colnames yes
+  msd |>
+    filter(site == "Zumaia") |>
+    filter(proxy != "d13C") |>
+    summarize(mean(RMSD), .by = sol)
+#+end_src
+
+#+caption: Zumaia non-d13C records average RMSD score per OS.
+#+RESULTS:
+| sol   |       mean(RMSD) |
+|-------+------------------|
+| ZB18a | 1.43064454271371 |
+| ZB20a |  1.4257944763742 |
+| La11  | 1.42441067205021 |
+
 *** Analysis in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-29 Fri 13:11]
@@ -9493,24 +9601,6 @@ Here I make a heatmap with the same information as the previous figure.
 #+begin_src R
   agem <- agem |>
     mutate(n = 0:(n() - 1), .before = comment, .by = minmax)
-
-  # NOTE: original is only the age model for Zumaia!
-  agem_simple <- agem |>
-    filter(minmax == "minimum") |>
-    select(-strat_top, -minmax, -desc) |>
-    mutate(site = "Zumaia") |>
-    # let's add the age model for Sopelana
-    # copied manually by reading figure 3 in Batenburg et al., 2014!
-    bind_rows(
-      tribble(
-        ~ n, ~ strat_bot,
-        10, 149,
-        11, 160,
-        12, 171,
-        13, 183) |>
-      mutate(site = "Sopelana")
-    ) |>
-    mutate(age = n * 405)
 
   smooth <- smooth |>
     ## filter(site == "Zumaia") |>
@@ -9954,7 +10044,24 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
 
 #+RESULTS:
 [[file:imgs/Zumaia_time-slider.png]]
-
+*** Variable Tie-points
+:PROPERTIES:
+:CREATED:  [2023-10-03 Tue 16:09]
+:END:
+#+begin_src R
+  # add the number of the current 405 kyr cycle to group by (rounded down)
+  mutate(Ma405 = Hmisc::approxExtrap(agem_simple$strat_bot, agem_simple$n,
+                                     xout = depth)$y |>
+                                                  floor()) |>
+  nest(.by = Ma405) |>
+  mutate(tiepoint_uncertainty = list(seq(-4, 4, 1))) |>
+  unnest(cols = c(tiepoint_uncertainty)) |> # tiepoint uncertainty in metres
+  unnest(cols = c(data)) |> # tiepoint uncertainty in metres
+  mutate(age = kpg_age +
+           Hmisc::approxExtrap(agem_simple$strat_bot + tiepoint_uncertainty,
+                               agem_simple$age,
+                               xout = depth)$y) |>
+#+end_src
 ** Gubbio
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:51]
