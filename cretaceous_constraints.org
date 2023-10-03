@@ -8813,7 +8813,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 110.73MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 312.93MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -9170,6 +9170,49 @@ Load the saved file, then process it further.
 #+end_src
 
 #+RESULTS:
+***** get La11
+:PROPERTIES:
+:CREATED:  [2023-10-03 Tue 13:47]
+:END:
+#+begin_src R :eval never :exports none
+  La11 <- astrochron::getLaskar(sol = "la11") |>
+    readr::write_rds("out/La11.rds")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+ ,* Downloading Laskar et al. (2011) astronomical solution: La2011
+
+   Please cite: Laskar, J., Fienga, A., Gastineau, M., Manche, H., 2011,
+   La2010: A new orbital solution for the long-term motion of the Earth:
+   Astron. Astrophys., Volume 532, A89.
+  AND:
+   Laskar, J., Gastineau, M., Delisle, J.-B., Farres, A., Fienga, A.: 2011,
+   Strong chaos induced by close encounters with Ceres and Vesta:
+   Astron. Astrophys., Volume 532, L4.
+trying URL 'http://www.geology.wisc.edu/~smeyers/astrochron/la11.txt.bz2'
+Content type 'application/x-bzip2' length 392736 bytes (383 KB)
+==================================================
+downloaded 383 KB
+
+ ,* Decompressing solution
+#+end_example
+
+#+begin_src R
+  La11 <- readr::read_rds("out/La11.rds") |>
+    as_tibble() |>
+    rename(age = Time_ka, ecc = ecc_LA11) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(sln = "La11", .before = age)
+
+  sln3 <- La11 |>
+    bandpass_filter(freqs = my_os_freqs,
+                    x = age, y = ecc,
+                    nest = "sln") |>
+    select(-p, -f, -fr, -flow, -fhigh) |>
+    pivot_wider(names_from = target, values_from = filt) |>
+    mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
+#+end_src
 **** construct an eccentricity curve from the filters in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:50]
@@ -9229,14 +9272,15 @@ Load the saved file, then process it further.
 
   diffs <- data_ecc |>
     select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
-    # let's put some uncertainty on the K/Pg boundary age
+    # let's put some uncertainty on the K/T boundary age
     mutate(kpg_age = list(
              # manual list to keep the number of parameter permutations low
              ## c(65500, 65600, 65700, 65800, 65900,
              ##   66000, #65970, # the estimate from Batenburg et al., 2014
              ##   66100, 66200, 66300, 66400, 66500)
              # sequence of potential ages, increase resolution of x
-             seq(65500, 66500, 50)
+             ## seq(65500, 66500, 50)
+             seq(65750, 66100, 50) # full range of calib A calib B K/T age in Zeebe and Lourens EPSL 2022
            )
            ) |>
     unnest(cols = c(kpg_age)) |>
@@ -9259,13 +9303,15 @@ Load the saved file, then process it further.
     unnest(cols = c(tau)) |>
     mutate(age = depth * tau + kpg_age) |>
     # add target orbital solutions
-    mutate(sol = list(c("ZB18a", "ZB20a"))) |>
+    mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
     unnest(cols = c(sol)) |>
     mutate(ecc_sln = case_when(
              sol == "ZB18a" ~ approx(sln$age, sln$filt,
                                      xout = age)$y,
              sol == "ZB20a" ~ approx(sln2$age, sln2$filt,
                                      xout = age)$y,
+             sol == "La11" ~ approx(sln3$age, sln3$filt,
+                                    xout = age)$y,
              TRUE ~ NA_real_),
            squared_diff = (ecc - ecc_sln)^2
            )
