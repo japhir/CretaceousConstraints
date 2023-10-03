@@ -22,6 +22,7 @@
 ✖ dplyr::lag()    masks stats::lag()
 ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 #+end_example
+
 * functions :noexport:
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
@@ -724,13 +725,13 @@ Sorted from young to older, longest records at the end.
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:37]
 :END:
-Color reflectance a* used in [cite:@ZeebeLourens2019].
+Colour reflectance a* used in [cite:@ZeebeLourens2019].
 
 d13C/d18O available in https://doi.pangaea.de/10.1594/PANGAEA.854816
 53 Ma to 58 Ma
 [[https://web.iodp.tamu.edu/janusweb/imaging/photo.cgi][section photo's]]
 
-Color reflectance a*/b* used in [cite:@ZeebeLourens2022EPSL]
+Colour reflectance a*/b* used in [cite:@ZeebeLourens2022EPSL]
 in combination with site 1209, Zumaia
 56 Ma to 66 Ma
 
@@ -765,10 +766,10 @@ I'm not going to put too much effort in, Richard should have this analysis accor
   ODP208_1262_col |>
     ggplot(aes(x = `Depth (mbsf)`, y = scale(`a*` / `b*`))) +
     geom_line() +
-    coord_cartesian(xlim = c(140, 220)) +
-    labs(title = "ODP 208 Site 1264 Color reflectance")
+    coord_cartesian(xlim = c(140, 220))
 #+end_src
 
+#+caption: *Colour reflectance data from ODP 208 Site 1262*. used in [cite:@ZeebeLourens2019].
 #+RESULTS:
 [[file:imgs/208-1262_color_ZeebeLourens2019-2022.png]]
 
@@ -780,10 +781,12 @@ via [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frits Hilgen]]
 [[mu4e:msgid:AS8PR05MB10601D055071F8CD08F7C0153DBFBA@AS8PR05MB10601.eurprd05.prod.outlook.com][RE: Paper: Earth beyond six of nine planetary boundaries]]
 66 Ma until 64 Ma
 
-Multi-proxy study of the interval from the K/Pg boundary up to cycle 20 of [cite:@Dinares-Turell2003].
+Multi-proxy study of the interval from the K/T boundary up to cycle 20 of [cite:@Dinares-Turell2003].
 
 Only photos for now.
 Linked to Zumaia, but no turbidites
+
+#+caption: Hendaye tuning options with 200 kyr pattern (sent to me by Frits Hilgen, unpublished). He's now playing this visual game with the ZB18 and ZB20 solutions!
 [[file:imgs/Hendaye_tuning_Frits-Hilgen.pdf::3]]
 
 Shows expression of weak 200 kyr eccentricity cycle and oldest node of 2-Myr cycle
@@ -795,7 +798,6 @@ Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in 
 :END:
 56 Ma to 66 Ma
 
-Color reflectance used in [cite:@ZeebeLourens2022EPSL]
 #+begin_src R :results output graphics file :file imgs/198-1209_color_ZeebeLourens2019-2022.png :width 900 :height 500
   ODP198_1209_col <- readr::read_tsv("dat/ODP198_1209_color_reflectance.dat")
   ## spl <- readr::read_tsv("dat/ODP198_1209_splice.dat")
@@ -803,10 +805,10 @@ Color reflectance used in [cite:@ZeebeLourens2022EPSL]
   ODP198_1209_col |>
     ggplot(aes(x = `Depth (mbsf)`, y = `a*`)) +
     geom_line() +
-    coord_cartesian(xlim = c(252.5, 261.6), ylim = c(1, 3)) +
-    labs(title = "ODP 198 Site 1209 Color reflectance")
+    coord_cartesian(xlim = c(252.5, 261.6), ylim = c(1, 3))
 #+end_src
 
+#+caption: ODP 198 Site 1209 Colour reflectance used in [cite:@ZeebeLourens2022EPSL].
 #+RESULTS:
 [[file:imgs/198-1209_color_ZeebeLourens2019-2022.png]]
 
@@ -830,10 +832,10 @@ Combined with Bottaccione
 
   dat |>
     ggplot(aes(x = `Section [m]`, y = `chi [10**-9 m**3/kg]`)) +
-    geom_line() +
-    labs(title = "Contessa Highway Magnetic Susceptibility")
+    geom_line()
 #+end_src
 
+#+caption: Contessa Highway Magnetic Susceptibility from [cite:@Sinnesael2016].
 #+RESULTS:
 [[file:imgs/Contessa_MS_Sinnesael2016.png]]
 
@@ -935,13 +937,12 @@ also related: [cite:@Zachos2004]
   dat |>
     ggplot(aes(x = depth, y = MS)) +
     annotate("rect", xmin = 285.9, xmax = 286.5, ymin = -Inf, ymax = Inf,
-             fill = "yellow", alpha = .6) + # the K/Pg boundary
+             fill = "yellow", alpha = .6) + # the K/T boundary
     geom_line(colour = "darkblue") +
     geom_line(aes(y = MS + 50), data = f100, colour = "skyblue") +
     geom_line(aes(y = MS + 70), data = f405, colour = "black") +
     coord_cartesian(xlim = c(287.4, 330), ylim = c(0, 300)) +
-    labs(x = "Depth (mbsf)", y = MS ~ "(10"^{-8} ~ "kgm"^{-3} * ")",
-         title = "ODP Leg 208 Site 1267B")
+    labs(x = "Depth (mbsf)", y = MS ~ "(10"^{-8} ~ "kgm"^{-3} * ")")
 
   ## dat <- ODP208_1267_MS_B_pg$data |>
     ## select(depth = `Depth comp [mcd]`, MS = `Suscept corr`) #|>
@@ -952,6 +953,7 @@ also related: [cite:@Zachos2004]
   ##   geom_line()
 #+end_src
 
+#+caption: *ODP 208 Site 1267 MS* Reproduction of [cite:@Husson2011] Fig. 4.
 #+RESULTS:
 [[file:imgs/208-1267B_MS_Husson-fig4.png]]
 
@@ -1045,6 +1047,7 @@ from 227.08 to 235.24 rmcd
 https://doi.pangaea.de/10.1594/PANGAEA.592301
 
 another PDF :S
+#+caption: Splice table for ODP 208 Site 1267 by [cite:@Westerhold2008].
 [[file:~/Downloads/208-1267_TabS7_tie_points.pdf]]
 
 This has hole core section interval depth_mbsf depth_rmcd
@@ -1104,7 +1107,7 @@ Same as shipboard MCD above 180.25 MCD, adjusted below.
   rmcd |>
     ggplot(aes(x = depth_rmcd, y = row)) +
     geom_point(alpha = .2) +
-    geom_point(aes(x = depth_rmcd2), color = "red", alpha = .2) +
+    geom_point(aes(x = depth_rmcd2), colour = "red", alpha = .2) +
     geom_segment(aes(xend = depth_rmcd2, yend = row),
                  arrow = arrow(angle = 20, length = unit(2, "mm"), type = "closed"))
 
@@ -1276,6 +1279,7 @@ This is wrong, they shouldn't be stretched!
   ##   geom_line(aes(alpha = on_splice))
 #+end_src
 
+#+caption: ODP 208 1267 MS with the splice table applied.
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_rcmd.png]]
 
@@ -1326,7 +1330,7 @@ this is to inspect how the moving average affects the outcome
     tidylog::filter(
                !is.na(my_rmcd),
                ## my_rmcd > 319.46,
-               my_rmcd > 320.25, # K/Pg boundary
+               my_rmcd > 320.25, # K/T boundary
                on_splice) |>
     mutate(var = scale(`Corrected Suscept.`)[, 1]) |>
     select(my_rmcd, var)
@@ -1366,7 +1370,7 @@ this is to inspect how the moving average affects the outcome
     filt <- reactive(MS |>
       tidylog::filter(
                  !is.na(my_rmcd),
-                 my_rmcd > 320.25, # K/Pg
+                 my_rmcd > 320.25, # K/T
                  on_splice) |>
       mutate(var = scale(`Corrected Suscept.`)[, 1]) |> # or `L*`
       mutate(scl_ma = scale(var - slider::slide_mean(var,
@@ -1451,7 +1455,7 @@ this is to inspect how the moving average affects the outcome
   MS_ <- MS |>
     tidylog::filter(
                !is.na(my_rmcd),
-               my_rmcd > 320.25, # K/Pg
+               my_rmcd > 320.25, # K/T
                on_splice) |>
     mutate(var = scale(`Corrected Suscept.`)[, 1],
            ma = slider::slide_mean(var, before = 2, after = 2), # 5pt ma
@@ -1480,6 +1484,7 @@ this is to inspect how the moving average affects the outcome
     geom_line(aes(y = loess, colour = "LOESS"))
 #+end_src
 
+#+caption: ODP 208 Site 1267 MS long-term trend removal strategies.
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_detrend.png]]
 
@@ -1504,7 +1509,7 @@ this is to inspect how the moving average affects the outcome
   MS_ |>
     ggplot(aes(x = my_rmcd, y = var)) +
     annotate("rect", xmin = 320.275 - 1, xmax = 320.275, ymin = -Inf, ymax = Inf,
-             fill = "yellow", alpha = .6) + # the K/Pg boundary
+             fill = "yellow", alpha = .6) + # the K/T boundary
     ## geom_line(colour = "gray", data = MS_ |> select(my_rmcd, var) |> astrochron::linterp(genplot = FALSE)) +
     geom_line(aes(group = paste(H, Core, Sec), depth_mbsf = `Depth (mbsf)`), colour = "darkblue") +
     geom_line(aes(y = var + 2), data = f100, colour = "skyblue") +
@@ -1514,6 +1519,7 @@ this is to inspect how the moving average affects the outcome
          title = "ODP Leg 208 Site 1267")
 #+end_src
 
+#+caption: *ODP 208 Site 1267 MS* Taner filters as in [cite:@Husson2011] redone on rmcd depth scale.
 #+RESULTS:
 [[file:imgs/208-1267B_MS_Husson-fig4_rmcd.png]]
 
@@ -1576,6 +1582,7 @@ this is to inspect how the moving average affects the outcome
     labs(fill = "Filter intervals from study")
 #+end_src
 
+#+caption: ODP 208 Site 1267 spectra.
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_mtm.png]]
 
@@ -1631,6 +1638,7 @@ I haven't really looked at this in too much detail so far.
                             )
 #+end_src
 
+#+caption: ODP 208 Site 1267 wavelet analysis.
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_wavelet.png]]
 
@@ -1689,6 +1697,7 @@ Note that the 100 kyr is NOT significantly present in the MTM spectrum.
 #+end_src
 
 #+attr_latex: :width \linewidth
+#+caption: ODP 208 Site 1267 Bandpass filters. Note: 100 kyr is not significant in spectrum!
 #+RESULTS:
 [[file:imgs/ODP208_1267_MS_my-filters.png]]
 
@@ -1723,6 +1732,7 @@ Note that the 100 kyr is NOT significantly present in the MTM spectrum.
 :END:
 This is the same plot as before, but now overplotting everything. Furthermore, I now add the Hilbert transform of the precession filter as well as the two Taner filters from [cite:@Husson2011] for comparison.
 
+#+caption: ODP 208 Site 1267 bandpass filters, Taner filters, and Hilbert transform of precession filter.
 #+begin_src R :results output graphics file :file imgs/ODP208_1267_bandpass_filters.png :width 900
   MS_filts |>
     ## filter(target != "prec")|>
@@ -1836,6 +1846,7 @@ site 1267 range or rmcd = 311.39 m to 336.1 m
     geom_line()
 #+end_src
 
+#+caption: ODP 208 Site 1267 age model from [cite:@Westerhold2008].
 #+RESULTS:
 [[file:imgs/agem_Westerhold2008.png]]
 **** [#B] agemodel from [cite:@Batenburg2018a]
@@ -1874,6 +1885,7 @@ age from 56 Ma to 69.1 Ma
     annotate("text", x = 50, y = 73, label = "Target interval")
 #+end_src
 
+#+caption: Overview of age models for ODP 208 Site 1267.
 #+RESULTS:
 [[file:imgs/208-1267B_agem.png]]
 *** plot the taner age model on top of the depth MS data
@@ -2035,7 +2047,7 @@ They did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@
     geom_line() +
     geom_line(aes(x = `Depth (mbsf)`, y = `L*`), data = ODP208_1267_color_A, alpha = .2) +
     geom_smooth(method = "loess", span = .2) +
-    geom_smooth(method = "gam", color = "orange")
+    geom_smooth(method = "gam", colour = "orange")
 #+end_src
 
 #+RESULTS:
@@ -2141,16 +2153,17 @@ In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
 #+begin_src R :results output graphics file :file imgs/208-1267B_color.png :width 900 :height 500
   dat |>
     ggplot(aes(x = depth, y = aob)) +
-    geom_line(color = "darkblue") +
-    geom_line(data = f100, color = "skyblue") +
-    geom_line(data = f405, color = "black") +
+    geom_line(colour = "darkblue") +
+    geom_line(data = f100, colour = "skyblue") +
+    geom_line(data = f405, colour = "black") +
     # same as MS from Husson 2011 from above
     annotate("rect", xmin = 285.9, xmax = 286.5, ymin = -Inf, ymax = Inf,
-             fill = "yellow", alpha = .6) + # the K/Pg boundary
+             fill = "yellow", alpha = .6) + # the K/T boundary
     coord_cartesian(xlim = c(287.4, NA)) +
     labs(x = "Depth (mbsf)", y = "Norm. a*/b*")
 #+end_src
 
+#+caption: Taner filters of ODP208 Site 1267 colour reflectance data.
 #+RESULTS:
 [[file:imgs/208-1267B_color.png]]
 
@@ -2752,6 +2765,7 @@ rows total       38,579
     coord_cartesian(xlim = c(320., NA), ylim = c(0.2, .9))
 #+end_src
 
+#+caption: Colour reflecatance data for ODP 208 Site 1267 on the rmcd.
 #+RESULTS:
 [[file:imgs/ODP208_1267_colour_rmcd.png]]
 
@@ -2764,7 +2778,7 @@ rows total       38,579
     tidylog::filter(
                !is.na(my_rmcd),
                ## my_rmcd > 319.46,
-               my_rmcd > 320.35, # the depth of the K/Pg massive shift in MS and colour
+               my_rmcd > 320.35, # the depth of the K/T massive shift in MS and colour
                on_splice) |>
     ## mutate(var = `a*`) |>
     ## mutate(var = `b*`) |> # or `L*`
@@ -2808,6 +2822,7 @@ rows total       38,579
 
 #+end_src
 
+#+caption: Wavelet of ODP 208 Site 1267 in the rmcd domain.
 #+RESULTS:
 [[file:imgs/ODP208_1267_color_wavelet.png]]
 
@@ -8073,6 +8088,7 @@ Title says "astronomical calibration of the Paleocene time".
     ## geom_line(aes(y = scl_ma))
 #+end_src
 
+#+caption: ODP 208 Site 1267 Fe data from [cite:@Westerhold2008].
 #+RESULTS:
 [[file:imgs/ODP208_1267_Fe.png]]
 
@@ -8142,10 +8158,10 @@ Very low sedimentation rate however, about 1 cm/kyr.
 
   dat |>
     ggplot(aes(x = `Depth comp r [rmcd]`, y = `δ18O carb [‰ PDB]`)) +
-    geom_line() +
-    labs(title = "IODP 342 U1403B d18O and d13C")
+    geom_line()
 #+end_src
 
+#+caption: IODP 343 Site U1403B d18O data (d13C also available!) from [cite:@Batenburg2018].
 #+RESULTS:
 [[file:imgs/342-U1403A_d18O_Batenburg2018-fig7.png]]
 
@@ -8163,6 +8179,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
     labs(title = "IODP 342 U1403 δ18O")
 #+end_src
 
+#+caption: Spectral analysis of d18O data.
 #+RESULTS:
 [[file:imgs/IODP342_U1403_d18O_spec.png]]
 
@@ -8205,6 +8222,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
     labs(title = "IODP342 U1403A XRF")
 #+end_src
 
+#+caption: IODP 342 Site U1403 XRF data from [cite:@Batenburg2018].
 #+RESULTS:
 [[file:imgs/342-U1403A_FeCa_Batenburg2018-fig6.png]]
 
@@ -8277,7 +8295,7 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > . + indexing 18696_2.csv [===============================================================] 1.44GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.78GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -8484,6 +8502,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     geom_line(aes(y = lin_pred, group = paste(site, colour)), colour = "red", linewidth = 2)
 #+end_src
 
+#+caption: Zumaia/Sopelana MS/L*/d13C linear trend removal.
 #+RESULTS:
 [[file:imgs/Zumaia_linear-trend-removal.png]]
 
@@ -8496,6 +8515,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     geom_line(aes(y = gam_pred, group = paste(site)), colour = "red", linewidth = 2)
 #+end_src
 
+#+caption: Zumaia/Sopelana MS/L*/d13C gam trend removal (after linear trend removal).
 #+RESULTS:
 [[file:imgs/Zumaia_gam-trend-removal.png]]
 
@@ -8508,6 +8528,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     ## geom_line(aes(y = gam_pred, group = paste(site)), colour = "red", linewidth = 2)
 #+end_src
 
+#+caption: Zumaia/Sopelana MS/L*/d13C detrended record (after linear trend and gam removal).
 #+RESULTS:
 [[file:imgs/Zumaia_linear-gam-trend-removal.png]]
 
@@ -8696,9 +8717,10 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
               alpha = .3, data = my_filters) +
-    labs(x = "Frequency (m/cycle)", y = "Spectral power")
+    labs(x = "Frequency (cycles/m)", y = "Spectral power")
 #+end_src
 
+#+caption: Zumaia/Sopelana spectral analysis in the depth domain.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_mtm.png]]
 
@@ -8863,7 +8885,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 312.93MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 110.73MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -8912,6 +8934,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     ##                label = desc), data = agem)
 #+end_src
 
+#+caption: Zumaia/Sopelana simple gam trend removal and filtering.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_gam.png]]
 ***** [#A] complicated overview plot
@@ -8993,6 +9016,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     ## theme(legend.position = "none")
 #+end_src
 
+#+caption: Zumaia and Sopelana trend removal using various strategies.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_complicated.png]]
 ***** simpler overview plot
@@ -9061,6 +9085,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     ## theme(legend.position = "none")
 #+end_src
 
+#+caption: Zumaia/Sopelana scaled detrended records with 405 kyr filters.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_simple.png]]
 
@@ -9243,7 +9268,7 @@ Load the saved file, then process it further.
     arrange(rev(site), rev(proxy), filt_env, comb, depth)
 #+end_src
 
-**** plot extracted eccentricity curve
+***** plot extracted eccentricity curve
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:51]
 :END:
@@ -9260,10 +9285,11 @@ Load the saved file, then process it further.
          colour = "Method to generate ecc")
 #+end_src
 
+#+caption: Zumaia/Sopelana artificial combinations of 405 kyr and 100 kyr bandpass filtered records in various combinations (colour).
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_depth.png]]
 
-**** add the orbital solution to the data and calculate the MSD
+**** add the orbital solution to the data and calculate the RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 11:20]
 :END:
@@ -9317,26 +9343,26 @@ Load the saved file, then process it further.
            )
 
   msd <- diffs |>
-    summarize(MSD = sqrt(sum(squared_diff)),
+    summarize(RMSD = sqrt(mean((ecc - ecc_sln)^2)),
               .by = c(proxy, site, comb, filt_env, tau, kpg_age, sol)) |>
-    arrange(MSD)
+    arrange(RMSD)
 #+end_src
 
 #+RESULTS:
 
-**** plot MSD directly
+**** plot RMSD directly
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 10:38]
 :END:
-This is a bit of a complex figure. I wanted to get a glance at which proxy for which site scores the best overall MSD.
+This is a bit of a complex figure. I wanted to get a glance at which proxy for which site scores the best overall RMSD.
 
-This shows that the d13C record gives us the overall best MSD's, but the d13C only shows a strong 405 kyr cyclicity, no significant 100 kyr cyclicity (see figure of spectra above).
+This shows that the d13C record gives us the overall best RMSD's, but the d13C only shows a strong 405 kyr cyclicity, no significant 100 kyr cyclicity (see figure of spectra above).
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 1920 :height 1080
   msd |>
     ## filter(comb == "1:1", filt_env == "filter") |>
     ggplot(aes(x = kpg_age * 0.001,
-               y = MSD,
+               y = RMSD,
                colour = paste(tau, " = ", round(1 / tau * 100, 2))## ,
                ## linetype = comb
                )) +
@@ -9351,20 +9377,20 @@ This shows that the d13C record gives us the overall best MSD's, but the d13C on
     ## scale_linewidth_discrete(range = c(.5, 2)) +
     scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
     ) +
-    scale_x_reverse(breaks = c(65.6, 66.043, 66.4)) +
+    scale_x_reverse() +
     labs(
-      title = "Combinations of 405 kyr and 100 kyr filters and their MSD scores",
-      x = "K/Pg age", y = "MSD",
+      title = "Combinations of 405 kyr and 100 kyr filters and their RMSD",
+      x = "K/T age", y = "RMSD",
       colour = tau~"(kyr/m) = Sedimentation rate (cm/kyr)") #+
     ## theme(legend.position = c(.1, .83))
 #+end_src
 
-#+caption: *Overview of MSD scores* Assumed age of the K/Pg boundary versus the MSD score. Vertical panels are the sites (Zumaia and the downwards extension in Sopelana) different proxies (MS, L* and d13C). Horizontal panels are the orbital solution the filtered data were compared to (for now only ZB18a and ZB20a), whether I constructed my filtered record as a combination of a direct 405 kyr filter and a 100 kyr filter or as a combination of a 405 kyr filter and the Hilbert transform of the precession filter, and in which proportions I've added the 405 kyr and 100 kyr components together. Vertical lines show the age of the K/Pg boundary with uncertainty based on \ce{^40Ar/^39Ar} and U--Pb data ([cite:@Batenburg2014] cite [cite:@Renne2013] based on new bentonite ages from coals near the K/Pg boundary).
+#+caption: *Overview of RMSD scores* Assumed age of the K/T boundary versus the RMSD score. Vertical panels are the sites (Zumaia and the downwards extension in Sopelana) different proxies (MS, L* and d13C). Horizontal panels are the orbital solution the filtered data were compared to (for now only ZB18a and ZB20a), whether I constructed my filtered record as a combination of a direct 405 kyr filter and a 100 kyr filter or as a combination of a 405 kyr filter and the Hilbert transform of the precession filter, and in which proportions I've added the 405 kyr and 100 kyr components together. Vertical lines show the age of the K/T boundary with uncertainty based on \ce{^40Ar/^39Ar} and U--Pb data ([cite:@Batenburg2014] cite [cite:@Renne2013] based on new bentonite ages from coals near the K/T boundary).
 #+attr_latex: :width 1.2\linewidth
 #+RESULTS:
 [[file:imgs/Zumaia_MSD-overview.png]]
 
-**** plot MSD as a function of orbital solution, tau, K/Pg age, ...
+**** plot RMSD as a function of orbital solution, tau, K/T age, ...
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:04]
 :END:
@@ -9377,27 +9403,27 @@ Here I make a heatmap with the same information as the previous figure.
     ggplot(aes(x = kpg_age * 0.001, y = tau,
                ## group = paste(comb, filt_env, site, tau, sol),
                ## colour = tau
-               fill = MSD
+               fill = RMSD
                )) +
     facet_grid(rows = vars(site, proxy),
                cols = vars(sol, filt_env, comb)) +
     ## geom_line() +
     geom_raster() +
     scale_fill_viridis_c() +
-    labs(x = "Age of the K/Pg boundary (Ma)",
+    labs(x = "Age of the K/T boundary (Ma)",
          y = tau~"m/kyr",
-         fill = "MSD")
+         fill = "RMSD")
     ## theme_gray()
     ## geom_vline(xintercept = (c(12:14) * 405) / 183) #+
     ## annotate("text", x = (c(12:14) * 405) / 183, y = 70, label = paste(12:14, "cycles"))
 #+end_src
 
 #+attr_latex: :width 1.2\linewidth
-#+caption: The various assumptions for the K/Pg age on the x-axis versus sedimentation rates on the y-axis. Horizontal panels are grouped by site and proxy, while vertical panels are grouped by orbital solution, filter/Hilbert, and the proportion of the 405 kyr signal compared to the 100 kyr signal.
+#+caption: The various assumptions for the K/T age on the x-axis versus sedimentation rates on the y-axis. Horizontal panels are grouped by site and proxy, while vertical panels are grouped by orbital solution, filter/Hilbert, and the proportion of the 405 kyr signal compared to the 100 kyr signal.
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_MSD.png]]
 
-**** plot the curves with the lowest overall MSD
+**** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:03]
 :END:
@@ -9464,17 +9490,22 @@ Here I make a heatmap with the same information as the previous figure.
     labs(x = "Age (Ma)",
          y = "Scaled proxy/solution filter",
          linetype = "405:100 kyr weighing",
-         ## colour = "Age of the K/Pg boundary",
+         ## colour = "Age of the K/T boundary",
          ## colour = "Sedimentation rate (cm/kyr)",
          colour = "",
-         alpha = "MSD\n(lower = better)",
+         alpha = "RMSD\n(lower = better)",
          title = "Example comparison of Zumaia MS")
 #+end_src
 
+#+caption: Zumaia best MS record match with ZB20a (lowest RMSD score).
 #+attr_latex: :width \linewidth
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_ZB18a.png]]
 
+**** NEXT Do the RMSD analysis with 405 kyr tie-points and variable sedimentation rates
+:PROPERTIES:
+:CREATED:  [2023-10-02 Mon 17:25]
+:END:
 *** Analysis in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-29 Fri 13:11]
@@ -9633,6 +9664,7 @@ The d13C, L*, and MS records only show significant spectral peaks around the 100
     labs(x = "Frequency (cycles/kyr)", y = "Power")
 #+end_src
 
+#+caption: Zumaia/Sopelana spectral analysis after applying the 405 kyr tie-point age model from the field by [cite:@Batenburg2012].
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_spectra_filters.png]]
 
@@ -9712,16 +9744,17 @@ The d13C, L*, and MS records only show significant spectral peaks around the 100
                  rename(age = Location, pk = Peak_Value) |>
                  mutate(pk = -pk)) +
     scale_x_reverse(breaks = seq(0, 5, 1)) +
-    labs(x = "K/Pg + Age (Ma)", y = "Normalized proxy",
+    labs(x = "K/T + Age (Ma)", y = "Normalized proxy",
          ## title = "Zumaia raw proxy record filters"
          ## title = "Zumaia fancy detrended proxy record filters"
          )
 #+end_src
 
+#+caption: Zumaia/Sopelana detrended record and various filters. Red dots identify minima in the 405 kyr filter, which should correspond to the vertical black lines (minima identified in the field) for MS and to the maxima for L*. d13C shows a lag with respect to the other proxies.
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters.png]]
 
-**** add the orbital solution to the ecc curve and plot the MSD
+**** add the orbital solution to the ecc curve and plot the RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
@@ -9782,13 +9815,14 @@ The d13C, L*, and MS records only show significant spectral peaks around the 100
     facet_grid(rows = vars(site, proxy),
                cols = vars(filt_env, comb)) +
     geom_line() +
-    labs(x = "K/Pg + Age (Ma)")
+    labs(x = "K/T + Age (Ma)")
 #+end_src
 
+#+caption: Artificial 405 kyr + 100 kyr filters for Zumaia/Sopelana.
 #+RESULTS:
 [[file:imgs/Zumaia_MSD-vs-age.png]]
 
-**** plot the MSD directly
+**** plot the RMSD directly
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 16:05]
 :END:
@@ -9808,21 +9842,22 @@ The d13C, L*, and MS records only show significant spectral peaks around the 100
     geom_line(aes(group = paste(comb, filt_env, site, proxy)), linewidth = .7
               ) +
     scale_colour_viridis_d() +
-    scale_x_reverse(breaks = c(65.6, 66.043, 66.4)) +
+    scale_x_reverse(breaks = c(65.6, 66.0,#66.043,
+                               66.4)) +
     labs(
-      title = "Combinations of 405 kyr and 100 kyr filters and their MSD scores",
-      x = "K/Pg age", y = "MSD"## ,
+      ## title = "Combinations of 405 kyr and 100 kyr filters and their MSD scores",
+      x = "K/T age", y = "RMSD"## ,
       ## colour = tau~"(kyr/m) = Sedimentation rate (cm/kyr)"
     ) #+
     ## theme(legend.position = c(.1, .83))
 #+end_src
 
-#+caption: *MSD as a function of the K/Pg age* Here we vary the age of the K/Pg and apply the age model based on 405 kyr cycles identified in the field. The MSD is the mean squared difference between the filtered and scaled proxy record and the filtered and scaled orbital solution.
+#+caption: *RMSD as a function of the K/T age* Here we vary the age of the K/T and apply the age model based on 405 kyr cycles identified in the field. The RMSD is the mean squared difference between the filtered and scaled proxy record and the filtered and scaled orbital solution.
 #+RESULTS:
 [[file:imgs/Zumaia_age_MSD-overview.png]]
 
 
-**** plot the curves with the lowest overall MSD
+**** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 16:12]
 :END:
@@ -9889,13 +9924,14 @@ The d13C, L*, and MS records only show significant spectral peaks around the 100
     labs(x = "Age (Ma)",
          y = "Scaled proxy/solution filter",
          linetype = "405:100 kyr weighing",
-         ## colour = "Age of the K/Pg boundary",
+         ## colour = "Age of the K/T boundary",
          ## colour = "Sedimentation rate (cm/kyr)",
          colour = "",
-         alpha = "MSD\n(lower = better)",
+         alpha = "RMSD\n(lower = better)",
          title = "Example comparison of Zumaia MS after applying 405-kyr tuned age model from the field (Batenburg et al., 2016)")
 #+end_src
 
+#+caption: Best fit (lowest RMSD) for Zumaia/Sopelana based on the 405-kyr age model from the field.
 #+attr_latex: :width \linewidth
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_age_example.png]]
@@ -9927,11 +9963,11 @@ The d13C, L*, and MS records only show significant spectral peaks around the 100
 #+RESULTS:
 [[file:imgs/Zumaia_OS-ecc-vs-age.png]]
 
-**** COMMENT do the same analysis with different ages for the K/Pg boundary
+**** COMMENT do the same analysis with different ages for the K/T boundary
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:52]
 :END:
-This slides the whole time series along the time axis and checks the MSD w/ respect to ZB18a.
+This slides the whole time series along the time axis and checks the RMSD w/ respect to ZB18a.
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_time-slider.png :width 900
   data_diffs |>
@@ -9939,7 +9975,7 @@ This slides the whole time series along the time axis and checks the MSD w/ resp
                paste(site, proxy, name))) +
     geom_line() +
     facet_grid(rows = vars(site, proxy), cols = vars(comb, filt_env)) +
-    labs(x = "Age of the K/Pg boundary", y = "MSD")
+    labs(x = "Age of the K/T boundary", y = "RMSD")
 #+end_src
 
 #+RESULTS:
@@ -9973,6 +10009,7 @@ Also MS from [cite:@Husson2014] https://doi.pangaea.de/10.1594/PANGAEA.829778
     labs(title = "Gubbio MS")
 #+end_src
 
+#+caption: Gubbio MS.
 #+RESULTS:
 [[file:imgs/Gubbio_MS_Husson2014.png]]
 
@@ -10013,6 +10050,7 @@ Table in the supplement:
      geom_line())
 #+end_src
 
+#+caption: ODP 198 Site 1210B d13C and d18O data from Shatsky Rise in the equatorial Pacific [cite:@Jung2012].
 #+RESULTS:
 [[file:imgs/198-1210B_d13C_Jung2012.png]]
 
@@ -10032,6 +10070,7 @@ refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
     geom_line())
 #+end_src
 
+#+caption: ODP 198 Site 1210B d13C and d18O data from Shatsky Rise in the equatorial Pacific on a tuned age model [cite:@Ji-Eun2022].
 #+RESULTS:
 [[file:imgs/198-1210_d13C_Jung2012-fig6.png]]
 
@@ -10090,7 +10129,7 @@ analysis copies [cite:@Husson2011]
   dat |>
     ggplot(aes(x = depth_mcd, y = MS)) +
     ## annotate("rect", xmin = 285.9, xmax = 286.5, ymin = -Inf, ymax = Inf,
-    ##          fill = "yellow", alpha = .6) + # the K/Pg boundary
+    ##          fill = "yellow", alpha = .6) + # the K/T boundary
     geom_line(colour = "darkblue") +
     geom_line(aes(y = MS + 5), data = f100, colour = "skyblue") +
     geom_line(aes(y = MS + 7), data = f405, colour = "black") +
@@ -10114,6 +10153,7 @@ analysis copies [cite:@Husson2011]
 
 #+end_src
 
+#+caption: ODP 207 Site 1258B MS record (from shipboard) analyzed in the same way as [cite:@Husson2011] using Taner filters.
 #+RESULTS:
 [[file:imgs/207-1258B_MS_Husson-fig4.png]]
 
@@ -10168,7 +10208,7 @@ reproduce [cite:@Husson2011] figure 3 and 4
     ## astrochron::linterp(genplot = FALSE) |>
     ggplot(aes(x = depth_ambsf, y = gray)) +
     annotate("rect", xmin = 555.8, xmax = 556.3, ymin = -Inf, ymax = Inf,
-             fill = "yellow", alpha = .6) + # the K/Pg boundary
+             fill = "yellow", alpha = .6) + # the K/T boundary
     ## geom_line(alpha = .2, colour = "darkblue") +
     geom_line(aes(y = smooth), colour = "darkblue") +
     geom_line(aes(y = gray - 90), data = f100, colour = "skyblue") +
@@ -10180,6 +10220,7 @@ reproduce [cite:@Husson2011] figure 3 and 4
     labs(title = "ODP122 762C grayscale from photo")
 #+end_src
 
+#+caption: ODP 122 Site 762C grayscale record by [cite:@Husson2011], shared with my by [cite:@Thibault2012].
 #+RESULTS:
 [[file:imgs/122-762B_grayscale_Husson-fig4.png]]
 
@@ -10208,6 +10249,7 @@ ah, slightly too old? -> can stitch w/ 1210B!
     labs(title = "Bottaccione d13C and d18O")
 #+end_src
 
+#+caption: Bottaccione d13C record from [cite:@Sabatino2018].
 #+RESULTS:
 [[file:imgs/Bottaccione_d13C_Sabatino2018.png]]
 
@@ -10243,4 +10285,4 @@ https://doi.pangaea.de/10.1594/PANGAEA.834794
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 14:53]
 :END:
-citestyle=authoryear-comp,bibstyle=authoryear
+citestyle=authoryear-comp,bibstyle=authoryear,
