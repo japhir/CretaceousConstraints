@@ -14,8 +14,8 @@
 ── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
 ✔ dplyr     1.1.3     ✔ readr     2.1.4
 ✔ forcats   1.0.0     ✔ stringr   1.5.0
-✔ ggplot2   3.4.3     ✔ tibble    3.2.1
-✔ lubridate 1.9.2     ✔ tidyr     1.3.0
+✔ ggplot2   3.4.4     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.0
 ✔ purrr     1.0.2
 ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ✖ dplyr::filter() masks stats::filter()
@@ -345,17 +345,38 @@ downloaded 383 KB
   sln |>
     bind_rows(sln2) |>
     bind_rows(sln3) |>
-    ggplot(aes(x = age / 1000, y = ecc, colour = sln)) +
+    ggplot(aes(x = age / 1000, y = ecc)) +
     geom_line(linewidth = 1.2) +
+    geom_vline(aes(xintercept = age1), data = kpg_ages) +
+    geom_vline(aes(xintercept = age2), data = kpg_ages) +
     coord_cartesian(xlim = c(69, 65)) +
-    labs(x = "Age (Ma)", y = "Eccentricity (-)", colour = "OS")
+    labs(x = "Age (Ma)", y = "Eccentricity (-)") +
+    facet_grid(rows = vars(sln))
 #+end_src
 
 #+caption: Example time slice of the different orbital solutions.
 #+RESULTS:
 [[file:imgs/orbital_solutions.png]]
-
-
+** K/Pg (K/T) boundary ages
+:PROPERTIES:
+:CREATED:  [2023-11-10 Fri 13:40]
+:END:
+these depend on the AS you choose!
+#+begin_src R
+  kpg_ages <- tribble(
+    ~ sln, ~ age1, ~ age2,
+    "ZB18a", 65.94, 65.96,
+    "ZB20a", 65.92, 65.92,
+    ## "ZB20b",
+    ## "ZB20c",
+    ## "ZB20d",
+    ## "La10a",
+    ## "La10b",
+    ## "La10c",
+    ## "La10d",
+    "La11", 66.01, 66.02,
+  )
+#+end_src
 * COMMENT look at the orbital solution
 :PROPERTIES:
 :CREATED:  [2023-08-30 Wed 17:04]
@@ -8444,7 +8465,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > . + indexing 18696_2.csv [===============================================================] 1.47GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       + + indexing 18696_2.csv [===============================================================] 1.78GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -8453,7 +8474,7 @@ dbl (3): depth, MS, Lstar
 
 ℹ Use `spec()` to retrieve the full column specification for this data.
 ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-filter: removed 5 rows (<1%), 4,159 rows remaining
++ filter: removed 5 rows (<1%), 4,159 rows remaining
 filter: removed 1,045 rows (25%), 3,114 rows remaining
 select: columns reordered (site, proxy, depth, value, comment)
 #+end_example
@@ -8490,7 +8511,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 163.58MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 261.72MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -9137,61 +9158,82 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 :CREATED:  [2023-09-26 Tue 17:27]
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_simple.png :width 900
+  target_proxy <- "MS"
+  ## target_proxy <- "Lstar"
+  ## target_proxy <- "d13C"
+  this_filter <- \(x) x |>
+    tidylog::filter(site == "Zumaia") |>
+    tidylog::filter(proxy == target_proxy)
+
   comp |>
-    filter(site == "Zumaia", proxy == "MS") |>
+    this_filter() |>
     ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
     facet_grid(rows = vars(proxy), scales = "free_y") +
     # r/w intervals
-    annotate("rect",
-             xmin = c(-5, 0, 59, 85, 109),
-             xmax = c(0, 59, 85, 109, 145),
-             ymin = 2, ymax = 3,
-             fill = c("gray", "red", "gray", "red", "gray"),
-             alpha = .2
-             ) +
+    ## annotate("rect",
+    ##          xmin = c(-5, 0, 59, 85, 109),
+    ##          xmax = c(0, 59, 85, 109, 145),
+    ##          ymin = 2, ymax = 3,
+    ##          fill = c("gray", "red", "gray", "red", "gray"),
+    ##          alpha = .2
+    ##          ) +
 
     # "raw" data
     geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
     annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 0) +
-    geom_line(aes(y = det - 5), data = smooth_basic |>
-                              filter(site == "Zumaia", proxy == "MS"),
+    geom_line(aes(y = det - 5), data = smooth_basic |> this_filter(),
               colour = "gray") +
     annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
-    geom_line(aes(y = det - 10), data = smooth |>
-                              filter(site == "Zumaia", proxy == "MS"),
+    geom_line(aes(y = det - 10), data = smooth |> this_filter(),
               colour = "gray") +
     annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
 
     # 405 kyr filters
     geom_line(aes(y = filt, colour = "scaled filt"),
-              data = filts_scl |>
-                filter(target == "405 kyr", site == "Zumaia", proxy == "MS")) +
+              data = filts_scl |> this_filter() |> filter(target == "405 kyr")) +
     geom_line(aes(y = filt - 5, colour = "gam filt"),
-              data = filts_gam |>
-                filter(target == "405 kyr", site == "Zumaia", proxy == "MS")) +
+              data = filts_gam |> this_filter() |> filter(target == "405 kyr")) +
     geom_line(aes(y = filt - 10, colour = "gam + r/w filt"),
-              data = filts_fancy |>
-                filter(target == "405 kyr", site == "Zumaia", proxy == "MS")) +
+              data = filts_fancy |> this_filter() |> filter(target == "405 kyr")) +
 
     ## # age model from the log
     geom_point(aes(x = strat_bot, y = -2,
                    size = !is.na(comment)),
                inherit.aes = FALSE,
-               data = agem |>
-                 filter(minmax == "minimum")) +
+               data = agem |> filter(minmax == "minimum")) +
     annotate("text", x = 145, y = -2, label = "minima", hjust = 0) +
     annotate("text", x = 145, y = 2, label = "maxima", hjust = 0) +
+    # inferred uncertainty of the minima
+    ## geom_segment(aes(x = strat_bot, xend = lag(strat_top),
+    ##                  y = -2, yend = -2),
+    ##              inherit.aes = FALSE, colour = "gray",
+    ##              data = agem,
+    ##              linewidth = 2) +
+    ## geom_segment(aes(x = strat_bot, xend = lag(strat_top,2),
+    ##                  y = -2, yend = -2),
+    ##              inherit.aes = FALSE, colour = "gray",
+    ##              data = agem,
+    ##              linewidth = 2) +
     # is there any uncertainty on the minima?
-    ## geom_segment(aes(x = strat_bot - 4, xend = strat_bot + 4,
+    ## geom_segment(aes(x = strat_bot - 2, xend = strat_bot + 2,
     ##                  y = -2, yend = -2),
     ##              inherit.aes = FALSE,
     ##              data = agem_simple,
     ##              linewidth = 2) +
+    geom_segment(aes(x = strat_bot - 2, xend = strat_bot + 2,
+                     y = -11, yend = -11 # for MS
+                     ## y = -9, yend = -9 # for Lstar and d13C
+                     ),
+                 inherit.aes = FALSE,
+                 data = agem_simple,
+                 linewidth = 2) +
+
+
+    # plot the maxima
     geom_segment(aes(x = strat_bot, xend = strat_top,
                      y = 2, yend = 2),
                  inherit.aes = FALSE,
-                 data = agem |>
-                   filter(minmax == "maximum"),
+                 data = agem |> filter(minmax == "maximum"),
                  linewidth = 2) +
     # try to make it into little sine waves
     ## geom_segment(aes(x = strat_bot, xend = strat_top,
@@ -9337,66 +9379,70 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :CREATED:  [2023-09-27 Wed 11:20]
 :END:
 #+begin_src R
-  kpg_age <- 65970 # age taken from Batenburg et al., 2014
-  tau <- (13 * 405) / 183 # conversion from depth to time,
-  # 13 405 kyr cycles in 183 m of sediment, kyr/m
-  # if we multiply the metres by this number you get kyr out.
+    kpg_age <- 65970 # age taken from Batenburg et al., 2014
+    tau <- (13 * 405) / 183 # conversion from depth to time,
+    # 13 405 kyr cycles in 183 m of sediment, kyr/m
+    # if we multiply the metres by this number you get kyr out.
 
-  diffs <- data_ecc |>
-    select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
-    # let's put some uncertainty on the K/T boundary age
-    mutate(kpg_age = list(
-             # manual list to keep the number of parameter permutations low
-             ## c(65500, 65600, 65700, 65800, 65900,
-             ##   66000, #65970, # the estimate from Batenburg et al., 2014
-             ##   66100, 66200, 66300, 66400, 66500)
-             # sequence of potential ages, increase resolution of x
-             ## seq(65500, 66500, 50)
-             seq(65500, 66100, 20)
-             ## seq(65750, 66100, 50) # full range of calib A calib B K/T age in Zeebe and Lourens EPSL 2022
-           )
-           ) |>
-    unnest(cols = c(kpg_age)) |>
-    # a single linear sedimentation rate, could well have varied by quite a bit!
-    mutate(tau = list(seq(
-             # what if the Batenburg 2014 tuning is off by 3 405 kyr cycles?
-             ## (10 * 405) / 183, (16 * 405) / 183,
-             ## that's from 22.13 to 35.41
-             ## 22, 36,
-             # what if the Batenburg 2014 tuning is off by one 405 kyr cycle?
-             ## c((12 * 405) / 183, (14 * 405) / 183),
-             ## that's from 26.56 to 30.98
-             ## 26, 31,
-             22, 31, # but 26 keeps getting the best score, so expand that side
-             # we could also do it based on the sedimentation rate in cm/kyr,
-             # what are reasonable sedimentation rates here?
-             ## 1 / 8 * 100, 1 / 2 * 100, # 2 to 8 cm / kyr?
-             by = 1,
-             ## length.out = 12 # this is to limit the total number of simulations
-             ))) |>
-    unnest(cols = c(tau)) |>
-    mutate(age = kpg_age + depth * tau) |>
-    # add target orbital solutions
-    mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
-    unnest(cols = c(sol)) |>
-    mutate(ecc_sln = case_when(
-             sol == "ZB18a" ~ approx(sln$age, sln$scl,
-                                     xout = age)$y,
-             sol == "ZB20a" ~ approx(sln2$age, sln2$scl,
-                                     xout = age)$y,
-             sol == "La11" ~ approx(sln3$age, sln3$scl,
-                                    xout = age)$y,
-             TRUE ~ NA_real_)) |>
-    mutate(SD = (ecc - ecc_sln)^2)
+    diffs <- data_ecc |>
+      # filter to limit options a little
+      tidylog::filter(comb == "0.5:1", filt_env == "filter") |>
+      select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
+      # let's put some uncertainty on the K/T boundary age
+      mutate(kpg_age = list(
+               # manual list to keep the number of parameter permutations low
+               ## c(65500, 65600, 65700, 65800, 65900,
+               ##   66000, #65970, # the estimate from Batenburg et al., 2014
+               ##   66100, 66200, 66300, 66400, 66500)
+               # sequence of potential ages, increase resolution of x
+               ## seq(65500, 66500, 50)
+               ## seq(65500, 66100, 20) # slightly smaller range
+               seq(65920, 66020, 20) # range of K/T ages in ZB&L2022 table 4
+               ## seq(65750, 66100, 50) # full range of calib A calib B K/T age in Zeebe and Lourens EPSL 2022
+             )
+             ) |>
+      unnest(cols = c(kpg_age)) |>
+      # a single linear sedimentation rate, could well have varied by quite a bit!
+      mutate(tau = list(seq(
+               # what if the Batenburg 2014 tuning is off by 3 405 kyr cycles?
+               ## (10 * 405) / 183, (16 * 405) / 183,
+               ## that's from 22.13 to 35.41
+               ## 22, 36,
+               # what if the Batenburg 2014 tuning is off by one 405 kyr cycle?
+               ## c((12 * 405) / 183, (14 * 405) / 183),
+               ## that's from 26.56 to 30.98
+               ## 26, 31,
+               22, 31, # but 26 keeps getting the best score, so expand that side
+               # we could also do it based on the sedimentation rate in cm/kyr,
+               # what are reasonable sedimentation rates here?
+               ## 1 / 8 * 100, 1 / 2 * 100, # 2 to 8 cm / kyr?
+               by = 1,
+               ## length.out = 12 # this is to limit the total number of simulations
+               ))) |>
+      unnest(cols = c(tau)) |>
+      mutate(age = kpg_age + depth * tau) |>
+      # add target orbital solutions
+      mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
+      unnest(cols = c(sol)) |>
+      mutate(ecc_sln = case_when(
+               sol == "ZB18a" ~ approx(sln$age, sln$scl,
+                                       xout = age)$y,
+               sol == "ZB20a" ~ approx(sln2$age, sln2$scl,
+                                       xout = age)$y,
+               sol == "La11" ~ approx(sln3$age, sln3$scl,
+                                      xout = age)$y,
+               TRUE ~ NA_real_)) |>
+      mutate(SD = (ecc - ecc_sln)^2)
 
-  msd <- diffs |>
-    summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, site, comb, filt_env, tau,
-                      kpg_age, sol)) |>
-    arrange(RMSD)
+    msd <- diffs |>
+      summarize(RMSD = sqrt(mean(SD)),
+                .by = c(proxy, site, comb, filt_env, tau,
+                        kpg_age, sol)) |>
+      arrange(RMSD)
 #+end_src
 
 #+RESULTS:
+: filter: removed 21,645 rows (83%), 4,329 rows remaining
 
 **** plot RMSD directly
 :PROPERTIES:
@@ -9406,9 +9452,9 @@ This is a bit of a complex figure. I wanted to get a glance at which proxy for w
 
 This shows that the d13C record gives us the overall best RMSD's, but the d13C only shows a strong 405 kyr cyclicity, no significant 100 kyr cyclicity (see figure of spectra above).
 
-#+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 1920 :height 1080
+# #+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 1920 :height 1080
+#+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 800
   msd |>
-    ## filter(comb == "1:1", filt_env == "filter") |>
     ggplot(aes(x = kpg_age * 0.001,
                y = RMSD,
                colour = paste(tau, " = ", round(1 / tau * 100, 2))## ,
@@ -9416,10 +9462,12 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C o
                )) +
     facet_grid(cols = vars(sol, filt_env, comb), rows = vars(site, proxy)) +
     ## geom_point() +
-    geom_vline(xintercept = c(## kpg_age * 0.001, # based on 405 kyr minima in La11
-                 66.043 + c(-1, 0, 1) * 0.043 # based on 40Ar/39Ar and U-Pb data from bentonites
-               ),
-               alpha = .3) +
+    ## geom_vline(xintercept = c(## kpg_age * 0.001, # based on 405 kyr minima in La11
+    ##              66.043 + c(-1, 0, 1) * 0.043 # based on 40Ar/39Ar and U-Pb data from bentonites
+    ##            ),
+    ##            alpha = .3) +
+    geom_vline(aes(xintercept = age1), data = kpg_ages |> rename(sol = sln)) +
+    geom_vline(aes(xintercept = age2), data = kpg_ages |> rename(sol = sln)) +
     geom_line(aes(group = paste(tau, comb, filt_env)), linewidth = .7
               ) +
     ## scale_linewidth_discrete(range = c(.5, 2)) +
@@ -9444,7 +9492,8 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C o
 :END:
 Here I make a heatmap with the same information as the previous figure.
 
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 1920 :height 800
+# #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 1920 :height 800
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 800
   msd |>
     # let's simplify a bit
     ## filter(comb == "1:1", filt_env == "filter", site == "Zumaia") |>
@@ -9482,7 +9531,7 @@ Here I make a heatmap with the same information as the previous figure.
   best <- msd |>
     # let's limit ourselves a little
     filter(site == "Zumaia") |>
-    filter(proxy != "d13C") |>
+    ## filter(proxy != "d13C") |>
     # which one is the lowest for each solution?
     mutate(low = min(RMSD),
               .by = c(## proxy, site,
@@ -9498,16 +9547,16 @@ Here I make a heatmap with the same information as the previous figure.
 #+RESULTS:
 | proxy | site   |  comb | filt_env | tau | kpg_age | sol   |             RMSD |
 |-------+--------+-------+----------+-----+---------+-------+------------------|
-| Lstar | Zumaia | 1:0.5 | filter   |  25 |   65740 | ZB18a | 1.02265982866026 |
-| Lstar | Zumaia | 1:0.5 | filter   |  24 |   65800 | ZB20a | 1.07609327533125 |
-| Lstar | Zumaia | 1:0.5 | filter   |  24 |   65500 | La11  | 1.07683523869387 |
+| d13C  | Zumaia | 0.5:1 | filter   |  22 |   65920 | La11  |  1.0453620169081 |
+| Lstar | Zumaia | 0.5:1 | filter   |  23 |   65920 | ZB20a | 1.11284173766877 |
+| MS    | Zumaia | 0.5:1 | filter   |  24 |   65980 | ZB18a | 1.14551836865348 |
 
 Or just blindly calculate the average RMSD of all the different approaches.
 
 #+begin_src R :results value :colnames yes
   msd |>
     filter(site == "Zumaia") |>
-    filter(proxy != "d13C") |>
+    ## filter(proxy != "d13C") |>
     summarize(mean(RMSD), .by = sol)
 #+end_src
 
@@ -9515,9 +9564,9 @@ Or just blindly calculate the average RMSD of all the different approaches.
 #+RESULTS:
 | sol   |       mean(RMSD) |
 |-------+------------------|
-| ZB18a | 1.43064454271371 |
-| ZB20a |  1.4257944763742 |
-| La11  | 1.42441067205021 |
+| La11  | 1.29400074772856 |
+| ZB20a | 1.31374321786202 |
+| ZB18a | 1.33408159569711 |
 
 **** plot the curves with the lowest overall RMSD
 :PROPERTIES:
