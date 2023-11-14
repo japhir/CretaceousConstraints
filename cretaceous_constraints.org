@@ -8514,6 +8514,12 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
       mutate(site = "Sopelana")
     ) |>
     mutate(age = n * 405)
+
+  # prepend -1 cycle based on very rough estimate so that d13C data can be interpolated
+  agem_simple <- bind_rows(
+    tibble(n = -1, comment = NA_character_, strat_bot = -16, site = "Zumaia", age = -405),
+    agem_simple
+  )
 #+end_src
 
 #+RESULTS:
@@ -10150,6 +10156,12 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
 :CREATED:  [2023-10-03 Tue 16:09]
 :END:
 #+begin_src R
+  agem_tie <- agem_simple |>
+    mutate(tie_err = list(seq(-2, 2, 1))) |>
+    unnest(cols = c(tie_err)) |>
+    mutate(strat_adj = strat_bot + tie_err) |>
+    filter(!(strat_bot == 0 & tie_err != 0))
+
   diffs_tie <- data_ecc |>
     select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
     tidylog::filter(
@@ -10166,23 +10178,23 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
              proxy == "Lstar" ~ list(seq(0, 22, 5)),
              TRUE ~ list(0.))) |>
     unnest(cols = c(proxy_lag)) |>
-    mutate(tau = list(seq(
-             22, 31, # but 26 keeps getting the best score, so expand that side
-             # we could also do it based on the sedimentation rate in cm/kyr,
-             by = 1,
-             ))) |>
-    unnest(cols = c(tau)) |>
+    # I don't think I'm using tau here, I'm linearly interpolating between subsequent 405 kyr minima
+    ## mutate(tau = list(seq(
+    ##          22, 31, # but 26 keeps getting the best score, so expand that side
+    ##          # we could also do it based on the sedimentation rate in cm/kyr,
+    ##          by = 1,
+    ##          ))) |>
+    ## unnest(cols = c(tau)) |>
+    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1) |>
     mutate(tie_err = list(seq(-2, 2, 1))) |>
     unnest(cols = c(tie_err)) |>
-    # I know we want to simulate uncertainty in the agemodel tie-point,
-    # but I think it's the same as simulating it in the depth just before applying
-    # the age model, right?
-    mutate(tie_depth = depth + tie_err) |>
-    mutate(tie_age = Hmisc::approxExtrap(agem_simple$strat_bot,
-                                         agem_simple$age,
-                                         xout = tie_depth)$y) |>
+    tidylog::filter(!(Ma405 == 0 & tie_err != 0)) |> # we know where the K/T boundary is in the depth domain
+    mutate(tie_age = map2_dbl(
+             depth, tie_err,
+             ~ Hmisc::approxExtrap(agem_tie$strat_adj[agem_tie$tie_err == .y],
+                                   agem_tie$age[agem_tie$tie_err == .y],
+                                   xout = .x)$y)) |>
     # add the number of the current 405 kyr cycle to group by (rounded down)
-    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot)) |>
     mutate(age = kpg_age + tie_age + proxy_lag) |>
     # add target orbital solutions
     mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
@@ -10245,6 +10257,9 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
                ## cols = vars(site),
                scales = "free_x", space = "free_x") +
     # plot the orbital solutions
+    geom_line(aes(x = age * 0.001, y = scl, group = sol),
+              alpha = .4,
+              data = sln |> bind_rows(sln2) |> bind_rows(sln3) |> rename(sol = sln)) +
     geom_line(aes(y = ecc_sln),
               alpha = .4,
               linetype = 1) +
@@ -10254,6 +10269,7 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
                                  "\nsed. rate = ", round(1 / tau * 100, 2))
                  ),
               linewidth = 1.2) +
+    ## geom_point(aes(x = tie_age + kpg_age)
     scale_x_reverse() +
     scale_colour_viridis_d() +
     geom_vline(aes(xintercept = kpg_age * 0.001), colour = "red") +
@@ -10263,7 +10279,8 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
          ## colour = "Age of the K/T boundary",
          ## colour = "Sedimentation rate (cm/kyr)",
          colour = "",
-         alpha = "RMSD\n(lower = better)")
+         alpha = "RMSD\n(lower = better)") +
+    coord_cartesian(xlim = c(70, 66))
 #+end_src
 
 #+RESULTS:
