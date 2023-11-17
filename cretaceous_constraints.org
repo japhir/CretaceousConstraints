@@ -1,15 +1,31 @@
 #+title: Cretaceous Constraints
+#+author: Ilja J. Kocken
 #+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
 #+options: TOC:3 broken-links:ignore H:4
 #+startup: overview
-* general stuff
+
+* quick links to most relevant sections for Richard
+:PROPERTIES:
+:CREATED:  [2023-11-15 Wed 15:23]
+:UNNUMBERED: t
+:END:
+Hi Richard, this doc is getting quite big, so here are some links to jump through quickly!
+- [[cref:sec:shared-code]] has my R code for MTM spectral analysis, bandpass filtering, plotting spectra, and getting/filtering the astronomical solutions.
+- I list all the sites I found data for and create some quick figures, but the Zumaia and Sopelana [[cref:sec:Zumaia-Sopelana]] is the most promising and has the most advanced analysis.
+- See [[cref:fig:best-age]] for the most recent figure of filtered Zumaia/Sopelana records compared to La11, ZB18a, and ZB20a solutions!
+
+* some shared code
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 14:57]
+:header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
+:CUSTOM_ID: sec:shared-code
 :END:
 ** libraries
-#+begin_src R :exports none
+#+begin_src R
   library(tidyverse)
   library(patchwork)
+  # I also use `astrochron` and `snvecR` throughout,
+  # but always use them like `package::function()`
   theme_set(theme_bw())
 #+end_src
 
@@ -17,7 +33,7 @@
 #+begin_example
 ── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
 ✔ dplyr     1.1.3     ✔ readr     2.1.4
-✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ forcats   1.0.0     ✔ stringr   1.5.1
 ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
 ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
 ✔ purrr     1.0.2
@@ -34,7 +50,9 @@
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
 :END:
-#+begin_src R :exports code
+This does spectral analysis on data within each group in ~nest~ based on parameters ~x~ and ~y~. In ~astrochron~, you have to give it a ~data.frame~ with only 2 columns, which loses all the rich metadata for the data.
+
+#+begin_src R
   spectral_analysis <- function(data, nest, x, y) {
     if (! "data.frame" %in% class(data)) {
       cli::cli_abort(c(
@@ -64,20 +82,43 @@
       select(-AR1) |>
       mutate(.width = parse_double(paste0(".", .width))) |>
       rename(freq = Frequency, power = Power, harmonic_cl = Harmonic_CL,
-             AR1_CL = AR1_CL, AR1_fit = AR1_fit, .width = .width)
-      ## pivot_longer(c(Harmonic_CL, AR1_CL, AR1_fit, AR1_90_power, AR1_95_power, AR1_99_power),
-      ## names_to = c("fit_type", "x"), names_pattern = "^([A-z0-9]+)_9?[095]?_?([A-z]+)$", values_to = "power") |>
+             AR1_CL = AR1_CL, AR1_fit = AR1_fit, .width = .width)##  |>
+      ## pivot_longer(c(Harmonic_CL,
+      ##                AR1_CL, AR1_fit,
+      ##                AR1_90_power, AR1_95_power, AR1_99_power),
+      ##              names_to = c("fit_type", "x"),
+      ##              names_pattern = "^([A-z0-9]+)_9?[095]?_?([A-z]+)$",
+      ##              values_to = "power") |>
       ## separate(fit_type, into = c("fit_type", ".width")) |>
       ## mutate(.width = parse_integer(.width))
   }
 #+end_src
 
 #+RESULTS:
+**** SOME add astrochron::periodogram as fft?
+:PROPERTIES:
+:CREATED:  [2023-11-15 Wed 16:30]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-11-15 Wed 16:30]
+:END:
+I've done this manually for MS: [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*do spectral analysis][do spectral analysis]]
+It's not much better, gets a bit messy if plotted on log10 scale.
+
+**** SOME add Blackman--Tukey as well?
+:PROPERTIES:
+:CREATED:  [2023-11-15 Wed 21:50]
+:END:
+:LOGBOOK:
+- State "SOME"       from "DONE"       [2023-11-15 Wed 21:50]
+:END:
+
 *** bandpass filter
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:08]
 :END:
-#+begin_src R :exports code
+This filters out all the frequencies in dataframe ~freqs~.
+#+begin_src R
   bandpass_filter <- function(data, freqs, x, y, nest) {
     if (! "data.frame" %in% class(data)) {
       cli::cli_abort(c(
@@ -127,7 +168,8 @@
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 16:16]
 :END:
-#+begin_src R :exports code
+This plots the MTM spectrum with a log axis on both x and y.
+#+begin_src R
   plot_spectrum <- function(spec) {
     spec |>
       ggplot(aes(x = freq, y = power)) +
@@ -151,6 +193,7 @@
 :LOGBOOK:
 - State "SOME"       from              [2023-09-28 Thu 14:48]
 :END:
+I haven't written clean code for this yet, not sure if it'll be useful. The idea is to filter precession, then do a hilbert transform for it to get the amplitude modulation, which should correspond to the eccentricity signal.
 
 *** get_rmcd
 :PROPERTIES:
@@ -191,19 +234,25 @@ This function calculates the (r)mcd from a dataset with mbsf and a splice table.
                        # do NOT match by section, only by core!
                        rename(section = Sec) |>
                        select(top = label, to = label2,
-                              Site, H, Core, T, section, interval, depth_mbsf, depth_rmcd, diff, row)) |>
+                              Site, H, Core, T, section, interval,
+                              depth_mbsf, depth_rmcd, diff, row)) |>
       # add the right-hand side of the splice table
       tidylog::left_join(rmcd2 |>
                          mutate(across(c(Site, Core), parse_double)) |>
                          rename(section2 = Sec) |>
                          select(from = label, bot = label2,
-                                Site, H, Core, T, section2, interval2, depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
+                                Site, H, Core, T, section2, interval2,
+                                depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
     mutate(my_rmcd = case_when(
-    (Sec <= section) | ((Sec == section) & (`Top (cm)` <= interval)) ~ `Depth (mbsf)` + diff,
-    (Sec >= section2) | ((Sec == section2) & (`Top (cm)` >= interval2)) ~ `Depth (mbsf)` + diff2,
+    (Sec <= section) | ((Sec == section) & (`Top (cm)` <= interval)) ~
+      `Depth (mbsf)` + diff,
+    (Sec >= section2) | ((Sec == section2) & (`Top (cm)` >= interval2)) ~
+      `Depth (mbsf)` + diff2,
     TRUE ~ NA_real_)) |>
-    mutate(on_splice = (Sec < section | ((Sec == section) & (`Top (cm)` <= interval))) &
-           (Sec > section2 | ((Sec == section2) & `Top (cm)` >= interval2))) |>
+      mutate(on_splice = (Sec < section | ((Sec == section) &
+                                           (`Top (cm)` <= interval))) &
+               (Sec > section2 | ((Sec == section2) &
+                                  `Top (cm)` >= interval2))) |>
       mutate(on_splice = ifelse(is.na(on_splice), FALSE, on_splice))
 
     return(out)
@@ -212,16 +261,12 @@ This function calculates the (r)mcd from a dataset with mbsf and a splice table.
 
 #+RESULTS:
 
-** general stuff needed for all analyses
-:PROPERTIES:
-:CREATED:  [2023-10-03 Tue 16:31]
-:END:
-*** Orbital Solutions
+** Astronomical Solutions
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:50]
 :END:
 To compare the record with.
-**** COMMENT orbital frequencies to bandpass filter
+*** COMMENT orbital frequencies to bandpass filter
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 11:15]
 :END:
@@ -241,10 +286,11 @@ Just 405 kyr and 100 kyr \pm30%.
 #+end_src
 
 #+RESULTS:
-**** get ZB18a
+*** get ZB18a
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
+I can reuse my ~snvecR~ code here!
 #+begin_src R
   # get the first orbital solution in there
   ZB18a <- snvecR::get_ZB18a() |>
@@ -254,21 +300,15 @@ Just 405 kyr and 100 kyr \pm30%.
     mutate(sln = "ZB18a", .before = age)
 
   sln <- ZB18a
-    ## bandpass_filter(freqs = my_os_freqs,
-    ##                 x = age, y = ecc,
-    ##                 nest = "sln") |>
-    ## select(-p, -f, -fr, -flow, -fhigh) |>
-    ## pivot_wider(names_from = target, values_from = filt) |>
-    ## mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
 #+end_src
 
 
 #+RESULTS:
-**** get ZB20a
+*** get ZB20a
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 17:22]
 :END:
-Download the solution once from the website, then save to file locally.
+Download the solution once from the website, then save to file locally. Similar to how ~snvecR~ does it.
 #+begin_src R :eval never
   sln2 <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
                             comment = "%",
@@ -284,21 +324,17 @@ Load the saved file, then process it further.
     mutate(scl = scale(ecc)[, 1]) |>
     mutate(sln = "ZB20a", .before = age)
 
-  sln2 <- ZB20a##  |>
-    ## bandpass_filter(freqs = my_os_freqs,
-    ##                 x = age, y = ecc,
-    ##                 nest = "sln") |>
-    ## select(-p, -f, -fr, -flow, -fhigh) |>
-    ## pivot_wider(names_from = target, values_from = filt) |>
-    ## mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
+  sln2 <- ZB20a
 #+end_src
 
 #+RESULTS:
-**** get La11
+*** get La11
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 13:47]
 :END:
-#+begin_src R :eval never :exports none
+This solution is *not* available on [[http://vo.imcce.fr/insola/earth/online/earth/earth.html][Laskar's website]], so I get it through ~astrochron~.
+
+#+begin_src R :eval never :results both
   La11 <- astrochron::getLaskar(sol = "la11") |>
     readr::write_rds("out/La11.rds")
 #+end_src
@@ -330,20 +366,15 @@ downloaded 383 KB
     mutate(scl = scale(ecc)[, 1]) |>
     mutate(sln = "La11", .before = age)
 
-  sln3 <- La11##  |>
-    ## bandpass_filter(freqs = my_os_freqs,
-    ##                 x = age, y = ecc,
-    ##                 nest = "sln") |>
-    ## select(-p, -f, -fr, -flow, -fhigh) |>
-    ## pivot_wider(names_from = target, values_from = filt) |>
-    ## mutate(filt = scale(`405 kyr` + `100 kyr`)[, 1])
+  sln3 <- La11
 #+end_src
 
 #+RESULTS:
-**** bandpass filters on orbital solutions
+** bandpass filters on orbital solutions
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:31]
 :END:
+I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those frequencies \pm 30%.
 #+begin_src R
   my_filt_age <- tribble(
     ~ target, ~ p,
@@ -366,11 +397,12 @@ downloaded 383 KB
 
 #+RESULTS:
 
-**** get 405 kyr minima ages for each solution
+** get 405 kyr minima ages for each solution
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:36]
 :END:
-#+begin_src R
+I use these as tie-points for the tuning of the 405 kyr cycle.
+#+begin_src R :results output
   sln_peaks <- sln_filters |>
     tidylog::filter(target == "405 kyr") |>
     mutate(filt = -filt) |> # we want MINIMA rather than maxima
@@ -413,16 +445,18 @@ filter: removed 99,002 rows (50%), 99,002 rows remaining
  ,* Number of peaks >= -0.03 : 59
 #+end_example
 
-**** K/Pg (K/T) boundary ages
+** K/Pg (K/T) boundary ages
 :PROPERTIES:
 :CREATED:  [2023-11-10 Fri 13:40]
 :END:
-these depend on the AS you choose!
+These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens2022EPSL].
+
 #+begin_src R
   kpg_ages <- tribble(
     ~ sln, ~ age1, ~ age2,
     "ZB18a", 65.94, 65.96,
     "ZB20a", 65.92, 65.92,
+    # currently don't need the others yet
     ## "ZB20b",
     ## "ZB20c",
     ## "ZB20d",
@@ -436,7 +470,7 @@ these depend on the AS you choose!
 
 #+RESULTS:
 
-**** plot orbital solutions
+** plot orbital solutions
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 14:51]
 :END:
@@ -445,14 +479,14 @@ these depend on the AS you choose!
     bind_rows(sln2) |>
     bind_rows(sln3) |>
     ggplot(aes(x = age / 1000, y = ecc)) +
-    geom_line(linewidth = 1.2) +
+    geom_line(linewidth = 1.2, alpha = .3) +
     geom_line(aes(x = age / 1000, y = filt, colour = target),
               linewidth = 1,
               data = sln_filters) +
     geom_point(aes(x = age / 1000, y = 0), colour = "indianred", data = sln_peaks) +
     geom_vline(aes(xintercept = age1), data = kpg_ages) +
     geom_vline(aes(xintercept = age2), data = kpg_ages) +
-    coord_cartesian(xlim = c(66, 60)) +
+    coord_cartesian(xlim = c(66 - 13*.405, 66)) +
     labs(x = "Age (Ma)", y = "Eccentricity (-)") +
     facet_grid(rows = vars(sln))
 #+end_src
@@ -460,6 +494,7 @@ these depend on the AS you choose!
 #+caption: Example time slice of the different orbital solutions.
 #+RESULTS:
 [[file:imgs/orbital_solutions.png]]
+
 * COMMENT look at the orbital solution
 :PROPERTIES:
 :CREATED:  [2023-08-30 Wed 17:04]
@@ -1023,7 +1058,7 @@ I'm not going to put too much effort in, Richard should have this analysis accor
 #+caption: *Colour reflectance data from ODP 208 Site 1262*. used in [cite:@ZeebeLourens2019].
 #+RESULTS:
 [[file:imgs/208-1262_color_ZeebeLourens2019-2022.png]]
-
+\clearpage
 ** [#A] Hendaye
 :PROPERTIES:
 :CREATED:  [2023-09-18 Mon 16:42]
@@ -1043,6 +1078,7 @@ Linked to Zumaia, but no turbidites
 Shows expression of weak 200 kyr eccentricity cycle and oldest node of 2-Myr cycle
 Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in the 200 kyr cycle.
 
+\clearpage
 ** [#C] IODP Leg 198 Site 1209
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 17:29]
@@ -1063,6 +1099,7 @@ Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in 
 #+RESULTS:
 [[file:imgs/198-1209_color_ZeebeLourens2019-2022.png]]
 
+\clearpage
 ** Contessa highway section
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 15:59]
@@ -1089,7 +1126,7 @@ Combined with Bottaccione
 #+caption: Contessa Highway Magnetic Susceptibility from [cite:@Sinnesael2016].
 #+RESULTS:
 [[file:imgs/Contessa_MS_Sinnesael2016.png]]
-
+\clearpage
 ** [#A] ODP Leg 208 Site 1267
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:49]
@@ -1212,6 +1249,8 @@ also related: [cite:@Zachos2004]
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:29]
 :END:
+see also [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*get_rmcd][get_rmcd]].
+
 **** COMMENT 1267 rmcd to 1262 rmcd
 #+begin_src R
   # https://doi.pangaea.de/10.1594/PANGAEA.666132
@@ -1409,7 +1448,7 @@ understand the splice table
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 10:43]
 :END:
-#+begin_src R :exports none
+#+begin_src R
   # add Magsus from hole A and B to the same dataframe
   MS <- ODP208_1267_MS_A |>
     mutate(Sec = as.character(Sec)) |>
@@ -1476,11 +1515,11 @@ matched rows     20,729
 #+end_src
 
 #+RESULTS:
-: indexing ODP208_1267_MS.csv [==================================================----] 282.81GB/s, eta:  0sindexing ODP208_1267_MS.csv [========================================================] 2.85GB/s, eta:  0s                                                                                                                                            Rows: 23239 Columns: 28
-: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: indexing ODP208_1267_MS.csv [=======================================================----------------------------------------------------] 120.29GB/s, eta:  0sindexing ODP208_1267_MS.csv [===========================================================================================================] 680.00MB/s, eta:  0s                                                                                                                                                                                                 Rows: 23239 Columns: 28
+: ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr  (8): H, T, Sec, top, to, section, from, bot
-: dbl (19): Leg, Site, Core, Top (cm), Depth (mbsf), Magnetic Suscept., Corrected Suscept., interval, d...
+: dbl (19): Leg, Site, Core, Top (cm), Depth (mbsf), Magnetic Suscept., Corrected Suscept., interval, depth_mbsf, depth_rmcd, diff, row, section2, interval2...
 : lgl  (1): on_splice
 :
 : ℹ Use `spec()` to retrieve the full column specification for this data.
@@ -1799,6 +1838,25 @@ this is to inspect how the moving average affects the outcome
            fhigh = f + fr) |>
     mutate(ref = "This study")
 
+  MS_fft <- MS_ |>
+     pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
+                 names_to = "smooth_type") |>
+    nest(.by = "smooth_type") |>
+    mutate(
+      fft = map(data,
+                ~ . |>
+                  select(my_rmcd, value) |>
+                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                  astrochron::periodogram(output = 1, genplot = FALSE, verbose = FALSE))
+        ) |>
+        select(-data) |>
+        unnest(fft) |>
+    # I don't think we'll need to make it longer still
+        ## pivot_longer(c(Amplitude, Power, Phase),
+        ##              names_to = c("AR1", ".width"),
+        ##              values_to = "power") |>
+        rename(freq = Frequency, power = Power, amp = Amplitude, phase = Phase)
+
   MS_ |>
     pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
                  names_to = "smooth_type") |>
@@ -1812,12 +1870,15 @@ this is to inspect how the moving average affects the outcome
                     group = paste(smooth_type, .width)),
                 alpha = .1) +
     geom_line() +
-    annotation_logticks() +
+    # add the FFT/periodogram
+    ## geom_line(alpha = .2, data = MS_fft) +
+    annotation_logticks(sides = "l") +
     scale_y_log10() +
     scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
     labs(x = "Frequency (cycles/m)", y = "Spectral power (-)") +
     coord_cartesian(xlim = c(1e-4, 0.0625) * 100, ylim = c(1e-5, .15)) +
     scale_x_log10(
+    ## scale_x_continuous(
       sec.axis = sec_axis(trans = ~ 1 / .x,
                           name = "Period (m)",
                           breaks = c(100, 50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
@@ -8385,6 +8446,7 @@ Too young!
 : Downloading 1 datasets from 10.1594/PANGAEA.763155
 : Processing 1 files
 
+\clearpage
 ** IODP Exp 342 Site U1403A,B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:29]
@@ -8496,10 +8558,12 @@ Very low sedimentation rate however, about 1 cm/kyr.
 [[file:imgs/IODP342_U1403_logFeCa_spec.png]]
 
 
+\clearpage
 ** [#A] Zumaia and Sopelana
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:37]
 :VISIBILITY: content
+:CUSTOM_ID: sec:Zumaia-Sopelana
 :END:
 [cite:@Batenburg2012]
 Ma_{405}1 to Ma_{405}9
@@ -8548,7 +8612,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.78GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.83GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -8593,27 +8657,30 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
     ## mutate(age = n * 405)
     mutate(sol = list(c("La11", "ZB18a", "ZB20a"))) |>
     unnest(cols = c(sol)) |>
+    nest(.by = sol) |>
+    # TODO: this is still wrong, strat = 0 = K/Pg boundary
     mutate(age = case_when(sol == "ZB18a" ~
                              sln_peaks |>
-                             filter(sln == "ZB18a", age <= 66.0 * 1e3) |>
-                             arrange(rev(age)) |>
-                             slice(n + 1) |>
-                             pull(age),
+                             filter(sln == "ZB18a", age >= 65.9 * 1e3) |>
+                             arrange(age) |>
+                             slice(1:14) |>
+                             pull(age) |> list(),
                            sol == "ZB20a" ~
                              sln_peaks |>
-                             filter(sln == "ZB20a", age <= 65.9 * 1e3) |>
-                             arrange(rev(age)) |>
-                             slice(n + 1) |>
-                             pull(age),
+                             filter(sln == "ZB20a", age >= 65.9 * 1e3 - 200) |>
+                             arrange(age) |>
+                             slice(1:14) |>
+                             pull(age) |> list(),
                            sol == "La11" ~
                              sln_peaks |>
-                             filter(sln == "La11", age <= 66.0 * 1e3) |>
-                             arrange(rev(age)) |>
-                             slice(n + 1) |>
-                             pull(age),
-                           TRUE ~ NA_real_)) |>
-    arrange(sol, n)
-
+                             filter(sln == "La11", age >= 66.0 * 1e3 - 200) |>
+                             arrange(age) |>
+                             slice(1:14) |>
+                             pull(age) |> list(),
+                           TRUE ~ list(NA_real_))) |>
+    unnest(cols = c(data, age)) |>
+    arrange(sol, n) |>
+    mutate(age_diff = abs(age - lead(age)), .by = sol)
   # prepend -1 cycle based on very rough estimate so that d13C data can be interpolated
   ## agem_simple <- bind_rows(
   ##   tibble(n = -1, comment = NA_character_, strat_bot = -16, site = "Zumaia", age = -405),
@@ -8622,7 +8689,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 214.85MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 342.73MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -8970,6 +9037,211 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 #+end_src
 
 #+RESULTS:
+
+****** also do simple FFT periodogram
+:PROPERTIES:
+:CREATED:  [2023-11-16 Thu 14:47]
+:END:
+#+begin_src R
+  specs_fft <- smooth_pred |>
+    nest(.by = c("proxy", "site", "detrend_type")) |>
+    mutate(fft = map(data,
+                      ~ . |>
+                        select(depth, value) |>
+                        astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                        astrochron::periodogram(genplot = F, verbose = F, output = 1) |>
+                        as_tibble()
+                        )) |>
+    select(-data) |>
+    unnest(cols = c(fft)) |>
+    rename(freq = Frequency, amp = Amplitude, power = Power, phase = Phase)
+#+end_src
+****** SOME calculate the BT spectrum as well
+:PROPERTIES:
+:CREATED:  [2023-11-16 Thu 14:13]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-11-16 Thu 15:01]
+:END:
+#+begin_src R
+  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.bt.R")
+  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/ttools.R")
+
+  ## spec_bt <- smooth_pred |>
+  ##   filter(proxy == "MS", site == "Zumaia", detrend_type == "value") |>
+  ##   select(depth, value) |>
+  ##   astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+  ##   pull(value) |>
+  ##   spec.bt(plot = FALSE)
+  ##   ## select(c("freq", "spec"))
+
+  specs_bt <- smooth_pred |>
+    nest(.by = c("proxy", "site", "detrend_type")) |>
+    mutate(bt = map(data,
+                      ~ . |>
+                        select(depth, value) |>
+                        astrochron::linterp(dt = .5, genplot = FALSE, verbose = TRUE) |>
+                        pull(value) |>
+                        spec.bt(deltat = .5, plot = FALSE))) |>
+    select(-data) |>
+    mutate(freq = map(bt, pluck, "freq"),
+           spec = map(bt, pluck, "spec")) |>
+    select(-bt) |>
+    unnest(cols = c(freq, spec))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 393
+ ,* New number of samples= 290
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 393
+ ,* New number of samples= 290
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 393
+ ,* New number of samples= 290
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 393
+ ,* New number of samples= 290
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 393
+ ,* New number of samples= 290
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1360
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1360
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1360
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1360
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1360
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1361
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1361
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1361
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1361
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 1361
+ ,* New number of samples= 283
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 629
+ ,* New number of samples= 100
+#+end_example
+
+****** use MTLS on the record
+:PROPERTIES:
+:CREATED:  [2023-11-16 Thu 12:01]
+:END:
+MTLS is the Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly spaced data. Available on [[https://github.com/jrevenaugh/TSAUMN2/blob/main/R/spec.mtls.R][the author's GitHub]].
+It's pretty slow.
+#+begin_src R
+  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
+  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
+
+  specs_mtls <- smooth_pred |>
+    nest(.by = c("proxy", "site", "detrend_type")) |>
+    mutate(mtls = map(data,
+                      ~ . |>
+                        select(depth, value) |>
+                        spec.mtls(plot = FALSE) |>
+                        as_tibble())) |>
+    select(-data) |>
+    unnest(mtls)
+#+end_src
+
+#+RESULTS:
+
 ***** create tables with ranges of bp filters
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:05]
@@ -9030,21 +9302,36 @@ The blue rectangles correspond to our simplified filter intervals where we just 
 The frequency ranges need to be a little broad to encapsulate the potentially variable sedimentation rates throughout the record.
 
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 900 :height 800
+
   specs_fancy |>
     ggplot(aes(x = freq, y = power, colour = detrend_type, group = detrend_type)) +
     facet_grid(rows = vars(site, proxy)) +
-    geom_line() +
+    # plot periodogram
+    geom_line(aes(linetype = "FFT"), data = specs_fft) +
+    # annotate Blackman-Tukey spectra
+    ## geom_line(aes(y = spec, linetype = "BT"), data = specs_bt) +
+    # plot MTM spectra
+    geom_line(aes(linetype = "MTM")) +
+    # add AR1 fit and uncertainty
     ## geom_line(aes(y = AR1_fit)) +
     ## geom_line(aes(y = AR1_95_power), alpha = .3) +
-    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
-                    fill = detrend_type,
-                    linetype = NA, group = paste(detrend_type, .width)),
-                alpha = .1) +
+    ## geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+    ##                 fill = detrend_type,
+    ##                 linetype = NA, group = paste(detrend_type, .width)),
+    ##             alpha = .1) +
+    # annotate the MTLS spectra
+    geom_line(aes(y = spec, linetype = "MTLS"), data = specs_mtls) +
     scale_y_log10() +
-    annotation_logticks() +
-    coord_cartesian(xlim = c(1e-4, 0.0625) * 100) +
-    ## scale_x_continuous(
-    scale_x_log10(
+    annotation_logticks(sides = "l") + # remember to update if we switch back to log!
+    coord_cartesian(
+      ## xlim = c(1e-4, 0.0625) * 100 # log axis
+      xlim = c(0, 2.6), # linear axis
+      ## xlim = c(0, .5),  # linear axis zoomed on 405 and 100 kyr
+      ## xlim = c(0, 1.5),  # linear axis zoomed on 405 and 100 kyr
+      ## ylim = c(0, 3)
+      ) +
+    scale_x_continuous(
+    ## scale_x_log10(
       sec.axis = sec_axis(trans = ~ 1 / .x,
                                            name = "Period (m)",
                                            breaks = c(50, 10, 5, 3, 2, 1, .5, .3, .2, .1))) +
@@ -9056,7 +9343,9 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
               alpha = .3, data = my_filters) +
-    labs(x = "Frequency (cycles/m)", y = "Spectral power")
+    labs(x = "Frequency (cycles/m)", y = "Spectral power",
+         linetype = "") +
+    scale_linetype_manual(values = c("MTM" = 1,"FFT" = 2, "MTLS" = 3))
 #+end_src
 
 #+caption: Zumaia/Sopelana spectral analysis in the depth domain.
@@ -9446,6 +9735,8 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:50]
 :END:
+We normalize the filtered record and combine them in a few different proportions (for now 1:1, 0.5:1, and 1:0.5) using both a filtering approach (default) and a hilbert transform of the precession-filtered record. Furthermore we set the phase relationship to -1 for the d13C and Lstar proxies and to +1 for the MS.
+
 #+begin_src R :results none
   data_ecc <-
     filts_scl |>
@@ -9460,7 +9751,7 @@ note that the minima from the field do not map 1:1 to the minima in the records.
                           "1:1", 1, 1,
                           "0.5:1", 0.5, 1,
                           "1:0.5", 1, 0.5)),
-      # the phase relationships for the different proxies!
+      # the phase relationships for the different proxies
       sign_405 = case_when(proxy == "d13C" ~ -1,
                            proxy == "Lstar" ~ -1,
                            proxy == "MS" ~ 1),
@@ -9479,6 +9770,9 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:51]
 :END:
+We plot all the different ways in which we have constructed an `eccentricity' record against depth, including the 405 kyr minima that were identified in the field.
+See [[cref:fig:record-construct]].
+
 #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_depth.png :width 900
   data_ecc |>
     ggplot(aes(x = depth, y = ecc, group = paste(site, comb, filt_env), colour = paste(comb, filt_env))) +
@@ -9488,11 +9782,13 @@ note that the minima from the field do not map 1:1 to the minima in the records.
     ## geom_line(aes(y = prec, colour = "prec")) +
     ## geom_line(aes(y = envelope, colour = "envelope")) +
     geom_line() +
+    scale_x_reverse() +
     geom_point(aes(x = strat_bot, y = -2), inherit.aes = FALSE, data = agem_simple) +
-    labs(x = "Stratigraphic height (m)", y = "Normalized scaled combination of filters",
+    labs(x = "Depth (m)", y = "Normalized scaled combination of filters",
          colour = "Method to generate ecc")
 #+end_src
 
+#+name: fig:record-construct
 #+caption: Zumaia/Sopelana artificial combinations of 405 kyr and 100 kyr bandpass filtered records in various combinations (colour).
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_depth.png]]
@@ -9501,9 +9797,21 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 11:20]
 :END:
+We filter out only the 0.5:1 filtered records (because they consistently gave the lowest RMSD scores and otherwise my computer often froze).
+
+There are a few parameters we can vary to convert our depth record to a record against time.
+
+First we create a list of potential K/T ages, ranging from 65.92 Ma to 66.02 Ma in increments of 20 kyr, which corresponds to the range of K/T ages for all astronomical solutions in [cite:@ZeebeLourens2022EPSL] table 4.
+
+Second, we look at potential phase lag between the proxy record and the astronomical solution, because in [cite:@Batenburg2012] they describe a lag of 2--3 precession cycles for the d13C record. So we let the lag vary between 44 and 65 kyr in increments of 5 kyr for d13C, and between 0 and 22 kyr in increments of 5 kyr for the remainder of the proxies.
+
+Third, we vary the sedimentation rate for the whole record at once to determine the best fit. In [cite:@Batenburg2014] they describe that the full Zumaia + Sopelana record contains 13 405 kyr cycles spanning 183 m. Thus, we let the inverted sedimentation rate vary between 22  kyr/m (what if there were only 11 cycles?) and 31 kyr/m (what if there were instead 14 cycles?).
+If we only look at the Zumaia site, it would be 9 405 kyr minima in 135 m, so 27 kyr / m. If we calculate these inverted sedimentation rates for each cycle in the age model, assuming a fixed age difference of 405 kyr between the minima, we arrive at rates between 20.25 kyr/m and 36.8 kyr/m.
+This indicates that this approach of fitting only a single sedimentation rate to the whole record is problematic. See below for a more elegant solution.
+
 #+begin_src R
-  kpg_age <- 65970 # age taken from Batenburg et al., 2014
-  tau <- (13 * 405) / 183 # conversion from depth to time,
+  ## kpg_age <- 65970 # age taken from Batenburg et al., 2014
+  ## tau <- (13 * 405) / 183 # conversion from depth to time,
   # 13 405 kyr cycles in 183 m of sediment, = 28.77 kyr/m
   # if we multiply the metres by this number you get kyr out.
   ## proxy_lag <- 2--3 precessional cycles, 44--65 kyr (Batenburg et al., 2012)
@@ -9564,8 +9872,6 @@ note that the minima from the field do not map 1:1 to the minima in the records.
              sol == "La11" ~ approx(sln3$age, sln3$scl,
                                     xout = age)$y,
              TRUE ~ NA_real_)) |>
-    # make sure we put in the phase relationship correctly
-    # TODO: decide whether to do the proxy phase relationship shift here or in raw ecc
     mutate(SD = (ecc_sln - ecc)^2)
 
   msd <- diffs |>
@@ -9582,9 +9888,9 @@ note that the minima from the field do not map 1:1 to the minima in the records.
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 10:38]
 :END:
-This is a bit of a complex figure. I wanted to get a glance at which proxy for which site scores the best overall RMSD.
+[[cref:fig:depth-rmsd-scores]] has become a bit of a complex figure. I wanted to get a glance at which proxy for which site scores the best overall RMSD.
 
-This shows that the d13C record gives us the overall best RMSD's, but the d13C only shows a strong 405 kyr cyclicity, no significant 100 kyr cyclicity (see figure of spectra above).
+This shows that the d13C record gives us the overall best RMSD's, but the d13C seems to only shows a strong 405 kyr cyclicity, no significant 100 kyr cyclicity (see figure of spectra above).
 
 # #+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 1920 :height 1080
 #+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 800
@@ -9615,6 +9921,7 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C o
     ## theme(legend.position = c(.1, .83))
 #+end_src
 
+#+name: fig:depth-rmsd-scores
 #+caption: *Overview of RMSD scores* Assumed age of the K/T boundary versus the RMSD score. Vertical panels are the sites (Zumaia and the downwards extension in Sopelana) different proxies (MS, L* and d13C). Horizontal panels are the orbital solution the filtered data were compared to (for now only ZB18a and ZB20a), whether I constructed my filtered record as a combination of a direct 405 kyr filter and a 100 kyr filter or as a combination of a 405 kyr filter and the Hilbert transform of the precession filter, and in which proportions I've added the 405 kyr and 100 kyr components together. Vertical lines show the age of the K/T boundary with uncertainty based on \ce{^40Ar/^39Ar} and U--Pb data ([cite:@Batenburg2014] cite [cite:@Renne2013] based on new bentonite ages from coals near the K/T boundary).
 #+attr_latex: :width 1.2\linewidth
 #+RESULTS:
@@ -9649,18 +9956,22 @@ Here I make a heatmap with the same information as the previous figure.
     ## annotate("text", x = (c(12:14) * 405) / 183, y = 70, label = paste(12:14, "cycles"))
 #+end_src
 
-#+attr_latex: :width 1.2\linewidth
-#+caption: The various assumptions for the K/T age on the x-axis versus sedimentation rates on the y-axis. Horizontal panels are grouped by site and proxy, while vertical panels are grouped by orbital solution, filter/Hilbert, and the proportion of the 405 kyr signal compared to the 100 kyr signal.
+#+attr_latex: :width .45\linewidth
+#+caption: The various assumptions for the K/T age on the x-axis versus sedimentation rates on the y-axis. Horizontal panels are grouped by orbital solution, filter/Hilbert, and the proportion of the 405 kyr signal compared to the 100 kyr signal, while vertical panels are grouped by site, proxy, and proxy_lag.
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_RMSD.png]]
 
-#+caption: Older figure, higher resolution in both \tau and age_kpg, but without La11 solution.
+#+attr_latex: :width \linewidth
+#+caption: Older figure, higher resolution in both inverted sedimentation rate (what I thought was \tau) and age_kpg, but without the La11 solution.
 [[file:imgs/Zumaia_ecc_MSD.png]]
 
-**** which solution has the overall lowest RMSD?
+*** which solution has the overall lowest RMSD?
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 16:14]
 :END:
+We find out which of the many solutions is the best by filtering out the lowest RMSD score for each proxy and astronomical solution in [[cref:tab:best-depth]].
+We only look at Zumaia here though.
+
 #+begin_src R :results value :colnames yes
   best <- msd |>
     # let's limit ourselves a little
@@ -9675,53 +9986,46 @@ Here I make a heatmap with the same information as the previous figure.
            .by = c(proxy, sol, site)) |>
     filter(low) |>
     ## arrange(RMSD)# |>
-    select(-low)
+    select(-low) |>
+    # get the best combination of proxy_lag and inv_sedrate values
+    tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, comb, filt_env, kpg_age, sol))
 #+end_src
 
+#+name: tab:best-depth
+#+caption: Zumaia records with the lowest RMSD score by proxy and astronomical solution.
 #+RESULTS:
 | proxy | site   |  comb | filt_env | inv_sedrate | kpg_age | proxy_lag | sol   |             RMSD |
 |-------+--------+-------+----------+-------------+---------+-----------+-------+------------------|
 | d13C  | Zumaia | 0.5:1 | filter   |          29 |   66000 |        59 | La11  |  1.2580965317243 |
-| d13C  | Zumaia | 0.5:1 | filter   |          29 |   66000 |        54 | La11  | 1.26117245520631 |
-| d13C  | Zumaia | 0.5:1 | filter   |          29 |   66000 |        49 | La11  | 1.26456999609458 |
 | Lstar | Zumaia | 0.5:1 | filter   |          24 |   65960 |        15 | La11  | 1.38360530818251 |
 | Lstar | Zumaia | 0.5:1 | filter   |          28 |   65920 |        20 | La11  | 1.38566138000714 |
 | Lstar | Zumaia | 0.5:1 | filter   |          28 |   65940 |         0 | La11  | 1.38566138000714 |
 | d13C  | Zumaia | 0.5:1 | filter   |          27 |   66020 |        54 | ZB18a | 1.41361658411153 |
 | d13C  | Zumaia | 0.5:1 | filter   |          27 |   66000 |        64 | ZB20a | 1.41785782896381 |
 | d13C  | Zumaia | 0.5:1 | filter   |          27 |   66020 |        44 | ZB20a | 1.41785782896381 |
-| d13C  | Zumaia | 0.5:1 | filter   |          27 |   66020 |        59 | ZB18a | 1.42638306016871 |
 | MS    | Zumaia | 0.5:1 | filter   |        30.5 |   66000 |        20 | La11  | 1.42747632874423 |
 | MS    | Zumaia | 0.5:1 | filter   |        30.5 |   66020 |         0 | La11  | 1.42747632874423 |
-| MS    | Zumaia | 0.5:1 | filter   |        30.5 |   66020 |         5 | La11  | 1.42933806380579 |
-| d13C  | Zumaia | 0.5:1 | filter   |          27 |   66020 |        64 | ZB18a | 1.43270452580087 |
-| d13C  | Zumaia | 0.5:1 | filter   |        26.5 |   66020 |        64 | ZB20a |    1.43301545589 |
 | Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65940 |         5 | ZB20a | 1.44898855638788 |
 | Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65920 |        20 | ZB20a | 1.45484116997998 |
-| Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65940 |         0 | ZB20a | 1.45484116997998 |
 | MS    | Zumaia | 0.5:1 | filter   |        26.5 |   66000 |         5 | ZB20a | 1.48978477832179 |
 | MS    | Zumaia | 0.5:1 | filter   |        26.5 |   65980 |        20 | ZB20a | 1.49178400833267 |
-| MS    | Zumaia | 0.5:1 | filter   |        26.5 |   66000 |         0 | ZB20a | 1.49178400833267 |
 | Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65980 |         5 | ZB18a | 1.51500591628103 |
 | Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65960 |        20 | ZB18a | 1.51705821919288 |
-| Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65980 |         0 | ZB18a | 1.51705821919288 |
 | MS    | Zumaia | 0.5:1 | filter   |          29 |   66000 |        20 | ZB18a | 1.55139033048297 |
 | MS    | Zumaia | 0.5:1 | filter   |          29 |   66020 |         0 | ZB18a | 1.55139033048297 |
-| MS    | Zumaia | 0.5:1 | filter   |          29 |   66020 |        10 | ZB18a | 1.55212535889634 |
-| MS    | Zumaia | 0.5:1 | filter   |          29 |   66020 |         5 | ZB18a | 1.55795659052211 |
 
-#+caption: Zumaia non-d13C records with the lowest RMSD score per OS.
 
-Or just blindly calculate the average RMSD of all the different approaches.
+Or just blindly calculate the average RMSD of all the different approaches in [[cref:tab:best-depth-global]]
 
-#+begin_src R :results value :colnames yes
+#+begin_src R :results value :colnames yes :exports results
   msd |>
     filter(site == "Zumaia") |>
     ## filter(proxy != "d13C") |>
     summarize(min(RMSD), .by = sol)
 #+end_src
 
-#+caption: Zumaia non-d13C records average RMSD score per OS.
+#+name: tab:best-depth-global
+#+caption: Zumaia records lowest RMSD score per astronomical solution.
 #+RESULTS:
 | sol   |         min(RMSD) |
 |-------+-------------------|
@@ -9733,7 +10037,9 @@ Or just blindly calculate the average RMSD of all the different approaches.
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:03]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 900
+This becomes [[cref:fig:best-depth]].
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 1200 :height 800
   # this plot crashes if I plot them all
   diffs |>
     # the "best" Zumaia setup?
@@ -9783,7 +10089,8 @@ Or just blindly calculate the average RMSD of all the different approaches.
          alpha = "RMSD\n(lower = better)")
 #+end_src
 
-#+caption: Zumaia best MS record match with ZB20a (lowest RMSD score).
+#+name: fig:best-depth
+#+caption: Zumaia best proxy match with astronomical solutions based on single sedimentation rate.
 #+attr_latex: :width \linewidth
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_ZB18a.png]]
@@ -10256,48 +10563,66 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 16:09]
 :END:
-#+begin_src R
-  agem_tie <- agem_simple |>
-    mutate(tie_err = list(seq(-2, 2, 1))) |>
-    unnest(cols = c(tie_err)) |>
-    mutate(strat_adj = strat_bot + tie_err) |>
-    arrange(tie_err, strat_adj) |>
-    mutate(depth_diff = strat_adj - lag(strat_adj), .by = tie_err) |>
-    mutate(tau_calc = 405 / depth_diff)
-    ## filter(!(strat_bot == 0 & tie_err != 0))
-  # aargh this is not doing what I want!? it'll just pick ONE uncertainty and apply it to each point
-  # what I want to do is check for Ma405 = 0 what the best tie_err is, then for Ma405 = 1, etc.
+We re-use the constructed `eccentricity' curve from the depth analysis, so it's e.g. a 0.5:1 combination of normalized 405 kyr eccentricity filters and 100 kyr eccentricity filters in the depth domain.
 
+[2023-11-15 Wed 14:31]
+While typing this, I realize I could also first apply the age model and then do the filtering in the time domain rather than squishing the filtered record... Hmmmm...
+
+I have tried various ways of letting the tie-point depths in the age model change for optimal fits, but this often resulted in overlapping bits of record where for one 405 kyr cycle one sedimentation rate gave the best fit, and for another another. This was messy so after trying for stupid amounts of time, I gave up on that approach.
+
+Now I've simplified to do the following:
+
+We use the age model from the field (which has the 405 kyr minima) and tie them to the minima in the 405 kyr filter of the astronomical solution (from [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*get 405 kyr minima ages for each solution][get 405 kyr minima ages for each solution]]).
+This means that for each orbital solution we test, we generate a unique age model based only on the 405 kyr filter minima.
+
+
+Then we calculate RMSD against that solution.
+
+Note that here we limit ourselves to only src_R{comb == 0.5:1} and src_R{filt_env == "filter"} to prevent my computer from freezing due to running out of memory.
+
+#+begin_src R
   diffs_tie <- data_ecc |>
     select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
     tidylog::filter(
-               site == "Zumaia", proxy == "MS",
+               ## site == "Zumaia", proxy == "MS",
                comb == "0.5:1", filt_env == "filter") |>
     # let's put some uncertainty on the K/T boundary age
-    mutate(kpg_age = list(
-             seq(65920, 66020, 20) # range of K/T ages in ZB&L2022 table 4
-           )) |>
-    unnest(cols = c(kpg_age)) |>
+    ## mutate(kpg_age = list(
+    ##          seq(65920, 66020, 20) # range of K/T ages in ZB&L2022 table 4
+    ##        )) |>
+    ## unnest(cols = c(kpg_age)) |>
     mutate(proxy_lag = case_when(
              proxy == "d13C" ~ list(seq(44, 65, 5)), # 44 to 65 kyr (Batenburg et al., 2012)
              proxy == "MS" ~ list(seq(0, 22, 5)),
              proxy == "Lstar" ~ list(seq(0, 22, 5)),
              TRUE ~ list(0.))) |>
     unnest(cols = c(proxy_lag)) |>
-    mutate(tau = list(seq(
-             22, 31, # but 26 keeps getting the best score, so expand that side
-             # we could also do it based on the sedimentation rate in cm/kyr,
-             by = 1,
-             ))) |>
-    unnest(cols = c(tau)) |>
-    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1) |>
-    mutate(tie_err = list(seq(-2, 2, 1))) |>
-    unnest(cols = c(tie_err)) |>
-    tidylog::filter(!(Ma405 == 0 & tie_err != 0)) |> # we know where the K/T boundary is in the depth domain
-    mutate(age = kpg_age + (depth + tie_err) * tau + proxy_lag) |>
+    ## mutate(tau = list(seq(
+    ##          22, 31, # but 26 keeps getting the best score, so expand that side
+    ##          # we could also do it based on the sedimentation rate in cm/kyr,
+    ##          by = 1,
+    ##          ))) |>
+    ## unnest(cols = c(tau)) |>
+    ## mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1) |>
+    ## mutate(tie_err = list(seq(-2, 2, 1))) |>
+    ## unnest(cols = c(tie_err)) |>
+    ## tidylog::filter(!(Ma405 == 0 & tie_err != 0)) |> # we know where the K/T boundary is in the depth domain
+    ## mutate(age = kpg_age + (depth + tie_err) * tau + proxy_lag) |>
     # add target orbital solutions
     mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
     unnest(cols = c(sol)) |>
+    mutate(age = case_when(
+             sol == "ZB18a" ~ Hmisc::approxExtrap(agem_simple$strat_bot[agem_simple$sol == "ZB18a"],
+                                     agem_simple$age[agem_simple$sol == "ZB18a"],
+                                     xout = depth)$y,
+             sol == "ZB20a" ~ Hmisc::approxExtrap(agem_simple$strat_bot[agem_simple$sol == "ZB20a"],
+                                     agem_simple$age[agem_simple$sol == "ZB20a"],
+                                     xout = depth)$y,
+             sol == "La11" ~ Hmisc::approxExtrap(agem_simple$strat_bot[agem_simple$sol == "La11"],
+                                    agem_simple$age[agem_simple$sol == "La11"],
+                                    xout = depth)$y,
+             TRUE ~ NA_real_)) |>
+    mutate(age = age + proxy_lag) |>
     mutate(ecc_sln = case_when(
              sol == "ZB18a" ~ approx(sln$age, sln$scl,
                                      xout = age)$y,
@@ -10310,30 +10635,70 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
 
   msd_tie <- diffs_tie |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, site, comb, filt_env, tau,
-                      Ma405,
-                      tie_err, kpg_age, proxy_lag, sol)) |>
-    arrange(RMSD, Ma405)
-
+              .by = c(proxy, site, comb, filt_env, #inv_sedrate,
+                      ## Ma405,
+                      ## tie_err, kpg_age,
+                      proxy_lag, sol)) |>
+    arrange(RMSD)
 #+end_src
 
 #+RESULTS:
 : filter: removed 21,645 rows (83%), 4,329 rows remaining
+*** use eTimeOpt to estimate sedimentation rates
+:PROPERTIES:
+:CREATED:  [2023-11-15 Wed 15:57]
+:END:
+#+begin_src R
+  res0 <- comp |>
+    filter(site == "Zumaia", proxy == "MS") |>
+    select(depth, MS = value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::timeOpt(sedmin = 2, sedmax = 6,
+                        targetE = c(405, 100),
+                        targetP = c(22))
 
+  res <- comp |>
+    filter(site == "Zumaia", proxy == "MS") |>
+    select(depth, MS = value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::eTimeOpt(step = 1, fit = 1, output = 1,
+                         sedmin = 0.5, sedmax = 6,
+                         targetE = c(405, 100),
+                         targetP = c(22))
+
+  # extract the optimal fits for the power optimization
+  sedrates <- astrochron::eTimeOptTrack(res[2])
+
+  # extract the optimal fits for the envelope*power optimization
+  osedrates <- astrochron::eTimeOptTrack(res[3])
+
+  # interactively track the results
+  sedrates_trace <- astrochron::tracePeak(res[2])
+  sedrates_track <- astrochron::trackPeak(res[2])
+
+  # eval precession & ecc power plus short-ecc modulations
+  ## eTimeOpt(fit = 2)
+
+
+#+end_src
 *** which one is best?
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 12:22]
 :END:
+We filter out the best fit for each proxy, site, proxy_lag, and astronomical solution.
 #+begin_src R :results none
   best_tie <- msd_tie |>
-    filter(site == "Zumaia", proxy == "MS") |>
-    filter(sol == "ZB20a") |>
-    filter(proxy_lag == 0) |>
-    filter(kpg_age == 65940) |>
-    filter(
-      RMSD == min(RMSD), .by = c(Ma405, kpg_age, proxy_lag)
+    ## filter(site == "Zumaia", proxy == "MS") |>
+    ## filter(sol == "ZB20a") |>
+    ## filter(kpg_age == 65940) |>
+    tidylog::filter(
+      RMSD == min(RMSD), .by = c(proxy, site, ## comb, filt_env,
+                                 proxy_lag,
+                                 sol
+                                 )
     ) |>
-    arrange(Ma405)
+    # get only one proxy_lag out
+    tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, comb, filt_env, sol))
 
     ## # how about we get the best fit for each proxy/solution/site?
     ## mutate(low = RMSD %in% first(RMSD, order_by = RMSD),
@@ -10344,64 +10709,98 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
     ## arrange(Ma405)
 #+end_src
 
-**** plot the curve with the lowest overall RMSD
+*** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:03]
 :END:
-#+begin_src R :results output graphics file :file imgs/best_fits_tiepoints.png :width 900
+This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
+
+#+begin_src R :results output graphics file :file imgs/best_fits_tiepoints.png :width 1200 :height 800
   # this plot crashes if I plot them all
   diffs_tie |>
-    filter(proxy == "MS", site == "Zumaia") |>
+    ## filter(proxy == "MS", site == "Zumaia") |>
     # filter out some of the best fits
     tidylog::inner_join(best_tie) |>
-    ggplot(aes(x = age * 0.001,
-               group = paste(comb, filt_env, site, kpg_age, proxy_lag),
+    ggplot(aes(x = age / 1e3,
+               group = paste(comb, filt_env, site, ## kpg_age,
+                             proxy_lag),
                ## colour = 1 / tau * 100, # convert from kyr/m to cm/kyr
                ## colour = kpg_age,
                # filt_env??
                )) +
-    facet_grid(rows = vars(sol, proxy),
+    facet_grid(rows = vars(sol, proxy)
                ## cols = vars(site),
-               scales = "free_x", space = "free_x") +
+               ## scales = "free_x", space = "free_x"
+               ) +
     # plot the orbital solutions
-    geom_line(aes(x = age * 0.001, y = scl, group = sol),
+    # 405 kyr filters
+    geom_line(aes(x = age * 0.001,
+                  y = scale(filt)[, 1],
+                  group = sol),
               alpha = .4,
-              data = #sln |>
-                ## bind_rows(
-                sln2 |>
-                          ## ) |>
-                ## bind_rows(sln3) |>
+              data = sln_filters |>
+                filter(target == "405 kyr") |>
+                filter(age >= 65900, age <= 71200) |>
                 rename(sol = sln)) +
+    # raw orbital solution
     geom_line(aes(y = ecc_sln),
               alpha = .4,
               linetype = 1) +
+    # orbital solution 405 kyr minima as points
+    geom_point(aes(x = age / 1e3, y = -2), inherit.aes = FALSE, data = agem_simple) +
+    # proxy 'eccentricity' record
     geom_line(aes(y = ecc, RMSD = RMSD,
-                  colour = paste("K/T age = ", kpg_age / 1000,
-                                 "\ntau = ", tau,
-                                 "\nsed. rate = ", round(1 / tau * 100, 2))
+                  colour = proxy,
+                  alpha = RMSD,
+                 ##  colour = paste("K/T age = ", kpg_age / 1000,
+                 ##                 "\ntau = ", tau,
+                 ##                 "\nsed. rate = ", round(1 / tau * 100, 2))
                  ),
               linewidth = 1.2) +
-    ## geom_point(aes(x = tie_age + kpg_age)
-    scale_x_reverse() +
-    scale_colour_viridis_d() +
-    geom_vline(aes(xintercept = kpg_age * 0.001), colour = "red") +
+    # annotate RMSD for each fit
+    geom_text(aes(x = age / 1e3, y = 2.7,
+                  group = site,
+                  label = round(RMSD, 3),
+                  colour = proxy),
+              hjust = 0, alpha = 1,
+              data = diffs_tie |>
+                tidylog::inner_join(best_tie) |>
+                summarize(age = mean(age), RMSD = min(RMSD),
+                          .by = c(sol, site, proxy))) +
+    scale_x_reverse(breaks = 66:72, minor_breaks = seq(59.9, 73, .1)) +
+    ## scale_colour_viridis_d() +
+    scale_colour_brewer(type = "qual", guide = FALSE) +
+    scale_alpha_continuous(range = c(1, .3)) +
+    ## geom_vline(aes(xintercept = kpg_age * 0.001), colour = "red") +
+    geom_vline(aes(xintercept = age1),
+               colour = "red",
+               data = kpg_ages |> rename(sol = sln)) +
     labs(x = "Age (Ma)",
-         y = "Normalized filtered proxy / Normalized OS",
-         linetype = "405:100 kyr weighing",
+         y = "Normalized filtered proxy / Normalized astronomical solution",
+         ## linetype = "405:100 kyr weighing",
          ## colour = "Age of the K/T boundary",
          ## colour = "Sedimentation rate (cm/kyr)",
          colour = "",
-         alpha = "RMSD\n(lower = better)") +
-    coord_cartesian(xlim = c(70, 66))
+         alpha = "RMSD\n(lower = better)",
+         ## title = "Zumaia (right) and Sopelana (left) Cretaceous proxies tuned to 3 orbital solutions",
+         ## subtitle = str_wrap("Root mean square deviation (RMSD, opacity and numbers above respective lines) between normalized proxy 'eccentricity' construct (coloured lines, calculated as 0.5 * normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown.", width = 79)
+         ) +
+    theme(legend.pos = c(.0381, .95),
+          legend.background = element_blank(),
+          legend.key.height = unit(.2, "mm")
+          ## plot.title = element_text(hjust = 0.5),
+          ## plot.subtitle = element_text(hjust = 0.5)
+          )
 #+end_src
 
+#+name: fig:best-age
+#+caption: *Zumaia (right) and Sopelana (left) Cretaceous proxies tuned to 3 orbital solutions.*
+#+caption: Root mean square deviation (RMSD, opacity and numbers above respective lines) between normalized proxy `eccentricity' construct (coloured lines, calculated as 0.5 * normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown.
+#+attr_latex: :width \linewidth
 #+RESULTS:
 [[file:imgs/best_fits_tiepoints.png]]
 
-#+caption: Zumaia best MS record match with ZB20a (lowest RMSD score).
-#+attr_latex: :width \linewidth
-#+RESULTS:
-
+\clearpage
 ** Gubbio
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:51]
@@ -10440,6 +10839,7 @@ malformed forams
 OAE-2
 https://doi.pangaea.de/10.1594/PANGAEA.954540
 
+\clearpage
 ** ODP Leg 198 Site 1210B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:52]
@@ -10495,6 +10895,7 @@ refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
 #+RESULTS:
 [[file:imgs/198-1210_d13C_Jung2012-fig6.png]]
 
+\clearpage
 ** ODP Leg 74 Site 525A
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:57]
@@ -10510,6 +10911,7 @@ Ma_{405}6 to Ma_{405}8.5
 - State "WAIT"       from              [2023-08-31 Thu 15:20]
 :END:
 
+\clearpage
 ** ODP Leg 207 Site 1258B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:58]
@@ -10586,6 +10988,7 @@ analysis copies [cite:@Husson2011]
 - State "SOME"       from              [2023-08-31 Thu 15:21]
 :END:
 
+\clearpage
 ** ODP Leg 122 Site 762C
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:24]
@@ -10645,6 +11048,7 @@ reproduce [cite:@Husson2011] figure 3 and 4
 #+RESULTS:
 [[file:imgs/122-762B_grayscale_Husson-fig4.png]]
 
+\clearpage
 ** Bottaccione == Gubbio?
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:09]
@@ -10674,6 +11078,7 @@ ah, slightly too old? -> can stitch w/ 1210B!
 #+RESULTS:
 [[file:imgs/Bottaccione_d13C_Sabatino2018.png]]
 
+\clearpage
 ** Furlo
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 16:09]
@@ -10685,6 +11090,7 @@ something like 90 Ma to 96 Ma
 
 straight through the Bonarelli level OAE-2
 
+\clearpage
 ** Jordanian Levant Platform
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 16:06]
@@ -10696,14 +11102,67 @@ TOC, d13C, d18O
 [cite:@Wendler2014]
 https://doi.pangaea.de/10.1594/PANGAEA.834794
 
+\clearpage
 * References
 :PROPERTIES:
 :UNNUMBERED: t
 :END:
 \printbibliography[heading=none]
-
-* COMMENT paste this in the biblatex call after export to tex
+* latex settings that I haven't settled on yet :noexport:
 :PROPERTIES:
-:CREATED:  [2023-10-02 Mon 14:53]
+:CREATED:  [2023-11-17 Fri 13:08]
 :END:
-citestyle=authoryear-comp,bibstyle=authoryear,
+don't forget to eval!
+** minted
+:PROPERTIES:
+:CREATED:  [2023-11-17 Fri 13:47]
+:END:
+#+begin_src emacs-lisp
+  (setq org-latex-listings 'minted)
+#+end_src
+
+These settings have not landed in my org-mode config yet because I haven't decided yet whether I like them.
+#+latex_header: \usepackage{minted}
+#+latex_header: \setminted{
+#+latex_header:   autogobble=true, % gobbles up whitespace
+#+latex_header:   fontsize=\footnotesize,
+#+latex_header:   breaklines=false,
+#+latex_header:   breakanywhere=false,
+#+latex_header:   breakbytokenanywhere=false,
+#+latex_header:   frame=leftline,
+#+latex_header:   framerule=1pt,
+#+latex_header:   rulecolor=\color{g3},
+#+latex_header:   numbers=left,
+#+latex_header:   numberfirstline=true,
+#+latex_header:   stepnumber=5,
+#+latex_header:   numbersep=2pt,
+#+latex_header:   style=default,
+#+latex_header: }
+
+
+#+latex_header: \setmintedinline{% Overwrite `\setminted` settings
+#+latex_header:     fontsize=auto,% Reset to surrounding font size so its fits into the text flow
+#+latex_header: }
+#+latex_header:
+#+latex_header: % Set up the floating environment, e.g. what is says in the caption of floats:
+#+latex_header: \SetupFloatingEnvironment{listing}{% Requires `newfloat` usage
+#+latex_header:     name=\TransListing{},
+#+latex_header:     listname=\TransListOfListings{},
+#+latex_header: }
+#+latex_header: % Create a new environment for breaking code listings across pages.
+#+latex_header: \newenvironment{longlisting}{\captionsetup{type=listing}}{}
+#+latex_header: % Setup for referencing the floats correctly is done in `cleveref` settings!
+#+latex_header:
+#+latex_header: % In code environments, to be able to copy from the PDF (despite that not being a good
+#+latex_header: % idea usually), we want the line numbers to not be part of the selection.
+#+latex_header: % This command prints them, but renders the actual copied content empty,
+#+latex_header: % on supported readers like Adobe Acrobat.
+#+latex_header: \RequirePackage{accsupp}% https://tex.stackexchange.com/a/57160/120853
+#+latex_header:
+#+latex_header: \newcommand*{\emptyaccsupp}[1]{%
+#+latex_header:     \BeginAccSupp{ActualText={}}#1\EndAccSupp{}%
+#+latex_header: }%
+#+latex_header:
+#+latex_header: \renewcommand*{\theFancyVerbLine}{ % Redefine how line numbers are printed
+#+latex_header:     \textcolor{g3}{\ttfamily\tiny\emptyaccsupp{\arabic{FancyVerbLine}}}
+#+latex_header: }
