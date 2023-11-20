@@ -26,18 +26,21 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
   library(patchwork)
   # I also use `astrochron` and `snvecR` throughout,
   # but always use them like `package::function()`
+  # we use this to make sure the data are in the correct format
+  # or we don't have too many rows
+  library(assertr)
   theme_set(theme_bw())
 #+end_src
 
 #+RESULTS:
 #+begin_example
-── Attaching core tidyverse packages ──────────────────────────────────────── tidyverse 2.0.0 ──
+── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
 ✔ dplyr     1.1.4     ✔ readr     2.1.4
 ✔ forcats   1.0.0     ✔ stringr   1.5.1
 ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
 ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
 ✔ purrr     1.0.2
-── Conflicts ────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ✖ dplyr::filter() masks stats::filter()
 ✖ dplyr::lag()    masks stats::lag()
 ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
@@ -8621,10 +8624,10 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                              /                                                                                              -                                                                                              > > > . + indexing 18696_2.csv [======================================================] 1.47GB/s, eta:  0s                                                                                                                                   New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.09GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
-── Column specification ────────────────────────────────────────────────────────────────────────
+── Column specification ─────────────────────────────────────────────────────────────────────────────────
 Delimiter: ","
 dbl (3): depth, MS, Lstar
 
@@ -8701,8 +8704,8 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [=================================================] 248.19MB/s, eta:  0s                                                                                                                                   Rows: 20 Columns: 5
-: ── Column specification ────────────────────────────────────────────────────────────────────────
+: indexing 405_minima.csv [==========================================================] 389.05MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
 : dbl (2): strat_bot, strat_top
@@ -9249,6 +9252,8 @@ It's pretty slow.
     mutate(mtls = map(data,
                       ~ . |>
                         select(depth, value) |>
+                        # NOTE: no need to linearly interpolate!
+                        # That's the point!
                         spec.mtls(plot = FALSE) |>
                         as_tibble())) |>
     select(-data) |>
@@ -9863,6 +9868,12 @@ Third, we vary the sedimentation rate for the whole record at once to determine 
 If we only look at the Zumaia site, it would be 9 405 kyr minima in 135 m, so 27 kyr / m. If we calculate these inverted sedimentation rates for each cycle in the age model, assuming a fixed age difference of 405 kyr between the minima, we arrive at rates between 20.25 kyr/m and 36.8 kyr/m.
 This indicates that this approach of fitting only a single sedimentation rate to the whole record is problematic. See below for a more elegant solution.
 
+Which detrend_type is best?
+- Hmm for Zumaia MS, ~lin_scl~ and ~lin_gam_det~ are best  if comb 1:0.5 hilbert!
+- For Zumaia Lstar, ~lin_scl~, ~gam_det~, and ~lin_gam_det~ are about equally good with 1:0.5 filter!
+- For Zumaia d13C, ~lin_gam_det~ and ~lin_scl~ are identical at 1:0.5 filter.
+- For almost all 1:0.5 combs, filter is better than hilbert except for Zumaia d13C scl, so we can safely filter out only those comb/filt_env's.
+
 #+begin_src R
   ## kpg_age <- 65970 # age taken from Batenburg et al., 2014
   ## tau <- (13 * 405) / 183 # conversion from depth to time,
@@ -9872,8 +9883,16 @@ This indicates that this approach of fitting only a single sedimentation rate to
 
   diffs <- data_ecc |>
     # filter to limit options a little
-    tidylog::filter(comb == "0.5:1", filt_env == "filter") |>
-    select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
+    ## tidylog::filter(detrend_type == "lin_gam_det") |>
+    ## tidylog::filter(comb == "0.5:1", filt_env == "filter") |>
+    tidylog::filter(comb == "1:0.5") |>
+    tidylog::filter(filt_env == "filter") |>
+    ## tidylog::filter(site == "Zumaia") |>
+    ## tidylog::filter(proxy == "MS") |>
+    ## tidylog::filter(proxy == "Lstar") |>
+    select(-`405 kyr`, -`100 kyr`, -prec, -envelope) %>%
+    # It kept crashing if I didn't filter out enough, this ensures this doesn't happen
+    assertr::verify(nrow(.) <= 50000) |>
     # let's put some uncertainty on the K/T boundary age
     mutate(kpg_age = list(
              # manual list to keep the number of parameter permutations low
@@ -9888,12 +9907,12 @@ This indicates that this approach of fitting only a single sedimentation rate to
            )
            ) |>
     unnest(cols = c(kpg_age)) |>
-    mutate(proxy_lag = case_when(
-             proxy == "d13C" ~ list(seq(44, 65, 5)), # 44 to 65 kyr (Batenburg et al., 2012)
-             proxy == "MS" ~ list(seq(0, 22, 5)),
-             proxy == "Lstar" ~ list(seq(0, 22, 5)),
-             TRUE ~ list(0.))) |>
-    unnest(cols = c(proxy_lag)) |>
+    ## mutate(proxy_lag = case_when(
+    ##          proxy == "d13C" ~ list(seq(44, 65, 5)), # 44 to 65 kyr (Batenburg et al., 2012)
+    ##          proxy == "MS" ~ list(seq(0, 22, 5)),
+    ##          proxy == "Lstar" ~ list(seq(0, 22, 5)),
+    ##          TRUE ~ list(0.))) |>
+    ## unnest(cols = c(proxy_lag)) |>
     # a single linear sedimentation rate, could well have varied by quite a bit!
     mutate(inv_sedrate = list(seq(
              # what if the Batenburg 2014 tuning is off by 3 405 kyr cycles?
@@ -9914,7 +9933,8 @@ This indicates that this approach of fitting only a single sedimentation rate to
              ## length.out = 12 # this is to limit the total number of simulations
              ))) |>
     unnest(cols = c(inv_sedrate)) |>
-    mutate(age = kpg_age + depth * inv_sedrate + proxy_lag) |>
+    mutate(age = kpg_age + depth * inv_sedrate ## + proxy_lag
+           ) |>
     # add target orbital solutions
     mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
     unnest(cols = c(sol)) |>
@@ -9930,13 +9950,17 @@ This indicates that this approach of fitting only a single sedimentation rate to
 
   msd <- diffs |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, site, comb, filt_env, inv_sedrate,
-                      kpg_age, proxy_lag, sol)) |>
+              .by = c(proxy, site, detrend_type,
+                      comb, filt_env,
+                      kpg_age, ## proxy_lag,
+                      inv_sedrate,
+                      sol)) |>
     arrange(RMSD)
 #+end_src
 
 #+RESULTS:
-: filter: removed 21,645 rows (83%), 4,329 rows remaining
+: filter: removed 86,580 rows (67%), 43,290 rows remaining
+: filter: removed 21,645 rows (50%), 21,645 rows remaining
 
 **** plot RMSD directly
 :PROPERTIES:
@@ -10035,38 +10059,34 @@ We only look at Zumaia here though.
     ## mutate(low = min(RMSD),
     ##           .by = c(## proxy, site,
     ##                   sol)) |>
-    # how about we get the best 3 fits for each proxy/solution/site?
-    mutate(low = RMSD %in% tail(RMSD, n = 3),
-           .by = c(proxy, sol, site)) |>
-    filter(low) |>
-    ## arrange(RMSD)# |>
-    select(-low) |>
+    ## # how about we get the best 3 fits for each proxy/solution/site?
+    ## mutate(low = RMSD %in% tail(RMSD, n = 3),
+    ##        .by = c(proxy, sol, site)) |>
+    ## filter(low) |>
+    ## ## arrange(RMSD)# |>
+    ## select(-low) |>
     # get the best combination of proxy_lag and inv_sedrate values
-    tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, comb, filt_env, kpg_age, sol))
+    tidylog::filter(RMSD == min(RMSD),
+                    .by = c(proxy, site, comb, filt_env, sol)) |>
+    arrange(RMSD)
 #+end_src
+
+#+RESULTS:
+| proxy | site   | detrend_type |  comb | filt_env | kpg_age | inv_sedrate | sol   |             RMSD |
+|-------+--------+--------------+-------+----------+---------+-------------+-------+------------------|
+| d13C  | Zumaia | lin_gam_det  | 1:0.5 | filter   |   65920 |          26 | ZB20a | 1.00812207545768 |
+| MS    | Zumaia | lin_scl      | 1:0.5 | filter   |   65940 |          26 | ZB18a | 1.03234698602041 |
+| Lstar | Zumaia | lin_scl      | 1:0.5 | filter   |   65960 |        25.5 | ZB18a | 1.03567278412549 |
+| d13C  | Zumaia | lin_gam_det  | 1:0.5 | filter   |   66020 |          26 | La11  | 1.03585551597025 |
+| Lstar | Zumaia | lin_gam_det  | 1:0.5 | filter   |   65960 |        26.5 | La11  | 1.06956252706241 |
+| d13C  | Zumaia | lin_gam_det  | 1:0.5 | filter   |   65920 |        26.5 | ZB18a | 1.07083921040213 |
+| MS    | Zumaia | lin_gam_det  | 1:0.5 | filter   |   66000 |          26 | La11  | 1.07650255158437 |
+| Lstar | Zumaia | gam_det      | 1:0.5 | filter   |   66020 |          24 | ZB20a | 1.07910623607518 |
+| MS    | Zumaia | lin_gam_det  | 1:0.5 | filter   |   65920 |          26 | ZB20a | 1.11094894347295 |
 
 #+name: tab:best-depth
 #+caption: Zumaia records with the lowest RMSD score by proxy and astronomical solution.
 #+RESULTS:
-| proxy | site   |  comb | filt_env | inv_sedrate | kpg_age | proxy_lag | sol   |             RMSD |
-|-------+--------+-------+----------+-------------+---------+-----------+-------+------------------|
-| d13C  | Zumaia | 0.5:1 | filter   |          29 |   66000 |        59 | La11  |  1.2580965317243 |
-| Lstar | Zumaia | 0.5:1 | filter   |          24 |   65960 |        15 | La11  | 1.38360530818251 |
-| Lstar | Zumaia | 0.5:1 | filter   |          28 |   65920 |        20 | La11  | 1.38566138000714 |
-| Lstar | Zumaia | 0.5:1 | filter   |          28 |   65940 |         0 | La11  | 1.38566138000714 |
-| d13C  | Zumaia | 0.5:1 | filter   |          27 |   66020 |        54 | ZB18a | 1.41361658411153 |
-| d13C  | Zumaia | 0.5:1 | filter   |          27 |   66000 |        64 | ZB20a | 1.41785782896381 |
-| d13C  | Zumaia | 0.5:1 | filter   |          27 |   66020 |        44 | ZB20a | 1.41785782896381 |
-| MS    | Zumaia | 0.5:1 | filter   |        30.5 |   66000 |        20 | La11  | 1.42747632874423 |
-| MS    | Zumaia | 0.5:1 | filter   |        30.5 |   66020 |         0 | La11  | 1.42747632874423 |
-| Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65940 |         5 | ZB20a | 1.44898855638788 |
-| Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65920 |        20 | ZB20a | 1.45484116997998 |
-| MS    | Zumaia | 0.5:1 | filter   |        26.5 |   66000 |         5 | ZB20a | 1.48978477832179 |
-| MS    | Zumaia | 0.5:1 | filter   |        26.5 |   65980 |        20 | ZB20a | 1.49178400833267 |
-| Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65980 |         5 | ZB18a | 1.51500591628103 |
-| Lstar | Zumaia | 0.5:1 | filter   |        29.5 |   65960 |        20 | ZB18a | 1.51705821919288 |
-| MS    | Zumaia | 0.5:1 | filter   |          29 |   66000 |        20 | ZB18a | 1.55139033048297 |
-| MS    | Zumaia | 0.5:1 | filter   |          29 |   66020 |         0 | ZB18a | 1.55139033048297 |
 
 
 Or just blindly calculate the average RMSD of all the different approaches in [[cref:tab:best-depth-global]]
@@ -10081,17 +10101,17 @@ Or just blindly calculate the average RMSD of all the different approaches in [[
 #+name: tab:best-depth-global
 #+caption: Zumaia records lowest RMSD score per astronomical solution.
 #+RESULTS:
-| sol   |         min(RMSD) |
-|-------+-------------------|
-| ZB20a | 0.930825647668838 |
-| La11  | 0.949297128969555 |
-| ZB18a | 0.977435332898786 |
+| sol   |        min(RMSD) |
+|-------+------------------|
+| ZB20a | 1.00812207545768 |
+| ZB18a | 1.03234698602041 |
+| La11  | 1.03585551597025 |
 
 *** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:03]
 :END:
-This becomes [[cref:fig:best-depth]].
+This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase sometimes?
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 1200 :height 800
   # this plot crashes if I plot them all
@@ -10100,7 +10120,8 @@ This becomes [[cref:fig:best-depth]].
     tidylog::inner_join(best) |>
     # filter out some of the best fits
     ggplot(aes(x = age * 0.001,
-               group = paste(comb, filt_env, site, inv_sedrate, kpg_age, proxy_lag),
+               group = paste(comb, filt_env, site, inv_sedrate, kpg_age ##, proxy_lag
+                             ),
                alpha = RMSD,
                ## colour = 1 / tau * 100, # convert from kyr/m to cm/kyr
                ## colour = kpg_age,
@@ -10155,8 +10176,8 @@ This becomes [[cref:fig:best-depth]].
 :END:
 We re-use the constructed `eccentricity' curve from the depth analysis, so it's e.g. a 0.5:1 combination of normalized 405 kyr eccentricity filters and 100 kyr eccentricity filters in the depth domain.
 
-[2023-11-15 Wed 14:31]
-While typing this, I realize I could also first apply the age model and then do the filtering in the time domain rather than squishing the filtered record... Hmmmm...
+*NOTE:* [2023-11-15 Wed 14:31]
+While typing this, I realize I could also first apply the age model and then do the filtering in the time domain rather than squishing the filtered record... Hmmmm... See below!
 
 I have tried various ways of letting the tie-point depths in the age model change for optimal fits, but this often resulted in overlapping bits of record where for one 405 kyr cycle one sedimentation rate gave the best fit, and for another another. This was messy so after trying for stupid amounts of time, I gave up on that approach.
 
@@ -10233,8 +10254,8 @@ Note that here we limit ourselves to only src_R{comb == 0.5:1} and src_R{filt_en
 #+end_src
 
 #+RESULTS:
-: filter: removed 21,645 rows (83%), 4,329 rows remaining
-**** use eTimeOpt to estimate sedimentation rates
+: filter: removed 108,225 rows (83%), 21,645 rows remaining
+**** COMMENT use eTimeOpt to estimate sedimentation rates
 :PROPERTIES:
 :CREATED:  [2023-11-15 Wed 15:57]
 :END:
@@ -10414,6 +10435,9 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
                                                  xout = depth)$y,
              TRUE ~ NA_real_))
 #+end_src
+
+#+RESULTS:
+
 **** calculate spectra in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
@@ -10512,31 +10536,41 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm30%.
 #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 1200 :height 900
   # plot spectra w/ Freq on x-axis
   specs_age |>
+    filter(detrend_type != "value") |>
     ## plot_spectrum() + # only works well for a single line
-    ggplot(aes(x = freq, y = power, colour = detrend_type)) +
-    facet_grid(cols = vars(site), rows = vars(proxy, sol)) +
-    geom_line() +
-    geom_line(aes(y = AR1_power, group = paste(site, detrend_type, sol, .width))) +
-    ## geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
-    ##                 linetype = NA,
-    ##                 fill = detrend_type,
-    ##                 group = paste(site, detrend_type, sol, .width)),
-    ##             alpha = .1) +
+    ggplot(aes(x = freq, y = power,
+               linetype = site,
+               colour = detrend_type)) +
+    facet_grid(rows = vars(proxy, sol)) +
+    scale_linetype_manual(values = c("Zumaia" = "solid",
+                                     "Sopelana" = "dashed")) +
+    geom_line(aes(group = paste(site, sol, proxy, detrend_type))) +
+    ## geom_line(aes(y = AR1_power, group = paste(site, detrend_type, sol, .width))) +
+    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                    linetype = NA,
+                    fill = detrend_type,
+                    group = paste(site, detrend_type, sol, .width)),
+                alpha = .1) +
     ## geom_line(aes(y = Harmonic_CL)) +
-    coord_cartesian(xlim = c(1 / 1000, 1 / 10)) +
-    scale_y_log10() +
+    coord_cartesian(
+      ## xlim = c(1 / 1000, 1 / 10), # for a log x axis
+      xlim = c(0, .072),
+      ylim = c(0, .01)) +
+    ## scale_y_log10() +
     scale_x_continuous(
     ## scale_x_log10(
       sec.axis = sec_axis("Period (m)", trans = ~ 1 / .,
-                          breaks = c(2400, 1600, 1200, 405, 100, 23))) +
-    annotation_logticks(sides = "l") +
+                          breaks = c(2400, 405, 100, 23, 22))) +
+    ## annotation_logticks(sides = "l") +
     ggnewscale::new_scale_fill() +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
-              alpha = .3, data = bat_age_filters) +
+              alpha = .3,
+              data = bat_age_filters) +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
-              alpha = .3, data = my_filt_age) +
+              alpha = .3,
+              data = my_filt_age) +
     labs(x = "Frequency (cycles/kyr)", y = "Power (-)")
 #+end_src
 
@@ -10635,7 +10669,7 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm30%.
 #+end_src
 
 #+attr_latex: :width \linewidth
-#+caption: *Zumaia/Sopelana detrended records (colour represents the way in which the detrending was done) and various bandpass filters (405 kyr, 100 kyr, 22 kyr \pm 30% in frequency) in the time domain.* Top lines represent the Hilbert transform of the precession filter for comparison to the 405 and 100 kyr direct filters. Large dots identify minima in the 405 kyr filters, which should correspond to the vertical black lines (minima identified in the field and tuned to 405 kyr minima in AS). d13C shows a lag with respect to the other proxies.
+#+caption: *Zumaia/Sopelana detrended records (colour represents the way in which the detrending was done, see cref:tab:detrend_types) and various bandpass filters (405 kyr, 100 kyr, 22 kyr \pm 30% in frequency) in the time domain.* Top lines represent the Hilbert transform of the precession filter for comparison to the 405 and 100 kyr direct filters. Large dots identify minima in the 405 kyr filters, which should correspond to the vertical black lines (minima identified in the field and tuned to 405 kyr minima in AS). d13C shows a lag with respect to the other proxies.
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters.png]]
 
@@ -10671,31 +10705,48 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm30%.
     arrange(rev(site), rev(proxy), filt_env, comb, age)
 #+end_src
 
-**** add the orbital solution to the ecc curve and compute the RMSD
+**** [#B] add the orbital solution to the ecc curve and compute the RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
+
 #+begin_src R :results none
   data_diffs_age <- data_ecc_age |>
+    ## tidylog::filter(sol == "ZB18a") |>
+    ## tidylog::filter(sol == "ZB20a") |>
+    ## tidylog::filter(sol == "La11") |>
+    ## tidylog::filter(site == "Zumaia") |>
+    ## tidylog::filter(proxy == "MS") |>
+    ## tidylog::filter(comb == "1:0.5") |>
+    select(-envelope, -`405 kyr`, -`100 kyr`, -prec) |>
+    mutate(proxy_lag = ## case_when(
+             ## proxy == "d13C" ~ list(seq(44, 65, 5)), # 44 to 65 kyr (Batenburg et al., 2012)
+             ## proxy == "MS" ~ list(seq(0, 22, 5)),
+             ## proxy == "Lstar" ~ list(seq(0, 22, 5)),
+             ## TRUE ~ list(0.))
+             list(seq(0, 75, 15))) |>
+    unnest(cols = c(proxy_lag)) |>
+    mutate(lagged = age + proxy_lag) |>
     mutate(ecc_sln = case_when(
              sol == "ZB18a" ~ approx(sln$age, sln$scl,
-                                     xout = age)$y,
+                                     xout = lagged)$y,
              sol == "ZB20a" ~ approx(sln2$age, sln2$scl,
-                                     xout = age)$y,
+                                     xout = lagged)$y,
              sol == "La11" ~ approx(sln3$age, sln3$scl,
-                                    xout = age)$y,
-             TRUE ~ NA_real_),
-           squared_diff = (ecc_sln - ecc)^2) |>
-    select(-envelope, -`405 kyr`, -`100 kyr`, -prec)
+                                    xout = lagged)$y,
+             TRUE ~ NA_real_)) |>
+    mutate(SD = (ecc_sln - ecc)^2) %>%
+    assertr::verify(nrow(.) <= 6e6)
 
-  msd_age <- data_diffs |>
-      summarize(RMSD = sqrt(sum(squared_diff)),
-                .by = c(proxy, site, detrend_type,
-                        comb, filt_env, sol)) |>
+  msd_age <- data_diffs_age |>
+      summarize(RMSD = sqrt(mean(SD)),
+                .by = c(proxy, site, sol,
+                        proxy_lag,
+                        detrend_type, comb, filt_env)) |>
       arrange(RMSD)
 #+end_src
 
-***** plot data ecc from filters
+**** plot data ecc from filters
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 16:01]
 :END:
@@ -10761,9 +10812,29 @@ For which time periods is the construction doing well and where is it failing?
 #+begin_src R :results none
   best_age <- msd_age |>
     tidylog::filter(
-      RMSD == min(RMSD), .by = c(proxy, site, sol)
-    )
+               RMSD == min(RMSD),
+               .by = c(proxy,
+                       ## detrend_type,
+                       ## comb, filt_env,
+                       site,
+                       sol)
+    ) |>
+    arrange(site, proxy, RMSD, sol)
 #+end_src
+
+Interestingly, for this simple age model it seems that:
+- For ZB18a vs. Zumaia MS, scl 1:1 hilbert is best!
+  - then value 1:0.5 hilbert
+  - then lin_scl 1:0.5 hilbert
+  - then lin_gam_det 1:0.5 hilbert
+- For ZB18a vs. Zumaia Lstar it's 1:0.5 hilbert for ~lin_gam_det~ (but not much better than value).
+- For ZB18a vs. Zumaia d13C it's gam_det 1:1 hilbert.
+- For ZB20a vs. Zumaia MS it's value 1:0.5 hilbert
+- For ZB20a vs. Zumaia Lstar it's value 1:0.5 hilbert
+- For ZB20a vs. Zumaia d13C it's lin_gam_det/lin_scl/gam_det 1:0.5 filter but value and scl are only 0.01 worse.
+- For La11 vs. Zumaia MS, value 1:0.5 filter is best, but scl 1:0.5 hilbert is close second (+0.03)
+- For La11 vs. Zumaia Lstar value 1:0.5 hilbert is best
+- For La11 vs. Zumaia d13C gam_det 1:0.5 hilbert is best
 
 **** plot the curves with the lowest overall RMSD
 :PROPERTIES:
@@ -10821,6 +10892,15 @@ For which time periods is the construction doing well and where is it failing?
                 tidylog::inner_join(best_age) |>
                 summarize(age = mean(age), RMSD = min(RMSD),
                           .by = c(sol, site, proxy))) +
+    geom_text(aes(y = 0,
+                  group = site,
+                  label = paste(proxy_lag, detrend_type, comb, filt_env)),
+              hjust = 0,
+              data = data_diffs_age |>
+                inner_join(best_age) |>
+                summarize(age = max(age),
+                          .by = c(sol, site, proxy,
+                                  proxy_lag, detrend_type, comb, filt_env))) +
     scale_x_reverse(breaks = 66:72, minor_breaks = seq(59.9, 73, .1)) +
     ## scale_colour_viridis_d() +
     scale_colour_brewer(type = "qual", guide = FALSE) +
