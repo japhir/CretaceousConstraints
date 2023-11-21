@@ -8670,7 +8670,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
       mutate(site = "Sopelana")
     ) #|>
 
-  agem_tie <- agem_simple |>
+  agem_sol <- agem_simple |>
     ## mutate(age = n * 405)
     mutate(sol = list(c("La11", "ZB18a", "ZB20a"))) |>
     unnest(cols = c(sol)) |>
@@ -8699,7 +8699,9 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
     unnest(cols = c(data, age)) |>
     arrange(sol, n) |>
     mutate(depth_diff = abs(strat_bot - lead(strat_bot)),
-           age_diff = abs(age - lead(age)), .by = sol) |>
+           age_diff = abs(age - lead(age)), .by = sol)
+
+  agem_tie <- agem_sol |>
     mutate(tie_err = list(seq(-2, 2, 1))) |>
     unnest(tie_err) |>
     mutate(tie_depth = strat_bot + tie_err)
