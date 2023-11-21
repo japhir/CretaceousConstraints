@@ -8626,7 +8626,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > . + indexing 18696_2.csv [=============================================================] 807.10MB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > . + indexing 18696_2.csv [===============================================================] 1.61GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -8668,7 +8668,9 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
         12, 171,
         13, 183) |>
       mutate(site = "Sopelana")
-    ) |>
+    ) #|>
+
+  agem_tie <- agem_simple |>
     ## mutate(age = n * 405)
     mutate(sol = list(c("La11", "ZB18a", "ZB20a"))) |>
     unnest(cols = c(sol)) |>
@@ -8697,7 +8699,11 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
     unnest(cols = c(data, age)) |>
     arrange(sol, n) |>
     mutate(depth_diff = abs(strat_bot - lead(strat_bot)),
-           age_diff = abs(age - lead(age)), .by = sol)
+           age_diff = abs(age - lead(age)), .by = sol) |>
+    mutate(tie_err = list(seq(-2, 2, 1))) |>
+    unnest(tie_err) |>
+    mutate(tie_depth = strat_bot + tie_err)
+    ## filter(!(strat_bot == 0 & tie_err != 0))
   # prepend -1 cycle based on very rough estimate so that d13C data can be interpolated
   ## agem_simple <- bind_rows(
   ##   tibble(n = -1, comment = NA_character_, strat_bot = -16, site = "Zumaia", age = -405),
@@ -8707,7 +8713,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 312.93MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 228.49MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -8835,7 +8841,7 @@ We have several ways of subtracting the long-term trends prior to doing spectral
 - State "SOME"       from              [2023-11-21 Tue 11:20]
 :END:
 Like they do in [cite:@Batenburg2012]
-#+begin_src R
+#+begin_src R :eval never
   comp |>
     nest(.by = c(proxy, site)) |>
     mutate(
@@ -8846,7 +8852,7 @@ Like they do in [cite:@Batenburg2012]
                     astrochron::lowpass())) |>
     mutate(
       gam_pred = map(gam, predict),
-    ) |>
+    )
 
 #+end_src
 **** subtract red/white interval means and then do a gam for the whole record
@@ -10012,7 +10018,8 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
     ##            alpha = .3) +
     geom_vline(aes(xintercept = age1), data = kpg_ages |> rename(sol = sln)) +
     geom_vline(aes(xintercept = age2), data = kpg_ages |> rename(sol = sln)) +
-    geom_line(aes(group = paste(inv_sedrate, comb, filt_env, proxy_lag)), linewidth = .7
+    geom_line(aes(group = paste(inv_sedrate, comb, filt_env, detrend_type#inv_sedrate
+                                )), linewidth = .7
               ) +
     ## scale_linewidth_discrete(range = c(.5, 2)) +
     scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
@@ -10047,8 +10054,9 @@ Here I make a heatmap with the same information as the previous figure.
                ## colour = tau
                fill = RMSD
                )) +
-    facet_grid(rows = vars(site, proxy, proxy_lag),
-               cols = vars(sol, filt_env, comb)) +
+    facet_grid(rows = vars(site, proxy, sol, # , proxy_lag
+                           ),
+               cols = vars(detrend_type, filt_env, comb)) +
     ## geom_line() +
     geom_raster() +
     scale_fill_viridis_c() +
@@ -10238,27 +10246,83 @@ Note that here we limit ourselves to only src_R{comb == 0.5:1} and src_R{filt_en
     ##          by = 1,
     ##          ))) |>
     ## unnest(cols = c(tau)) |>
-    ## mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1) |>
-    mutate(tie_err = list(seq(-1, 1, .5))) |>
+    # we want to group by each Ma405 cycle
+    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1) |>
+    nest(.by = Ma405) |>
+    mutate(tie_err = list(seq(-2, 2, 1))) |>
     unnest(cols = c(tie_err)) |>
+    unnest(cols = c(data)) |>
     ## tidylog::filter(!(Ma405 == 0 & tie_err != 0)) |> # we know where the K/T boundary is in the depth domain
     ## mutate(age = kpg_age + (depth + tie_err) * tau + proxy_lag) |>
     # add target orbital solutions
     mutate(sol = list(c("ZB18a", "ZB20a", "La11"))) |>
     unnest(cols = c(sol)) |>
     mutate(age = case_when(
-             sol == "ZB18a" ~
-               Hmisc::approxExtrap(agem_simple$strat_bot[agem_simple$sol == "ZB18a"],
-                                   agem_simple$age[agem_simple$sol == "ZB18a"],
-                                   xout = depth + tie_err)$y,
-             sol == "ZB20a" ~
-               Hmisc::approxExtrap(agem_simple$strat_bot[agem_simple$sol == "ZB20a"],
-                                   agem_simple$age[agem_simple$sol == "ZB20a"],
-                                   xout = depth + tie_err)$y,
-             sol == "La11" ~
-               Hmisc::approxExtrap(agem_simple$strat_bot[agem_simple$sol == "La11"],
-                                   agem_simple$age[agem_simple$sol == "La11"],
-                                   xout = depth + tie_err)$y,
+             # I'm doing this in a ridiculous way with explicity copies because I
+             # don't know how to do it in a simpler way...
+             sol == "ZB18a" & tie_err == -2. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB18a" & agem_tie$tie_err == -2],
+                                   agem_tie$age[agem_tie$sol == "ZB18a" & agem_tie$tie_err == -2],
+                                   xout = depth)$y,
+             sol == "ZB18a" & tie_err == -1. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB18a" & agem_tie$tie_err == -1],
+                                   agem_tie$age[agem_tie$sol == "ZB18a" & agem_tie$tie_err == -1],
+                                   xout = depth)$y,
+             sol == "ZB18a" & tie_err == 0. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB18a" & agem_tie$tie_err == 0],
+                                   agem_tie$age[agem_tie$sol == "ZB18a" & agem_tie$tie_err == 0],
+                                   xout = depth)$y,
+             sol == "ZB18a" & tie_err == 1. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB18a" & agem_tie$tie_err == 1],
+                                   agem_tie$age[agem_tie$sol == "ZB18a" & agem_tie$tie_err == 1],
+                                   xout = depth)$y,
+             sol == "ZB18a" & tie_err == 2. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB18a" & agem_tie$tie_err == 2],
+                                   agem_tie$age[agem_tie$sol == "ZB18a" & agem_tie$tie_err == 2],
+                                   xout = depth)$y,
+
+             sol == "ZB20a" & tie_err == -2. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB20a" & agem_tie$tie_err == -2],
+                                   agem_tie$age[agem_tie$sol == "ZB20a" & agem_tie$tie_err == -2],
+                                   xout = depth)$y,
+             sol == "ZB20a" & tie_err == -1. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB20a" & agem_tie$tie_err == -1],
+                                   agem_tie$age[agem_tie$sol == "ZB20a" & agem_tie$tie_err == -1],
+                                   xout = depth)$y,
+             sol == "ZB20a" & tie_err == 0. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB20a" & agem_tie$tie_err == 0],
+                                   agem_tie$age[agem_tie$sol == "ZB20a" & agem_tie$tie_err == 0],
+                                   xout = depth)$y,
+             sol == "ZB20a" & tie_err == 1. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB20a" & agem_tie$tie_err == 1],
+                                   agem_tie$age[agem_tie$sol == "ZB20a" & agem_tie$tie_err == 1],
+                                   xout = depth)$y,
+             sol == "ZB20a" & tie_err == 2. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "ZB20a" & agem_tie$tie_err == 2],
+                                   agem_tie$age[agem_tie$sol == "ZB20a" & agem_tie$tie_err == 2],
+                                   xout = depth)$y,
+
+             sol == "La11" & tie_err == -2. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "La11" & agem_tie$tie_err == -2],
+                                   agem_tie$age[agem_tie$sol == "La11" & agem_tie$tie_err == -2],
+                                   xout = depth)$y,
+             sol == "La11" & tie_err == -1. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "La11" & agem_tie$tie_err == -1],
+                                   agem_tie$age[agem_tie$sol == "La11" & agem_tie$tie_err == -1],
+                                   xout = depth)$y,
+             sol == "La11" & tie_err == 0. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "La11" & agem_tie$tie_err == 0],
+                                   agem_tie$age[agem_tie$sol == "La11" & agem_tie$tie_err == 0],
+                                   xout = depth)$y,
+             sol == "La11" & tie_err == 1. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "La11" & agem_tie$tie_err == 1],
+                                   agem_tie$age[agem_tie$sol == "La11" & agem_tie$tie_err == 1],
+                                   xout = depth)$y,
+             sol == "La11" & tie_err == 2. ~
+               Hmisc::approxExtrap(agem_tie$strat_bot[agem_tie$sol == "La11" & agem_tie$tie_err == 2],
+                                   agem_tie$age[agem_tie$sol == "La11" & agem_tie$tie_err == 2],
+                                   xout = depth)$y,
+
              TRUE ~ NA_real_)) |>
     ## mutate(age = age + proxy_lag) |>
     mutate(ecc_sln = case_when(
@@ -10273,9 +10337,12 @@ Note that here we limit ourselves to only src_R{comb == 0.5:1} and src_R{filt_en
 
   msd_tie <- diffs_tie |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, site, comb, filt_env, #inv_sedrate,
-                      ## Ma405,
-                      ## tie_err, kpg_age,
+              .by = c(proxy, site, comb,
+                      detrend_type,
+                      filt_env, #inv_sedrate,
+                      Ma405,
+                      ## tie_err,
+                      #kpg_age,
                       ## proxy_lag,
                       sol)) |>
     arrange(RMSD)
@@ -10325,19 +10392,48 @@ Note that here we limit ourselves to only src_R{comb == 0.5:1} and src_R{filt_en
 :END:
 We filter out the best fit for each proxy, site, proxy_lag, and astronomical solution.
 #+begin_src R :results none
-  best_tie <- msd_tie |>
+  # which comb and detrend_type get the best scores?
+  # This means we shouldn't group by Ma405 yet!!!
+  diffs_tie |>
+      summarize(RMSD = sqrt(mean(SD)),
+                .by = c(proxy, site, comb,
+                        detrend_type,
+                        filt_env, #inv_sedrate,
+                        ## Ma405,
+                        ## tie_err,
+                        #kpg_age,
+                        ## proxy_lag,
+                        sol)) |>
+    arrange(RMSD) |>
+    tidylog::filter(RMSD == min(RMSD),
+                    .by = c(proxy, site, filt_env, ## detrend_type,
+                            sol))
+
+  best_tie <- diffs_tie |>
+    filter(comb == "1:0.5") |>
+    filter(detrend_type == "lin_gam_det") |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, site, comb,
+                      detrend_type,
+                      filt_env, #inv_sedrate,
+                      Ma405,
+                      tie_err,
+                        #kpg_age,
+                        ## proxy_lag,
+                      sol)) |>
     ## filter(site == "Zumaia", proxy == "MS") |>
     ## filter(sol == "ZB20a") |>
-    ## filter(kpg_age == 65940) |>
-    ## tidylog::filter(
-    ##   RMSD == min(RMSD), .by = c(proxy, site, ## comb, filt_env,
-    ##                              proxy_lag,
-    ##                              sol
-    ##                              )
-    ## ) |>
     # get only one proxy_lag out
     tidylog::filter(RMSD == min(RMSD),
-                    .by = c(proxy, site, filt_env, sol))
+                    # for each of the following we want the best
+                    # average over the remaining groups
+                    .by = c(proxy, # all three proxies
+                            site, # both sites
+                            filt_env, # two lines per graph
+                            Ma405, # separate lines for each 405 kyr, otherwise we only get 1 per site
+                            sol, # each solution
+                            ## tie_err
+                            ))
 
     ## # how about we get the best fit for each proxy/solution/site?
     ## mutate(low = RMSD %in% first(RMSD, order_by = RMSD),
@@ -10357,19 +10453,24 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
 #+begin_src R :results output graphics file :file imgs/best_fits_tiepoints.png :width 1200 :height 800
   # this plot crashes if I plot them all
   diffs_tie |>
-    ## filter(proxy == "MS", site == "Zumaia") |>
     # filter out some of the best fits
     tidylog::inner_join(best_tie) |>
+    filter(filt_env == "filter") |>
     ggplot(aes(x = age / 1e3,
-               group = paste(comb, filt_env, site#, ## kpg_age,
-                             ## tie_err
+               group = paste(sol,
+                             proxy, site,
+                             detrend_type,
+                             comb,
+                             filt_env,
+                             ## kpg_age,
+                             Ma405
                              ## proxy_lag
                              ),
                ## colour = 1 / tau * 100, # convert from kyr/m to cm/kyr
                ## colour = kpg_age,
-               # filt_env??
+               ## linetype = filt_env,
                )) +
-    facet_grid(rows = vars(sol, proxy)
+    facet_grid(rows = vars(proxy, sol)
                ## cols = vars(site),
                ## scales = "free_x", space = "free_x"
                ) +
@@ -10377,6 +10478,7 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
     # 405 kyr filters
     geom_line(aes(x = age / 1e3,
                   y = scale(filt)[, 1],
+                  ## linetype = filt_env,
                   group = sol),
               alpha = .4,
               data = sln_filters |>
@@ -10388,11 +10490,16 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
               alpha = .4,
               linetype = 1) +
     # orbital solution 405 kyr minima as points
-    geom_point(aes(x = age / 1e3, y = -2), inherit.aes = FALSE, data = agem_simple) +
+    geom_point(aes(x = age / 1e3, y = -2),
+               inherit.aes = FALSE,
+               data = agem_tie |>
+                 distinct(sol, age, .keep_all = TRUE)) +
     # proxy 'eccentricity' record
     geom_line(aes(y = ecc, RMSD = RMSD,
-                  colour = proxy,
+                  ## colour = proxy,
+                  colour = depth,
                   alpha = RMSD,
+                  ## linetype = filt_env,
                   ## group = proxy_lag
                  ##  colour = paste("K/T age = ", kpg_age / 1000,
                  ##                 "\ntau = ", tau,
@@ -10402,18 +10509,31 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
     # annotate RMSD for each fit
     geom_text(aes(x = age / 1e3, y = 2.7,
                   group = site,
-                  label = round(RMSD, 3),
-                  colour = proxy),
+                  label = round(RMSD, 3)## ,
+                  ## colour = proxy
+                  ),
               hjust = 0, alpha = 1,
               data = diffs_tie |>
                 tidylog::inner_join(best_tie) |>
                 summarize(age = mean(age), RMSD = min(RMSD),
-                          .by = c(sol, site, proxy))) +
+                          .by = c(sol, site, proxy, Ma405))) +
+    # annotate RMSD for each proxy/site/sol combo
+    geom_text(aes(x = age / 1e3, y = 3.7,
+                  group = site,
+                  label = round(RMSD, 3)## ,
+                  ## colour = proxy
+                  ),
+              hjust = 0, alpha = 1,
+              data = diffs_tie |>
+                inner_join(best_tie) |>
+                summarize(age = mean(age), RMSD = mean(RMSD),
+                          .by = c(proxy, site, comb, sol))) +
     scale_x_reverse(breaks = 66:72, minor_breaks = seq(59.9, 73, .1)) +
-    ## scale_colour_viridis_d() +
-    scale_colour_brewer(type = "qual", guide = FALSE) +
+    scale_colour_viridis_c() +
+    ## scale_colour_brewer(type = "qual", guide = FALSE) +
     scale_alpha_continuous(range = c(1, .3)) +
     ## geom_vline(aes(xintercept = kpg_age * 0.001), colour = "red") +
+    ## geom_vline(aes(xintercept = age / 1e3), data = agem_tie) +
     geom_vline(aes(xintercept = age1),
                colour = "red",
                data = kpg_ages |> rename(sol = sln)) +
@@ -10427,9 +10547,11 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
          ## title = "Zumaia (right) and Sopelana (left) Cretaceous proxies tuned to 3 orbital solutions",
          ## subtitle = str_wrap("Root mean square deviation (RMSD, opacity and numbers above respective lines) between normalized proxy 'eccentricity' construct (coloured lines, calculated as 0.5 * normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown.", width = 79)
          ) +
-    theme(legend.pos = c(.0381, .95),
+    theme(
+      #legend.pos = c(.0381, .95), # only RMSD
+      legend.pos = c(.0381, .85), # also colour = depth
           legend.background = element_blank(),
-          legend.key.height = unit(.2, "mm")
+          ## legend.key.height = unit(.2, "mm")
           ## plot.title = element_text(hjust = 0.5),
           ## plot.subtitle = element_text(hjust = 0.5)
           )
@@ -10437,10 +10559,50 @@ This is [[cref:fig:best-age]], the best figure I've been able to concoct so far!
 
 #+name: fig:best-age
 #+caption: *Zumaia (right) and Sopelana (left) Cretaceous proxies tuned to 3 orbital solutions.*
-#+caption: Root mean square deviation (RMSD, opacity and numbers above respective lines) between normalized proxy `eccentricity' construct (coloured lines, calculated as 0.5 * normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown.
+#+caption: Root mean square deviation (RMSD, opacity and numbers above respective lines) between normalized proxy `eccentricity' construct (coloured lines, calculated as scaled normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field \pm\qty{2}{\metre} to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown.
 #+attr_latex: :width \linewidth
 #+RESULTS:
 [[file:imgs/best_fits_tiepoints.png]]
+
+**** illustrate problem
+:PROPERTIES:
+:CREATED:  [2023-11-21 Tue 14:09]
+:END:
+
+If we select the Ma405 cycles with the /best/ RMSD scores, this means that for some they'll get a tiepoint uncertainty of +2 m and for the next cycle -2 m, resulting in overlapping depths getting mapped to the same age.
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_tiepoint_uncertainty.png :width 900 :height 1200
+  diffs_tie |>
+    # filter out some of the best fits
+    tidylog::inner_join(best_tie) |>
+    # plot vs. depth to illustrate tiepoint uncertainty
+    ggplot(aes(x = depth, y = ecc)) +
+    facet_grid(rows = vars(proxy, sol)) +
+    scale_x_reverse() +
+    scale_colour_brewer(type = "qual", guide = FALSE) +
+    theme(legend.pos = c(.1, .95)) +
+    geom_line(aes(colour = proxy,
+                  linetype = filt_env,
+                  group = paste(filt_env, site))) +
+    # annotate maxima
+    geom_segment(aes(x = strat_bot, xend = strat_top,
+                     y = 2, yend = 2),
+                 data = agem) +
+    # annotate all tiepoints
+    geom_point(aes(x = strat_bot, y = -2),
+               data = agem_tie) +
+    # annotate tiepoint error
+    geom_point(aes(x = tie_depth, y = -2),
+               size = .3,
+               data = agem_tie) #+
+    # annotate used tiepoint for best fit
+    ## geom_point(aes(x = depth, y = tie_err, group = Ma405))
+#+end_src
+
+#+attr_latex: :width \textwidth
+#+caption: Best fits vs. depth, illustrating agemodel tie-point uncertainty overlap issues.
+#+RESULTS:
+[[file:imgs/Zumaia_tiepoint_uncertainty.png]]
 
 *** Analysis in the time domain
 :PROPERTIES:
