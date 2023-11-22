@@ -379,7 +379,7 @@ downloaded 383 KB
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:31]
 :END:
-I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those frequencies \pm 30%.
+I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those frequencies \pm 40%.
 #+begin_src R
   my_filt_age <- tribble(
     ~ target, ~ p,
@@ -387,7 +387,7 @@ I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those 
     "100 kyr", 100,
   ) |>
     mutate(f = 1 / p,
-           range = 0.3 * f,
+           range = 0.4 * f,
            flow = f - range,
            fhigh = f + range,
            ref = "This study")
@@ -412,8 +412,8 @@ Just to check, this results in the following periods for filtering the AS:
 : # A tibble: 2 × 9
 :   target      p       f    range    flow   fhigh ref         plow phigh
 :   <chr>   <dbl>   <dbl>    <dbl>   <dbl>   <dbl> <chr>      <dbl> <dbl>
-: 1 405 kyr   405 0.00247 0.000741 0.00173 0.00321 This study  579. 312.
-: 2 100 kyr   100 0.01    0.003    0.007   0.013   This study  143.  76.9
+: 1 405 kyr   405 0.00247 0.000988 0.00148 0.00346 This study  675  289.
+: 2 100 kyr   100 0.01    0.004    0.006   0.014   This study  167.  71.4
 
 So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenburg2014], where they filter the La11 solution between 300 and 623 kyr to target the 405 kyr solution.
 
@@ -9417,7 +9417,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters_depth.png]]
 
-***** basic gam removal
+***** COMMENT basic gam removal
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:36]
 :END:
@@ -9456,42 +9456,46 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+caption: Zumaia/Sopelana simple gam trend removal and filtering. This is ~gam_det~ in cref:tab:detrend_types.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_gam.png]]
-***** [#A] complicated overview plot
+***** show how the linear/gam detrending works
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:19]
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :width 900
-  comp |>
+  smooth |>
     filter(site == "Zumaia", proxy == "MS") |>
     ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
     facet_grid(rows = vars(proxy), scales = "free_y") +
     # r/w intervals
-    annotate("rect",
-             xmin = c(-5, 0, 59, 85, 109),
-             xmax = c(0, 59, 85, 109, 145),
-             ymin = 45, ymax = 50,
-             fill = c("gray", "red", "gray", "red", "gray"),
-             alpha = .2
-             ) +
+    scale_fill_manual(values = c("red" = "indianred", "pink" = "pink", "white" = "gray"),
+                      guide = FALSE) +
+    geom_rect(aes(fill = str_sub(colour, 1, -2),
+                  xmin = depth - .1, xmax = depth + .1, ymin = 50, ymax = 55)) +
+    ## annotate("rect",
+    ##          xmin = c(-5, 0, 59, 85, 109),
+    ##          xmax = c(0, 59, 85, 109, 145),
+    ##          ymin = 45, ymax = 50,
+    ##          fill = c("gray", "red", "gray", "red", "gray"),
+    ##          alpha = .2
+    ##          ) +
+    ## ggnewscale::new_scale_colour() +
 
     # "raw" data
     geom_line(colour = "gray") +
-    annotate("text", x = 145, y = 33, label = "raw - r/w", colour = "gray", hjust = 0) +
-    geom_line(aes(y = lin + 30), colour = "gray", data = smooth |>
-              filter(site == "Zumaia", proxy == "MS")) +
     annotate("text", x = 145, y = 10, label = "raw", colour = "gray", hjust = 0) +
+
+    geom_line(aes(y = lin + 30), colour = "gray") +
+    annotate("text", x = 145, y = 33, label = "raw - r/w", colour = "gray", hjust = 0) +
+
     geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
     annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 0) +
-    geom_line(aes(y = det - 5), data = smooth_basic |>
-                              filter(site == "Zumaia", proxy == "MS"),
-              colour = "gray") +
-    annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
-    geom_line(aes(y = det - 10), data = smooth |>
-                              filter(site == "Zumaia", proxy == "MS"),
-              colour = "gray") +
-    annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
 
-    ## # gam and other trends
+    ## geom_line(aes(y = gam - 5), colour = "gray") +
+    ## annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
+
+    ## geom_line(aes(y = det - 10), colour = "gray") +
+    ## annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
+
+    # gam and other trends
     geom_line(aes(y = gam_pred, colour = "gam"), data = smooth_basic |>
                               filter(site == "Zumaia", proxy == "MS")) +
     geom_line(aes(y = lin_pred, colour = "mean r/w", group = colour), data = smooth |>
@@ -9499,16 +9503,10 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     geom_line(aes(y = gam_pred + 30, colour = "gam pred r/w"), data = smooth |>
                               filter(site == "Zumaia", proxy == "MS")) +
 
-    ## # filters
-    geom_line(aes(y = filt, colour = "scaled filt", group = target),
-              data = filts_scl |>
-              filter(site == "Zumaia", proxy == "MS")) +
-    geom_line(aes(y = filt - 5, colour = "gam filt", group = target),
-              data = filts_gam |>
-              filter(site == "Zumaia", proxy == "MS")) +
-    geom_line(aes(y = filt - 10, colour = "gam + r/w filt", group = target),
-              data = filts_fancy |>
-              filter(site == "Zumaia", proxy == "MS")) +
+    # filters
+    ## geom_line(aes(y = filt, colour = detrend_type, group = target),
+    ##           data = filts |>
+    ##             filter(site == "Zumaia", proxy == "MS")) +
 
     ## # age model from the log
     geom_point(aes(x = strat_bot, y = -2,
@@ -10433,7 +10431,7 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
 #+end_src
 
 #+attr_latex: :width \linewidth
-#+caption: *Zumaia/Sopelana detrended records (colour represents the way in which the detrending was done, see cref:tab:detrend_types) and various bandpass filters (405 kyr, 100 kyr, 22 kyr \pm 30% in frequency) in the time domain.* Top lines represent the Hilbert transform of the precession filter for comparison to the 405 and 100 kyr direct filters. Large dots identify minima in the 405 kyr filters, which should correspond to the vertical black lines (minima identified in the field and tuned to 405 kyr minima in AS). d13C shows a lag with respect to the other proxies.
+#+caption: *Zumaia/Sopelana detrended records (colour represents the way in which the detrending was done, see cref:tab:detrend_types) and various bandpass filters (405 kyr, 100 kyr, 22 kyr \pm 40% in frequency) in the time domain.* Top lines represent the Hilbert transform of the precession filter for comparison to the 405 and 100 kyr direct filters. Large dots identify minima in the 405 kyr filters, which should correspond to the vertical black lines (minima identified in the field and tuned to 405 kyr minima in AS). d13C shows a lag with respect to the other proxies.
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters.png]]
 
