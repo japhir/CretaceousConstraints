@@ -36,13 +36,13 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
 
 #+RESULTS:
 #+begin_example
-── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
+── Attaching core tidyverse packages ────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 2.0.0 ──
 ✔ dplyr     1.1.4     ✔ readr     2.1.4
 ✔ forcats   1.0.0     ✔ stringr   1.5.1
 ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
 ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
 ✔ purrr     1.0.2
-── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+── Conflicts ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ✖ dplyr::filter() masks stats::filter()
 ✖ dplyr::lag()    masks stats::lag()
 ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
@@ -375,6 +375,80 @@ downloaded 383 KB
 #+end_src
 
 #+RESULTS:
+*** get La10b
+http://vo.imcce.fr/insola/earth/online/earth/earth.html
+#+begin_src R
+  La10b <- readr::read_table(
+                    "http://vo.imcce.fr/insola/earth/online/earth/La2010/La2010b_ecc3L.dat",
+                    col_names = c("age", "ecc")) |>
+    write_rds("out/La10b.rds")
+#+end_src
+
+#+RESULTS:
+:
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: cols(
+:   age = col_double(),
+:   ecc = col_double()
+: )
+
+#+begin_src R
+  La10b <- read_rds("out/La10b.rds") |>
+    select(age, ecc) |>
+    mutate(age = -age) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "La10b", .before = age)
+
+  sln4 <- La10b
+#+end_src
+
+#+RESULTS:
+
+*** get La10c
+http://vo.imcce.fr/insola/earth/online/earth/earth.html
+#+begin_src R
+  La10c <- readr::read_table(
+                    "http://vo.imcce.fr/insola/earth/online/earth/La2010/La2010c_ecc3L.dat",
+                    col_names = c("age", "ecc")) |>
+    write_rds("out/La10c.rds")
+#+end_src
+
+#+RESULTS:
+:
+: ── Column specification ─────────────────────────────────────────────────────────────────────────────────
+: cols(
+:   age = col_double(),
+:   ecc = col_double()
+: )
+
+#+begin_src R
+  La10c <- read_rds("out/La10c.rds") |>
+    select(age, ecc) |>
+    mutate(age = -age) |>
+    filter(age >= 56000 & age <= 80000) |>
+    mutate(scl = scale(ecc)[, 1]) |>
+    mutate(sln = "La10c", .before = age)
+
+  sln5 <- La10c
+#+end_src
+
+#+RESULTS:
+
+*** combine all solutions
+:PROPERTIES:
+:CREATED:  [2023-11-28 Tue 11:12]
+:END:
+#+begin_src R
+  slns <- sln |>
+    bind_rows(sln2) |>
+    bind_rows(sln3) |>
+    bind_rows(sln4) |>
+    bind_rows(sln5)
+#+end_src
+
+#+RESULTS:
+
 ** bandpass filters on orbital solutions
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:31]
@@ -392,9 +466,7 @@ I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those 
            fhigh = f + range,
            ref = "This study")
 
-  sln_filters <- sln |>
-    bind_rows(sln2) |>
-    bind_rows(sln3) |>
+  sln_filters <- slns |>
     bandpass_filter(freqs = my_filt_age,
                     x = age, y = ecc,
                     nest = "sln")
@@ -438,7 +510,7 @@ I use these as tie-points for the tuning of the 405 kyr cycle.
 
 #+RESULTS:
 #+begin_example
-filter: removed 99,002 rows (50%), 99,002 rows remaining
+filter: removed 147,004 rows (50%), 147,004 rows remaining
 
 ----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
  ,* Number of data points= 60000
@@ -455,6 +527,22 @@ filter: removed 99,002 rows (50%), 99,002 rows remaining
  ,* Number of peaks identified= 60
  ,* Filtering peaks at threshold of -0.03
  ,* Number of peaks >= -0.03 : 60
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 24001
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 59
+ ,* Filtering peaks at threshold of -0.03
+ ,* Number of peaks >= -0.03 : 59
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 24001
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 59
+ ,* Filtering peaks at threshold of -0.03
+ ,* Number of peaks >= -0.03 : 59
 
 ----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
  ,* Number of data points= 24001
@@ -481,8 +569,8 @@ These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens
     ## "ZB20c",
     ## "ZB20d",
     ## "La10a",
-    ## "La10b",
-    ## "La10c",
+    "La10b", 65.95, 65.96,
+    "La10c", 65.95, 65.96,
     ## "La10d",
     "La11", 66.01, 66.02,
   )
@@ -495,9 +583,7 @@ These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens
 :CREATED:  [2023-10-03 Tue 14:51]
 :END:
 #+begin_src R :results output graphics file :file imgs/orbital_solutions.png :width 900 :exports both
-  sln |>
-    bind_rows(sln2) |>
-    bind_rows(sln3) |>
+  slns |>
     ggplot(aes(x = age / 1000, y = ecc)) +
     geom_line(linewidth = 1.2, alpha = .3) +
     geom_line(aes(x = age / 1000, y = filt, colour = target),
@@ -506,7 +592,8 @@ These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens
     geom_point(aes(x = age / 1000, y = 0), colour = "indianred", data = sln_peaks) +
     geom_vline(aes(xintercept = age1), data = kpg_ages) +
     geom_vline(aes(xintercept = age2), data = kpg_ages) +
-    coord_cartesian(xlim = c(66 - 13*.405, 66)) +
+    geom_point(aes(y = 0), colour = "black", data = agem_sol |> rename(sln = sol)) +
+    coord_cartesian(xlim = c(66 + 13*.405, 65)) +
     labs(x = "Age (Ma)", y = "Eccentricity (-)") +
     facet_grid(rows = vars(sln))
 #+end_src
@@ -8686,14 +8773,14 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 
   agem_sol <- agem_simple |>
     ## mutate(age = n * 405)
-    mutate(sol = list(c("La11", "ZB18a", "ZB20a"))) |>
+    mutate(sol = list(c("La10b", "La10c", "ZB18a", "ZB20a"))) |>
     unnest(cols = c(sol)) |>
     nest(.by = sol) |>
     # TODO: this is still wrong, strat = 0 = K/Pg boundary but in Batenburg
     # et al., 2012 they list 0 as "close to" the first 405 kyr minimum.
     mutate(age = case_when(sol == "ZB18a" ~
                              sln_peaks |>
-                             filter(sln == "ZB18a", age >= 65.9 * 1e3) |>
+                             filter(sln == "ZB18a", age >= 65.9 * 1e3 - 200) |>
                              arrange(age) |>
                              slice(1:14) |>
                              pull(age) |> list(),
@@ -8703,9 +8790,15 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
                              arrange(age) |>
                              slice(1:14) |>
                              pull(age) |> list(),
-                           sol == "La11" ~
+                           sol == "La10b" ~
                              sln_peaks |>
-                             filter(sln == "La11", age >= 66.0 * 1e3 - 200) |>
+                             filter(sln == "La10b", age >= 65.9 * 1e3 - 200) |>
+                             arrange(age) |>
+                             slice(1:14) |>
+                             pull(age) |> list(),
+                           sol == "La10c" ~
+                             sln_peaks |>
+                             filter(sln == "La10c", age >= 65.9 * 1e3 - 200) |>
                              arrange(age) |>
                              slice(1:14) |>
                              pull(age) |> list(),
@@ -8729,7 +8822,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 312.93MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [===============================================================================================================] 228.49MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -11198,7 +11291,9 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                   ## colour = detrend_type,
                   colour = factor(tie_err),
                   ## colour = depth,
-                  alpha = RMSD,
+
+                  ## alpha = RMSD,
+
                   ## linetype = filt_env,
                   ## group = proxy_lag
                  ##  colour = paste("K/T age = ", kpg_age / 1000,
@@ -11254,7 +11349,9 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     ## scale_colour_viridis_c() +
     ## scale_colour_brewer(type = "qual", guide = FALSE) +
     ## scale_colour_brewer(type = "qual") +
-    scale_alpha_continuous(range = c(1, .3)) +
+
+    ## scale_alpha_continuous(range = c(1, .3)) +
+
     ## geom_vline(aes(xintercept = kpg_age * 0.001), colour = "red") +
     ## geom_vline(aes(xintercept = age / 1e3), data = agem_tie) +
     geom_vline(aes(xintercept = age1),
@@ -11266,7 +11363,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
          ## colour = "Age of the K/T boundary",
          ## colour = "Sedimentation rate (cm/kyr)",
          ## colour = "",
-         alpha = "RMSD\n(lower = better)",
+         ## alpha = "RMSD\n(lower = better)",
          ## title = "Zumaia (right) and Sopelana (left) Cretaceous proxies tuned to 3 orbital solutions",
          ## subtitle = str_wrap("Root mean square deviation (RMSD, opacity and numbers above respective lines) between normalized proxy 'eccentricity' construct (coloured lines, calculated as 0.5 * normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown.", width = 79)
          ) +
