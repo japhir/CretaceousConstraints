@@ -11498,7 +11498,30 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 #+caption: Root mean square deviation (RMSD, opacity and black numbers above respective lines) between normalized proxy `eccentricity' construct (coloured lines, calculated as scaled normalized 405 kyr filter + normalized 100 kyr filter) and normalized orbital solution (light gray lines), after anchoring 405-kyr minima identified in the field \pm\qty{2}{\metre} (colour, coloured numbers above lines) to 405 kyr minima in each orbital solution (black dots). Normalized 405 kyr filters of orbital solutions (light gray lines) and K/T age (red line) are shown. We limit this figure to a ~comb~ of ~1:0.5~, ~filt_env~ = filter and ~detrend_type~ = ~lin_scl~.
 #+RESULTS:
 [[file:imgs/best_fits_tiepoints.png]]
+*** rolling variable tie-points
+:PROPERTIES:
+:CREATED:  [2023-11-28 Tue 16:54]
+:END:
 
+#+begin_src R
+  diffs_tie <- data_ecc |>
+    select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
+    ## tidylog::filter(detrend_type == "lin_gam_det") |>
+    # we want to group by each Ma405 cycle
+    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1)
+
+  for (cycle in 1:13) {
+    diffs_tie |>
+      filter(Ma405 == cycle) |>
+      # append age model tie-point uncertainty
+      # calculate age from age model for each uncertainty
+      # append the astronomical solution for each uncertainty and for each AS
+      # calculate SD between ecc and ecc_sol
+      # sumamrize into RMSD
+      # filter out only best tiepoint uncertainty
+      # move on to next Ma405 tiepoint
+  }
+#+end_src
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
