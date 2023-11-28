@@ -8728,7 +8728,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > . + indexing 18696_2.csv [===============================================================] 1.78GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 2.05GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -8823,7 +8823,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [==========================================================] 149.95MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
+: indexing 405_minima.csv [==========================================================] 232.18MB/s, eta:  0s                                                                                                                                            Rows: 20 Columns: 5
 : ── Column specification ─────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -10795,20 +10795,6 @@ For which time periods is the construction doing well and where is it failing?
 #+RESULTS:
 [[file:imgs/Zumaia-RMSD-scores.png]]
 
-Interestingly, for this 405 kyr minima age model it seems that:
-- For ZB18a vs. Zumaia MS, scl 1:1 hilbert is best!
-  - then value 1:0.5 hilbert
-  - then lin_scl 1:0.5 hilbert
-  - then lin_gam_det 1:0.5 hilbert
-- For ZB18a vs. Zumaia Lstar it's 1:0.5 hilbert for ~lin_gam_det~ (but not much better than value).
-- For ZB18a vs. Zumaia d13C it's gam_det 1:1 hilbert.
-- For ZB20a vs. Zumaia MS it's value 1:0.5 hilbert
-- For ZB20a vs. Zumaia Lstar it's value 1:0.5 hilbert
-- For ZB20a vs. Zumaia d13C it's lin_gam_det/lin_scl/gam_det 1:0.5 filter but value and scl are only 0.01 worse.
-- For La11 vs. Zumaia MS, value 1:0.5 filter is best, but scl 1:0.5 hilbert is close second (+0.03)
-- For La11 vs. Zumaia Lstar value 1:0.5 hilbert is best
-- For La11 vs. Zumaia d13C gam_det 1:0.5 hilbert is best
-
 **** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 16:02]
@@ -11517,7 +11503,12 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
 :END:
-#+begin_src R
+:LOGBOOK:
+- Note taken on [2023-11-28 Tue 16:51] \\
+  this is the image after running the standard depth analysis as well as the simple agemodel time analysis after adding La10b and La10c
+:END:
+
+#+begin_src R :eval query
   save.image()
 #+end_src
 
