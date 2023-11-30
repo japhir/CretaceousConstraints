@@ -8809,10 +8809,12 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
     mutate(depth_diff = abs(strat_bot - lead(strat_bot)),
            age_diff = abs(age - lead(age)), .by = sol)
 
+  tiepoint_uncertainty <- seq(-4, 4, .5)
+
   agem_tie <- agem_sol |>
-    mutate(tie_err = list(seq(-2, 2, 1))) |>
+    mutate(tie_err = list(tiepoint_uncertainty)) |>
     unnest(tie_err) |>
-    mutate(tie_depth = strat_bot + tie_err)
+    mutate(depth = strat_bot + tie_err)
     ## filter(!(strat_bot == 0 & tie_err != 0))
   # prepend -1 cycle based on very rough estimate so that d13C data can be interpolated
   ## agem_simple <- bind_rows(
@@ -8935,6 +8937,7 @@ We have several ways of subtracting the long-term trends prior to doing spectral
                                  method = "REML",
                                  data = .))) |>
     mutate(
+      # TODO: this outputs a <dbl[1d]> rather than a simple <dbl>
       gam_pred = map(gam, predict),
     ) |>
     select(-gam) |>
@@ -9005,7 +9008,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
                             method = "REML",
                             data = .)),
-      gam_pred = map(gamm, predict)
+      gam_pred = map_dbl(gamm, predict)
     ) |>
     select(-gamm) |>
     unnest(cols = c(data, gam_pred)) |>
@@ -9017,6 +9020,11 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 #+end_src
 
 #+RESULTS:
+: Error in `mutate()`:
+: ℹ In argument: `lin = value - lin_pred`.
+: Caused by error:
+: ! object 'value' not found
+: Run `rlang::last_trace()` to see where the error occurred.
 
 **** combine the trend removal dataframes into smooth_pred
 :PROPERTIES:
@@ -9451,6 +9459,230 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+end_src
 
 #+RESULTS:
+
+**** get 405 kyr minima from bandpass filters
+:PROPERTIES:
+:CREATED:  [2023-11-30 Thu 10:46]
+:END:
+#+begin_src R
+  rec_peaks <- filts |>
+      tidylog::filter(target == "405 kyr") |>
+      mutate(filt = -filt) |> # we want MINIMA rather than maxima
+      nest(.by = c(proxy, site, detrend_type)) |>
+      mutate(pk = map(data, ~ .x |>
+                              select(depth, filt) |>
+                              astrochron::peak(genplot = FALSE) |>
+                              as_tibble() |>
+                              select(depth = Location, peak_value = Peak_Value))) |>
+      unnest(pk) |>
+    select(-data) |>
+    mutate(peak_value = -peak_value) # convert back to original value
+#+end_src
+
+#+RESULTS:
+#+begin_example
+filter: removed 43,290 rows (67%), 21,645 rows remaining
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 386
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 8
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 386
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 8
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 386
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 10
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 386
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 8
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 386
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 10
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1349
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1349
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1349
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1349
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1349
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1344
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1344
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1344
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1344
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 1344
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 9
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 2
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 2
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 2
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 4
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 4
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 3
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 3
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 3
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 4
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 625
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 4
+
+ ,* No filtering of peaks applied.
+#+end_example
 
 **** hilbert transform of the precession bp filter
 :PROPERTIES:
@@ -11293,22 +11525,303 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 #+begin_src R
   diffs_tie <- data_ecc |>
     select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
-    ## tidylog::filter(detrend_type == "lin_gam_det") |>
     # we want to group by each Ma405 cycle
-    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1)
+    mutate(Ma405 = findInterval(depth, agem_simple$strat_bot) - 1) |>
+    # add target orbital solution ages
+    mutate(sol = list(c("ZB18a", "ZB20a", ## "La11"
+                        "La10b", "La10c"))) |>
+    unnest(cols = c(sol))
 
-  for (cycle in 1:13) {
-    diffs_tie |>
-      filter(Ma405 == cycle) |>
-      # append age model tie-point uncertainty
-      # calculate age from age model for each uncertainty
-      # append the astronomical solution for each uncertainty and for each AS
-      # calculate SD between ecc and ecc_sol
+  # I think I can loop over all of these in my normal map way later
+  ste <- "Zumaia"
+  prx <- "MS"
+  ## sln <- "ZB18a"
+  ## sln <- "ZB20a" # let's see if it'll run all-at-once for ZB20a now
+  ## sln <- "La10b"
+  sln <- "La10c"
+  cmb <- "1:1"
+  dty <- "scl"
+  fen <- "filter"
+
+  subs <- diffs_tie |>
+    filter(site == ste) |>
+    filter(sol == sln) |>
+    filter(proxy == prx) |>
+    filter(detrend_type == dty) |>
+    filter(comb == cmb) |>
+    filter(filt_env == fen)
+
+  # create a tibble that holds the best fits for each tie-point
+  # for now just for this unique combination
+  the_best <- tibble(sol = sln, proxy = prx, site = ste, comb = cmb,
+                     detrend_type = dty, filt_env = fen) |>
+    mutate(Ma405 = list(unique(subs$Ma405))) |>
+    unnest(cols = c(Ma405)) |>
+    mutate(tie_err = NA_real_, RMSD = NA_real_)
+
+
+  for (cycle in ## 3:9
+       unique(subs$Ma405)
+       ) {
+
+    message(glue::glue("cycle is {cycle}"))
+
+    # subset the agemodel to this and the previous cycle
+    am <- agem_sol |>
+      filter(sol == sln) |>
+      filter((cycle == 0 & (n == 0 | n == 1)) |
+             (n == cycle - 1 | n == cycle)) |>
+      mutate(tie = list(tiepoint_uncertainty)) |>
+      unnest(tie) |>
+      mutate(depth = strat_bot + tie) |>
+      select(sol, n, tie, depth, age)
+
+    if (cycle == 0 | cycle == 1) {
+      if (cycle == 0) next
+      # jump straight to cycle == 1
+
+      # let's assemble, just for tiepoints 0 and 1 a comprehensive list of all
+      # combinations of tiepoint uncertainties, so we can apply agemodels based
+      # on all combinations and figure out which combination works best.
+      # this is too computationally intensive to do for everything!
+      amc <- expand.grid(tie_0 = tiepoint_uncertainty, tie_1 = tiepoint_uncertainty) |>
+        as_tibble() |>
+        bind_cols(
+          agem_sol |>
+          filter(sol == sln) |>
+          filter(n == 0) |>
+          select(depth_0 = strat_bot, age_0 = age)) |>
+        bind_cols(
+          agem_sol |>
+          filter(sol == sln) |>
+          filter(n == 1) |>
+          select(depth_1 = strat_bot, age_1 = age)) |>
+        mutate(depth_0 = tie_0 + depth_0,
+               depth_1 = tie_1 + depth_1) |>
+        pivot_longer(cols = c(depth_0, depth_1, age_0, age_1),
+                     values_to = "value",
+                     names_sep = "_",
+                     names_to = c("name", "n")) |>
+        pivot_wider()
+      # this leaves 2 rows per unique combination on purpose, so we can filter
+      # out by tie_0 and tie_1, resulting in a 2-row dataframe with depth and age
+      # so we can interpolate
+
+      tmp <- subs |>
+        filter(Ma405 %in% c(0, 1)) |>
+        mutate(tie = list(expand.grid(tie_0 = tiepoint_uncertainty, tie_1 = tiepoint_uncertainty))) |>
+        unnest(cols = c(tie)) |>
+        # calculate age from age model for each uncertainty
+        mutate(age = pmap_dbl(
+                 list(.x = tie_0, .y = tie_1, .z = depth),
+                 ~ Hmisc::approxExtrap(
+                            amc |>
+                            filter(tie_0 == .x, tie_1 == .y) |>
+                            pull(depth),
+                            amc |>
+                            filter(tie_0 == .x, tie_1 == .y) |>
+                            pull(age),
+                            xout = .y)$y)) |>
+        # linearly interpolate the astronomical solution eccentricity
+        mutate(ecc_sln = approx(slns$age[slns$sln == sln],
+                                slns$scl[slns$sln == sln],
+                                xout = age)$y) |>
+        # calculate SD between ecc and ecc_sol
+        mutate(SD = (ecc - ecc_sln)^2)
+
       # sumamrize into RMSD
+      smy <- tmp |>
+        summarize(RMSD = sqrt(mean(SD)),
+                  .by = c(proxy,
+                          site,
+                          comb,
+                          detrend_type,
+                          filt_env,
+                          tie_0, tie_1, # only for cycles 0 and 1!!!
+                          sol))
+
       # filter out only best tiepoint uncertainty
-      # move on to next Ma405 tiepoint
+      bst <- smy |>
+        filter(RMSD == min(RMSD),
+               # for each of the following we want the best
+               # average over the remaining groups
+               .by = c(proxy, # all three proxies
+                       site, # both sites
+                       ## comb,
+                       ## detrend_type,
+                       ## filt_env, # two lines per graph
+                       ## Ma405, # separate lines for each 405 kyr, otherwise we only get 1 per site
+                       sol, # each solution
+                       )) |>
+        # this gives me 4 equivalent results
+        # filter out the one that's closest to tie_0 == 0
+        # identified in the field
+        filter(tie_0 == min(abs(tie_0)))
+
+      # save the result to our overlord table
+      the_best$tie_err[the_best$Ma405 == 0] <- bst$tie_0
+      the_best$tie_err[the_best$Ma405 == 1] <- bst$tie_1
+      the_best$RMSD[the_best$Ma405 == 0] <- bst$RMSD
+      the_best$RMSD[the_best$Ma405 == 1] <- bst$RMSD
+
+    } else if (cycle > 1) {
+
+        am <- am |>
+          # the 405 kyr cycle we're currently trying to match
+          filter(n == cycle |
+                 # and the previous best match
+                 (n == cycle - 1 & tie == the_best$tie_err[the_best$Ma405 == cycle - 1]))
+
+
+        tmp <- subs |>
+          filter(Ma405 == cycle) |>
+          # TODO: make this filter match the depth based on the tie-point instead?
+          mutate(tie = list(tiepoint_uncertainty)) |>
+          unnest(cols = c(tie)) |>
+          # calculate age from age model for each uncertainty
+          mutate(age = map2_dbl(
+                   tie, depth,
+                   ~ Hmisc::approxExtrap(
+                              am |>
+                              filter(n == cycle - 1 | (n == cycle & tie == .x)) |>
+                              pull(depth),
+                              am |>
+                              filter(n == cycle - 1 | (n == cycle & tie == .x)) |>
+                          pull(age),
+                          xout = .y)$y)) |>
+          # linearly interpolate the astronomical solution eccentricity
+          mutate(ecc_sln = approx(slns$age[slns$sln == sln],
+                                  slns$scl[slns$sln == sln],
+                                  xout = age)$y) |>
+          # calculate SD between ecc and ecc_sol
+          mutate(SD = (ecc - ecc_sln)^2)
+
+
+        # sumamrize into RMSD
+        smy <- tmp |>
+          summarize(RMSD = sqrt(mean(SD)),
+                    .by = c(proxy,
+                            site,
+                            comb,
+                            detrend_type,
+                            filt_env,
+                            tie,
+                            sol))
+
+        # filter out only best tiepoint uncertainty
+        bst <- smy |>
+          filter(RMSD == min(RMSD),
+                 # for each of the following we want the best
+                 # average over the remaining groups
+                 .by = c(proxy, # all three proxies
+                         site, # both sites
+                         sol, # each solution
+                         ))
+
+        # save the result to our overlord table
+        the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
+        the_best$RMSD[the_best$Ma405 == cycle] <- bst$RMSD
+
+      }
   }
+
+  # filter out the best tie-point uncertainties from the age model
+  am_tie <- agem_tie |>
+    rename(Ma405 = n) |>
+    filter(sol == sln) |>
+    # we do not include uncertainty on the K/T boundary
+    ## tidylog::filter(!(Ma405 == 0 & tie_err != 0)) |>
+    tidylog::left_join(the_best,
+                       by = c("sol", "site", "Ma405", "tie_err")) |>
+    filter(!is.na(RMSD)) |>
+    write_csv(glue::glue("out/{sln}_best_tiepoint_uncertainty.csv,"))
+
+  # apply the optimized agemodel
+  suba <- subs |>
+    mutate(age = map_dbl(depth,
+             ~ Hmisc::approxExtrap(
+                        am_tie |> pull(depth),
+                            am_tie |> pull(age),
+                        xout = .x)$y)) |>
+    mutate(ecc_sln = approx(slns$age[slns$sln == sln],
+                            slns$scl[slns$sln == sln],
+                            xout = age)$y) |>
+    # calculate SD between ecc and ecc_sol
+    mutate(SD = (ecc - ecc_sln)^2)
+
+
+  # sumamrize into RMSD
+  sumy <- suba |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, site, comb,
+                      detrend_type,
+                      filt_env,
+                      sol))
 #+end_src
+**** did that work out?
+:PROPERTIES:
+:CREATED:  [2023-11-29 Wed 16:38]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_rolling_tiepoints.png :width 800 :height 650
+  ## comp |>
+  (suba |>
+   ggplot(aes(x = depth, y = ecc,
+              colour = factor(Ma405))) +
+   geom_line(aes(y = scale(ecc_sln)[, 1]), colour = "gray") +
+   # annotate 405 kyr minima in depth record filter
+   geom_point(aes(x = depth, y = -2),
+              colour = "brown",
+              data = rec_peaks |>
+                filter(proxy == prx,
+                       detrend_type == dty,
+                       site == ste)) +
+   # annotate age model maxima as identified in the field
+   geom_segment(aes(x = strat_bot, xend = strat_top, y = 2, yend = 2),
+              colour = "purple",
+              data = agem |> filter(minmax == "maximum")) +
+   # annotate age model minima as identified in the field
+   geom_point(aes(x = strat_bot, y = -1.8),
+              colour = "purple",
+              data = agem_simple |>
+                 filter(strat_bot < 140)) +
+   # annotate potential tie-point uncertainties tried out
+   geom_point(aes(x = depth, y = -1.8),
+              colour = "purple", size = .2,
+              data = agem_tie |>
+                filter(sol == sln) |>
+                 filter(strat_bot < 140)) +
+   # annotate best tie-point uncertainty
+   geom_point(aes(x = depth, y = -2.2),
+              colour = "red",
+              data = am_tie) +
+   annotate("text", x = c(0, 0, 0) - 5, y = c(-2, -1.8, -2.2),
+            hjust = 0,
+            colour = c("brown", "purple", "red"),
+            label = c("record filter", "field ties", "optimized ties")) +
+   geom_line() +
+   coord_cartesian(xlim = c(150, -20)) +
+   scale_x_reverse() +
+   labs(x = "Depth (m)", y = "Normalized proxy construct")) /
+    (suba |>
+     ggplot(aes(x = age / 1e3, y = ecc,
+                colour = factor(Ma405))) +
+     geom_line(aes(y = scale(ecc_sln)[, 1]), colour = "gray") +
+     geom_point(aes(x = age / 1e3, y = -2),
+               colour = "red",
+               data = am_tie) +
+     geom_line() +
+     geom_vline(aes(xintercept = age1), data = kpg_ages |> filter(sln == "ZB18a") |> rename(sol = sln)) +
+     scale_x_reverse() +
+     labs(x = "Age (Ma)", y = "Normalized proxy construct")
+    ) *
+    labs(colour = "Ma405", title = sln) +
+    ## scale_colour_brewer(type = "qual", palette = 1) +
+    plot_layout(guides = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_rolling_tiepoints.png]]
+
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
