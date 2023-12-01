@@ -11553,30 +11553,36 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     filter(comb == cmb) |>
     filter(filt_env == fen)
 
-  # create a tibble that holds the best fits for each tie-point
-  # for now just for this unique combination
-  the_best <- tibble(sol = sln, proxy = prx, site = ste, comb = cmb,
-                     detrend_type = dty, filt_env = fen) |>
-    mutate(Ma405 = list(unique(subs$Ma405))) |>
-    unnest(cols = c(Ma405)) |>
-    mutate(tie_err = NA_real_, RMSD = NA_real_)
+  wrap_age_model <- function(data,
+                             agemodel,
+                             tiepoint_uncertainty = seq(-4, 4, .5),
+                             fix_0 = TRUE) {
+    # create a tibble that holds the best fits for each tie-point
+    # for now just for this unique combination
+    ## the_best <- tibble(sol = sln, proxy = prx, site = ste, comb = cmb,
+    ##                    detrend_type = dty, filt_env = fen) |>
+    ##   mutate(Ma405 = list(unique(subs$Ma405))) |>
+    ##   unnest(cols = c(Ma405)) |>
+    the_best <- data |>
+      distinct(site, sol, proxy, detrend_type, comb, filt_env, Ma405) |>
+      mutate(tie_err = NA_real_, RMSD = NA_real_)
 
-  if (prx == "d13C") {
-    # d13C has a cycle -1, which we can only compute once we have a tie-point for 0
-    it <- unique(subs$Ma405)[c(2:11, 1)]
-  } else {
-    it <- unique(subs$Ma405)
-  }
+    if ("d13C" %in% the_best$proxy) {
+      # d13C has a cycle -1, which we can only compute once we have a tie-point for 0
+      it <- unique(data$Ma405)[c(2:11, 1)]
+    } else {
+      it <- unique(data$Ma405)
+    }
 
-  bm_0 <- microbenchmark::microbenchmark( times = 1,
+  ## bm_0 <- microbenchmark::microbenchmark(times = 1, loop =
 
   for (cycle in it) {
 
     message(glue::glue("cycle is {cycle}"))
 
     # subset the agemodel to this and the previous cycle
-    am <- agem_sol |>
-      filter(sol == sln) |>
+    am <- agemodel |>
+      filter(sol %in% the_best$sol) |>
       filter((cycle == 0 & (n == 0 | n == 1)) |
              (n == cycle - 1 | n == cycle)) |>
       mutate(tie = list(tiepoint_uncertainty)) |>
@@ -11589,89 +11595,150 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
       if (cycle == 0) next
       # jump straight to cycle == 1
 
-      # let's assemble, just for tiepoints 0 and 1 a comprehensive list of all
-      # combinations of tiepoint uncertainties, so we can apply agemodels based
-      # on all combinations and figure out which combination works best.
-      # this is too computationally intensive to do for everything!
-      amc <- expand.grid(tie_0 = tiepoint_uncertainty, tie_1 = tiepoint_uncertainty) |>
-        as_tibble() |>
-        bind_cols(
-          agem_sol |>
-          filter(sol == sln) |>
-          filter(n == 0) |>
-          select(depth_0 = strat_bot, age_0 = age)) |>
-        bind_cols(
-          agem_sol |>
-          filter(sol == sln) |>
-          filter(n == 1) |>
-          select(depth_1 = strat_bot, age_1 = age)) |>
-        mutate(depth_0 = tie_0 + depth_0,
-               depth_1 = tie_1 + depth_1) |>
-        pivot_longer(cols = c(depth_0, depth_1, age_0, age_1),
-                     values_to = "value",
-                     names_sep = "_",
-                     names_to = c("name", "n")) |>
-        pivot_wider()
-      # this leaves 2 rows per unique combination on purpose, so we can filter
-      # out by tie_0 and tie_1, resulting in a 2-row dataframe with depth and age
-      # so we can interpolate
+      if (cycle == 1 && fix_0) {
+        message(glue::glue("Fixing tiepoint K/T boundary to 405 kyr minimum close to K/T boundary"))
+        am <- am |>
+          # the 405 kyr cycle we're currently trying to match
+          filter(n == cycle |
+                 # no uncertainty around 0
+                 (n == 0 & tie == 0))
 
-      tmp <- subs |>
-        filter(Ma405 %in% c(0, 1)) |>
-        mutate(tie = list(expand.grid(tie_0 = tiepoint_uncertainty, tie_1 = tiepoint_uncertainty))) |>
-        unnest(cols = c(tie)) |>
-        # calculate age from age model for each uncertainty
-        mutate(age = pmap_dbl(
-                 list(.x = tie_0, .y = tie_1, .z = depth),
-                 ~ Hmisc::approxExtrap(
-                            amc |>
-                            filter(tie_0 == .x, tie_1 == .y) |>
-                            pull(depth),
-                            amc |>
-                            filter(tie_0 == .x, tie_1 == .y) |>
-                            pull(age),
-                            xout = .y)$y)) |>
-        # linearly interpolate the astronomical solution eccentricity
-        mutate(ecc_sln = approx(slns$age[slns$sln == sln],
-                                slns$scl[slns$sln == sln],
-                                xout = age)$y) |>
-        # calculate SD between ecc and ecc_sol
-        mutate(SD = (ecc - ecc_sln)^2)
+        tmp <- data |>
+        ## bst <- data |>
+          filter(Ma405 == cycle) |>
+          # TODO: make this filter match the depth based on the tie-point instead?
+          mutate(tie = list(tiepoint_uncertainty)) |>
+          unnest(cols = c(tie)) |>
+          # calculate age from age model for each uncertainty
+          mutate(age = map2_dbl(
+                   tie, depth,
+                   ~ Hmisc::approxExtrap(
+                              am |>
+                              filter(n == cycle - 1 | (n == cycle & tie == .x)) |>
+                              pull(depth),
+                              am |>
+                              filter(n == cycle - 1 | (n == cycle & tie == .x)) |>
+                          pull(age),
+                          xout = .y)$y)) |>
+          # linearly interpolate the astronomical solution eccentricity
+          mutate(ecc_sln = approx(slns$age[slns$sln == sln],
+                                  slns$scl[slns$sln == sln],
+                                  xout = age)$y) |>
+          # calculate SD between ecc and ecc_sol
+          mutate(SD = (ecc - ecc_sln)^2) #|>
 
-      # sumamrize into RMSD
-      smy <- tmp |>
-        summarize(RMSD = sqrt(mean(SD)),
-                  .by = c(proxy,
-                          site,
-                          comb,
-                          detrend_type,
-                          filt_env,
-                          tie_0, tie_1, # only for cycles 0 and 1!!!
-                          sol))
+        # sumamrize into RMSD
+        smy <- tmp |>
+          summarize(RMSD = sqrt(mean(SD)),
+                    .by = c(proxy,
+                            site,
+                            comb,
+                            detrend_type,
+                            filt_env,
+                            tie,
+                            sol)) #|>
 
-      # filter out only best tiepoint uncertainty
-      bst <- smy |>
-        filter(RMSD == min(RMSD),
-               # for each of the following we want the best
-               # average over the remaining groups
-               .by = c(proxy, # all three proxies
-                       site, # both sites
-                       ## comb,
-                       ## detrend_type,
-                       ## filt_env, # two lines per graph
-                       ## Ma405, # separate lines for each 405 kyr, otherwise we only get 1 per site
-                       sol, # each solution
-                       )) |>
-        # this gives me 4 equivalent results
-        # filter out the one that's closest to tie_0 == 0
-        # identified in the field
-        filter(tie_0 == min(abs(tie_0)))
+        # filter out only best tiepoint uncertainty
+        bst <- smy |>
+          filter(RMSD == min(RMSD),
+                 # for each of the following we want the best
+                 # average over the remaining groups
+                 .by = c(proxy, # all three proxies
+                         site, # both sites
+                         sol, # each solution
+                         ))
 
-      # save the result to our overlord table
-      the_best$tie_err[the_best$Ma405 == 0] <- bst$tie_0
-      the_best$tie_err[the_best$Ma405 == 1] <- bst$tie_1
-      the_best$RMSD[the_best$Ma405 == 0] <- bst$RMSD
-      the_best$RMSD[the_best$Ma405 == 1] <- bst$RMSD
+        # save the result to our overlord table
+        the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
+        the_best$RMSD[the_best$Ma405 == cycle] <- bst$RMSD
+
+      } else if (cycle == 1 & !fix_0){
+        # let's assemble, just for tiepoints 0 and 1 a comprehensive list of all
+        # combinations of tiepoint uncertainties, so we can apply agemodels based
+        # on all combinations and figure out which combination works best.
+
+        # this is probably too computationally intensive to do for everything!
+        amc <- expand.grid(tie_0 = tiepoint_uncertainty, tie_1 = tiepoint_uncertainty) |>
+          as_tibble() |>
+          bind_cols(
+            agemodel |>
+            filter(sol == the_best$sol[[1]]) |>
+            filter(n == 0) |>
+            select(depth_0 = strat_bot, age_0 = age)) |>
+          bind_cols(
+            agemodel |>
+            filter(sol == the_best$sol[[1]]) |>
+            filter(n == 1) |>
+            select(depth_1 = strat_bot, age_1 = age)) |>
+          mutate(depth_0 = tie_0 + depth_0,
+                 depth_1 = tie_1 + depth_1) |>
+          pivot_longer(cols = c(depth_0, depth_1, age_0, age_1),
+                       values_to = "value",
+                       names_sep = "_",
+                       names_to = c("name", "n")) |>
+          pivot_wider()
+        # this leaves 2 rows per unique combination on purpose, so we can filter
+        # out by tie_0 and tie_1, resulting in a 2-row dataframe with depth and age
+        # so we can interpolate
+
+        tmp <- data |>
+        ## bst <- data |>
+          filter(Ma405 %in% c(0, 1)) |>
+          mutate(tie = list(expand.grid(tie_0 = tiepoint_uncertainty, tie_1 = tiepoint_uncertainty))) |>
+          unnest(cols = c(tie)) |>
+          # calculate age from age model for each uncertainty
+          mutate(age = pmap_dbl(
+                   list(.x = tie_0, .y = tie_1, .z = depth),
+                   ~ Hmisc::approxExtrap(
+                              amc |>
+                              filter(tie_0 == .x, tie_1 == .y) |>
+                              pull(depth),
+                              amc |>
+                              filter(tie_0 == .x, tie_1 == .y) |>
+                              pull(age),
+                              xout = .y)$y)) |>
+          # linearly interpolate the astronomical solution eccentricity
+          mutate(ecc_sln = approx(slns$age[slns$sln == sln],
+                                  slns$scl[slns$sln == sln],
+                                  xout = age)$y) |>
+          # calculate SD between ecc and ecc_sol
+          mutate(SD = (ecc - ecc_sln)^2) #|>
+
+        # sumamrize into RMSD
+        smy <- tmp |>
+          summarize(RMSD = sqrt(mean(SD)),
+                    .by = c(proxy,
+                            site,
+                            comb,
+                            detrend_type,
+                            filt_env,
+                            tie_0, tie_1, # only for cycles 0 and 1!!!
+                            sol)) #|>
+
+        # filter out only best tiepoint uncertainty
+        bst <- smy |>
+          filter(RMSD == min(RMSD),
+                 # for each of the following we want the best
+                 # average over the remaining groups
+                 .by = c(proxy, # all three proxies
+                         site, # both sites
+                         ## comb,
+                         ## detrend_type,
+                         ## filt_env, # two lines per graph
+                         ## Ma405, # separate lines for each 405 kyr, otherwise we only get 1 per site
+                         sol, # each solution
+                         )) |>
+          # this gives me 4 equivalent results
+          # filter out the one that's closest to tie_0 == 0
+          # identified in the field
+          filter(tie_0 == min(abs(tie_0)))
+
+        # save the result to our overlord table
+        the_best$tie_err[the_best$Ma405 == 0] <- bst$tie_0
+        the_best$tie_err[the_best$Ma405 == 1] <- bst$tie_1
+        the_best$RMSD[the_best$Ma405 == 0] <- bst$RMSD
+        the_best$RMSD[the_best$Ma405 == 1] <- bst$RMSD
+      }
 
     } else if (cycle < 0) {
       # this should only occur for d13C
@@ -11684,7 +11751,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                # and the previous best match
                (n == cycle + 1 & tie == the_best$tie_err[the_best$Ma405 == cycle + 1]))
 
-      tmp <- subs |>
+      tmp <- data |>
         filter(Ma405 == cycle) |>
         # TODO: make this filter match the depth based on the tie-point instead?
         mutate(tie = list(tiepoint_uncertainty)) |>
@@ -11742,7 +11809,8 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                  (n == cycle - 1 & tie == the_best$tie_err[the_best$Ma405 == cycle - 1]))
 
 
-        tmp <- subs |>
+        tmp <- data |>
+        ## bst <- data |>
           filter(Ma405 == cycle) |>
           # TODO: make this filter match the depth based on the tie-point instead?
           mutate(tie = list(tiepoint_uncertainty)) |>
@@ -11763,7 +11831,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                                   slns$scl[slns$sln == sln],
                                   xout = age)$y) |>
           # calculate SD between ecc and ecc_sol
-          mutate(SD = (ecc - ecc_sln)^2)
+          mutate(SD = (ecc - ecc_sln)^2) #|>
 
 
         # sumamrize into RMSD
@@ -11775,7 +11843,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                             detrend_type,
                             filt_env,
                             tie,
-                            sol))
+                            sol)) #|>
 
         # filter out only best tiepoint uncertainty
         bst <- smy |>
@@ -11791,10 +11859,67 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
         the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
         the_best$RMSD[the_best$Ma405 == cycle] <- bst$RMSD
 
-      }
-  }
+      } # end if
+  } # end for-loop
+    the_best
+  } # end function definition
+  ## ) # end microbenchmark mb_0
 
-  )
+  # BENCHMARKING
+  # we're trying to find the optimizations that really make a difference
+  # we start bm_0 all the way up-top because it's just the plain for-loop
+  ## bm_0 |>
+  ##   write_rds("out/bm_0.rds")
+
+  # here we switched to a function definition for the first time
+  ## bm_1 <- microbenchmark::microbenchmark(fixed_0 = wrap_age_model(subs, agem_sol, fix_0 = TRUE),
+  ##                                        free_0 = wrap_age_model(subs, agem_sol, fix_0 = FALSE),
+  ##                                        times = 1)
+  ## bm_1 |>
+  ##   write_rds("out/bm_1.rds")
+  bm_1 <- read_rds("out/bm_1.rds")
+
+  # this time it returns the best
+  ## bm_2 <- microbenchmark::microbenchmark(returns_best = wrap_age_model(subs, agem_sol, fix_0 = TRUE),
+  ##                                        times = 5)
+  ## bm_2 |>
+  ##   write_rds("out/bm_2.rds")
+  bm_2 <- read_rds("out/bm_2.rds")
+
+  # I want to know if creating a single pipe without storing intermediate results is faster
+  # since it might prevent it from making copies of some of the columns because it's lazy?
+  ## bm_3 <- microbenchmark::microbenchmark(one_pipe = wrap_age_model(subs, agem_sol, fix_0 = TRUE),
+  ##                                        times = 5)
+  ## bm_3 |>
+  ##   write_rds("out/bm_3.rds")
+  bm_3 <- read_rds("out/bm_3.rds")
+  # that's interesting, seems like it might actually be slower!!
+  # and I prefer to store the intermediate results anyway (for debugging purposes).
+
+  ## bm_4 <- microbenchmark::microbenchmark(map = wrap_age_model(subs, agem_sol, fix_0 = TRUE),
+  ##                                        times = 1)
+
+
+  # let's naively try to just get results for all detrend_types etc.
+  the_best <- wrap_age_model(diffs_tie, agem_sol, fix_0 = TRUE)
+
+  ## bm_1 |>
+  ##   write_rds("out/bm_1.rds")
+  bm_0 |>
+    bind_rows(bm_1) |>
+    bind_rows(bm_2) |>
+    bind_rows(bm_3) |>
+    ## bind_rows(bm_4) |>
+    autoplot() +
+    geom_point()
+
+#+end_src
+
+I just compared fix_0 results for d13C ZB18a, and there the overal RMSD goes from 1.12 (with variable K/T age) to 1.07 while the computation time drops significantly!
+
+#+begin_src R
+  the_best <- wrap_age_model(subs, agem_sol, fix_0 = TRUE)
+
 
   # filter out the best tie-point uncertainties from the age model
   am_tie <- agem_tie |>
