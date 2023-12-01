@@ -11522,6 +11522,10 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 :CREATED:  [2023-11-28 Tue 16:54]
 :END:
 
+**** add Ma405 and astronomical solutions to data
+:PROPERTIES:
+:CREATED:  [2023-12-01 Fri 14:14]
+:END:
 #+begin_src R
   diffs_tie <- data_ecc |>
     select(-`405 kyr`, -`100 kyr`, -prec, -envelope) |>
@@ -11554,9 +11558,15 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     filter(filt_env == fen)
   # remove them again so we're not accidentally grabbing these
   rm(list = c("ste", "prx", "sln", "cmb", "dty", "fen"))
-
+#+end_src
+**** wrap age model
+:PROPERTIES:
+:CREATED:  [2023-12-01 Fri 14:15]
+:END:
+#+begin_src R
   wrap_age_model <- function(data,
                              agemodel,
+                             astronomical_solutions = slns,
                              tiepoint_uncertainty = seq(-4, 4, .5),
                              fix_0 = TRUE,
                              genplot = FALSE) {
@@ -11566,30 +11576,36 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     ##                    detrend_type = dty, filt_env = fen) |>
     ##   mutate(Ma405 = list(unique(subs$Ma405))) |>
     ##   unnest(cols = c(Ma405)) |>
-    the_best <- data |>
-      distinct(site, sol, proxy, detrend_type, comb, filt_env, Ma405) |>
-      nest(.by = c(site, sol, proxy, detrend_type, comb, filt_env)) |>
-      mutate(tie_err = NA_real_, RMSD = NA_real_) |>
-      assertr::assert(\(x) length(unique(x)) == 1, site, sol, proxy, detrend_type, comb, filt_env) |>
-      unnest(data)
 
+    is_same <- function(x) {
+      x |>
+        unique() |>
+        length() == 1
+    }
 
-    if ("d13C" %in% the_best$proxy) {
-      # d13C has a cycle -1, which we can only compute once we have a tie-point for 0
-      it <- unique(data$Ma405)[c(2:11, 1)]
+    the_best <- agemodel |>
+      assertr::verify(is_same(site),
+                      error_fun = stop("`site` must contain only one site")) |>
+      assertr::verify(is_same(sol),
+                      error_fun = stop("`sol` must contain only one Astronomical Solution")) |>
+      rename(Ma405 = n) |>
+      select(all_of(c("sol", "site", "Ma405", "strat_bot", "age"))) |>
+      mutate(tie_err = NA_real_, RMSD = NA_real_)
+
+    if (min(data$Ma405) < 0) {
+      it <- sort(unique(data$Ma405))[c(which(it >= 0), which(it < 0))]
     } else {
-      it <- unique(data$Ma405)
+      it <- unique(data$Ma405) |> sort()
     }
 
   ## bm_0 <- microbenchmark::microbenchmark(times = 1, loop =
 
     for (cycle in it) {
 
-      message(glue::glue("cycle is {cycle}"))
+      ## message(glue::glue("cycle is {cycle}"))
 
       # subset the agemodel to this and the previous cycle
       am <- agemodel |>
-        filter(sol %in% the_best$sol) |>
         filter((cycle == 0 & (n == 0 | n == 1)) |
                (n == cycle - 1 | n == cycle)) |>
         mutate(tie = list(tiepoint_uncertainty)) |>
@@ -11598,12 +11614,10 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
         select(sol, n, tie, depth, age)
 
       # first two cycles?
-      if (cycle %in% 0:1) {
-        if (cycle == 0) next
-        # jump straight to cycle == 1
-
-        if (cycle == 1 && fix_0) {
-          message(glue::glue("Fixing tiepoint K/T boundary to 405 kyr minimum close to K/T boundary"))
+        if (cycle <= 0) {
+          next
+        } else if (cycle == 1 && fix_0) {
+          ## message(glue::glue("Fixing tiepoint K/T boundary to 405 kyr minimum close to K/T boundary"))
           am <- am |>
             # the 405 kyr cycle we're currently trying to match
             filter(n == cycle |
@@ -11637,23 +11651,11 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
           # sumamrize into RMSD
           smy <- tmp |>
             summarize(RMSD = sqrt(mean(SD)),
-                      .by = c(proxy,
-                              site,
-                              comb,
-                              detrend_type,
-                              filt_env,
-                              tie,
-                              sol)) #|>
+                      .by = c(tie)) #|>
 
           # filter out only best tiepoint uncertainty
           bst <- smy |>
-            filter(RMSD == min(RMSD),
-                   # for each of the following we want the best
-                   # average over the remaining groups
-                   .by = c(proxy, # all three proxies
-                           site, # both sites
-                           sol, # each solution
-                           ))
+            filter(RMSD == min(RMSD))
 
           # save the result to our overlord table
           the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
@@ -11672,7 +11674,9 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
               coord_cartesian(ylim = c(0, 2))
           }
 
-        } else if (cycle == 1 & !fix_0){
+        } else if (cycle == 1 && !fix_0) {
+          message("Letting tiepoint at K/T boundary and Ma405-1 both vary")
+          message("... this will take a while! ...")
           # let's assemble, just for tiepoints 0 and 1 a comprehensive list of all
           # combinations of tiepoint uncertainties, so we can apply agemodels based
           # on all combinations and figure out which combination works best.
@@ -11727,27 +11731,11 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
           # sumamrize into RMSD
           smy <- tmp |>
             summarize(RMSD = sqrt(mean(SD)),
-                      .by = c(proxy,
-                              site,
-                              comb,
-                              detrend_type,
-                              filt_env,
-                              tie_0, tie_1, # only for cycles 0 and 1!!!
-                              sol)) #|>
+                      .by = c(tie_0, tie_1)) #|>
 
           # filter out only best tiepoint uncertainty
           bst <- smy |>
-            filter(RMSD == min(RMSD),
-                   # for each of the following we want the best
-                   # average over the remaining groups
-                   .by = c(proxy, # all three proxies
-                           site, # both sites
-                           ## comb,
-                           ## detrend_type,
-                           ## filt_env, # two lines per graph
-                           ## Ma405, # separate lines for each 405 kyr, otherwise we only get 1 per site
-                           sol, # each solution
-                           )) |>
+            filter(RMSD == min(RMSD)) |>
             # this gives me 4 equivalent results
             # filter out the one that's closest to tie_0 == 0
             # identified in the field
@@ -11764,24 +11752,17 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
               ggplot(aes(x = tie_0, y = tie_1, fill = RMSD)) +
               geom_raster() +
               scale_fill_viridis_c(direction = -1) +
-              geom_point(colour = "red", size = 3,
+              geom_point(fill = "red", colour = "red", size = 3,
                          data = the_best |>
                            filter(Ma405 %in% 0:1) |>
                            select(Ma405, tie_err, RMSD) |>
                            pivot_wider(names_from = Ma405,
                                        values_from = tie_err) |>
                            rename(tie_0 = `0`, tie_1 = `1`)) +
-              labs(title = paste("Ma405 cycle: ", cycle)) +
-              coord_cartesian(ylim = c(0, 2))
+              labs(title = paste("Ma405 cycle: ", cycle))
           }
 
-        }
-
-      } else if (cycle < 0) {
-        # this should only occur for d13C
-        ## ah this fails, I don't have cycle -1 in agem!
-        next
-      } else if (cycle > 1) {
+        } else if (cycle > 1) {
 
         am <- am |>
           # the 405 kyr cycle we're currently trying to match
@@ -11818,23 +11799,11 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
         # sumamrize into RMSD
         smy <- tmp |>
           summarize(RMSD = sqrt(mean(SD)),
-                    .by = c(proxy,
-                            site,
-                            comb,
-                            detrend_type,
-                            filt_env,
-                            tie,
-                            sol)) #|>
+                    .by = c(tie))
 
         # filter out only best tiepoint uncertainty
         bst <- smy |>
-          filter(RMSD == min(RMSD),
-                 # for each of the following we want the best
-                 # average over the remaining groups
-                 .by = c(proxy, # all three proxies
-                         site, # both sites
-                         sol, # each solution
-                         ))
+          filter(RMSD == min(RMSD))
 
         # save the result to our overlord table
         the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
@@ -11860,24 +11829,47 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     } # end for-loop
 
     if (genplot) {
-      print(pl ## + plot_layout(title = paste(the_best$sol[[1]],
-               ##                             the_best$site[[1]],
-               ##                             the_best$proxy[[1]],
-               ##                             the_best$detrend_type[[1]],
-            ##                             the_best$filt_env[[1]]))
-            )
+      print(pl)
     }
     the_best
   } # end function definition
   ## ) # end microbenchmark mb_0
+#+end_src
 
+#+RESULTS:
+
+**** example function calls
+:PROPERTIES:
+:CREATED:  [2023-12-01 Fri 14:15]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_variable_d13C.png :width 900 :height 700
   # example call
   # WARNING: pretty slow!
-  tb <- wrap_age_model(subs, agem_sol, fix_0 = FALSE, genplot = TRUE)
+  print(tb <- wrap_age_model(subs,
+                             agem_sol |>
+                             filter(site == "Zumaia", sol == "ZB18a"),
+                             fix_0 = FALSE, genplot = TRUE))
+#+end_src
 
+#+RESULTS:
+[[file:imgs/Zumaia_variable_d13C.png]]
+
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C.png :width 900 :height 700
   # WARNING: still slow, but slightly less so
-  wrap_age_model(subs, agem_sol, fix_0 = TRUE, genplot = TRUE)
+  wrap_age_model(subs, agem_sol |> filter(site == "Zumaia", sol == "ZB18a"),
+                 fix_0 = TRUE, genplot = TRUE)
+#+end_src
 
+#+RESULTS:
+[[file:imgs/Zumaia_fixed_d13C.png]]
+
+**** benchmarking
+:PROPERTIES:
+:CREATED:  [2023-12-01 Fri 14:18]
+:END:
+I tried out different versions of the functions to see how I can improve the speed a little, since it's pretty slow now...
+#+begin_src R
   # BENCHMARKING
   # we're trying to find the optimizations that really make a difference
   # we start bm_0 all the way up-top because it's just the plain for-loop
@@ -11909,68 +11901,95 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
   # that's interesting, seems like it might actually be slower!!
   # and I prefer to store the intermediate results anyway (for debugging purposes).
 
-  ## bm_4 <- microbenchmark::microbenchmark(map = wrap_age_model(subs, agem_sol, fix_0 = TRUE),
+  ## bm_4 <- microbenchmark::microbenchmark(genplot = wrap_age_model(subs, agem_sol, fix_0 = TRUE, genplot = TRUE),
   ##                                        times = 1)
+  ## bm_4 |>
+  ##   write_rds("out/bm_4.rds")
+  bm_4 <- write_rds("out/bm_4.rds")
 
+  # this uses the agem to build the_best!
+  ## bm_5 <- microbenchmark::microbenchmark(use_agem = wrap_age_model(subs,
+  ##                                                                 agem_sol |>
+  ##                                                                 filter(site == "Zumaia", sol == "ZB18a"),
+  ##                                                                 fix_0 = TRUE, genplot = TRUE),
+  ##                                        times = 1) |>
+  ##     write_rds("out/bm_5.rds")
+  bm_5 <- read_rds("out/bm_5.rds")
 
+  # I read somewhere that writing messages within loops seriously slows stuff down.
+  ## bm_6 <- microbenchmark::microbenchmark(no_message = wrap_age_model(subs,
+  ##                                                                 agem_sol |>
+  ##                                                                 filter(site == "Zumaia", sol == "ZB18a"),
+  ##                                                                 fix_0 = TRUE, genplot = TRUE),
+  ##                                        times = 1) |>
+  ##     write_rds("out/bm_6.rds")
+  bm_6 <- read_rds("out/bm_6.rds")
+  # doesn't seem to be the case, really
 
+#+end_src
 
+#+begin_src R :results output graphics file :file imgs/benchmark_wrap_age_model.png :width 800
+  list.files("out", pattern = "^bm_[0-9]+.rds$", full.names = TRUE) |>
+    map_dfr(read_rds) |>
+    autoplot() +
+    geom_point()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/benchmark_wrap_age_model.png]]
+
+ah, okay. So the_best has 600 unique combinations of site, sol, proxy, detrend_type, comb, filt_env.
+that means that if all of them take an average of 17 seconds (median value of bm_3) it will take a total of:
+
+#+begin_src R
+  (nrow(distinct(diffs_tie, proxy, site, detrend_type, comb, filt_env, sol)) *
+  ## (48 *
+   summary(bm_5)$median) / 60  /# seconds to minutes
+   60 # minutes to hours
+  # so 2.84 hours to run all combinations with fix_0 = TRUE.
+  # after optimization, perhaps 2.7 hours
+#+end_src
+
+#+RESULTS:
+
+which is pretty bad!
+
+**** try to call this function on the full dataframe
+:PROPERTIES:
+:CREATED:  [2023-12-01 Fri 14:24]
+:END:
+#+begin_src R
   # let's naively try to just get results for all detrend_types etc.
-  debug(wrap_age_model)
+  ## debug(wrap_age_model)
   ## the_best <- wrap_age_model(diffs_tie, agem_sol, fix_0 = TRUE)
 
-  # ah, okay. So the_best has 600 unique combinations of site, sol, proxy, detrend_type, comb, filt_env.
-  # that means that if all of them take an average of 17 seconds (median value of bm_3)
-  ## (nrow(distinct(diffs_tie, proxy, site, detrend_type, comb, filt_env, sol)) *
-  (48 *
-   summary(bm_3)$median) / 60  # seconds to minutes
-  ## / 60 # minutes to hours
-  # so 2.84 hours to run all combinations with fix_0 = TRUE.
 
   # let's first get it to work with some mappage
   the_superduper_best <- diffs_tie |>
     # subset so that we have at least 2 for each (should take about 14 minutes)
-    filter(proxy %in% c("d13C", "MS"),
-           detrend_type %in% c("scl", "lin_gam_det"),
-           comb %in% c("1:1", "0.5:1"),
-           sol %in% c("ZB18a", "ZB20a")) |>
+    ## filter(proxy %in% c("Lstar", "MS"),
+    ##        detrend_type %in% c("scl", "lin_gam_det"),
+    ##        comb %in% c("1:1", "0.5:1"),
+    ##        sol %in% c("ZB18a", "ZB20a")) |>
     nest(.by = c(proxy, site, detrend_type, comb, filt_env, sol)) |>
-    mutate(the_best = pmap(.l = list(dat = data,
-                                     prx = proxy,
-                                     ste = site,
-                                     dty = detrend_type,
-                                     cmb = comb,
-                                     fen = filt_env,
-                                     sln = sol),
-                           .f = function(dat, prx, ste, dty, cmb, fen, sln) {
-                             dat |>
-                               filter(site == ste) |>
-                               filter(sol == sln) |>
-                               filter(proxy == prx) |>
-                               filter(detrend_type == dty) |>
-                               filter(comb == cmb) |>
-                               filter(filt_env == fen) |>
-                               assertr::assert(\(x) length(unique(x)) == 1,
-                                               site, proxy, detrend_type, comb, filt_env, sol) #|>
-                               ## wrap_age_model(agemodel = agem_sol,
-                               ##                tiepoint_uncertainty = seq(-2, 2, 1),
-                               ##                fix_0 = TRUE)}
-                             }))
-
-  ## bm_1 |>
-  ##   write_rds("out/bm_1.rds")
-  bm_0 |>
-    bind_rows(bm_1) |>
-    bind_rows(bm_2) |>
-    bind_rows(bm_3) |>
-    ## bind_rows(bm_4) |>
-    autoplot() +
-    geom_point()
-
+    mutate(the_best = furrr::future_pmap( # use cores
+                               .l = list(data, sol, site),
+                               .f = ~ ..1 |>
+                                 wrap_age_model(agemodel = agem_sol |>
+                                                  filter(sol == ..2, site == ..3),
+                                                tiepoint_uncertainty = seq(-2, 2, 1),
+                                                fix_0 = TRUE),
+                               .progress = TRUE
+                             )) |>
+    write_rds("out/the_superduper_best.rds")
 #+end_src
 
 I just compared fix_0 results for d13C ZB18a, and there the overal RMSD goes from 1.12 (with variable K/T age) to 1.07 while the computation time drops significantly!
 
+**** check if this is still needed
+:PROPERTIES:
+:CREATED:  [2023-12-01 Fri 15:34]
+:END:
 #+begin_src R
   the_best <- wrap_age_model(subs, agem_sol, fix_0 = TRUE)
 
