@@ -11972,6 +11972,7 @@ which is pretty bad!
     ##        comb %in% c("1:1", "0.5:1"),
     ##        sol %in% c("ZB18a", "ZB20a")) |>
     nest(.by = c(proxy, site, detrend_type, comb, filt_env, sol)) |>
+    slice(341) |> # sopelana wasn't working
     mutate(the_best = furrr::future_pmap( # use cores
                                .l = list(data, sol, site),
                                .f = ~ ..1 |>
@@ -11980,8 +11981,8 @@ which is pretty bad!
                                                 tiepoint_uncertainty = seq(-2, 2, 1),
                                                 fix_0 = TRUE),
                                .progress = TRUE
-                             )) |>
-    write_rds("out/the_superduper_best.rds")
+                             )) ## |>
+    ## write_rds("out/the_superduper_best.rds")
 #+end_src
 
 I just compared fix_0 results for d13C ZB18a, and there the overal RMSD goes from 1.12 (with variable K/T age) to 1.07 while the computation time drops significantly!
