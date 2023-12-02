@@ -11835,6 +11835,15 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 #+end_src
 
 #+RESULTS:
+**** enable debugging
+:PROPERTIES:
+:CREATED:  [2023-12-02 Sat 15:22]
+:END:
+#+begin_src R
+  # let's naively try to just get results for all detrend_types etc.
+  debug(wrap_age_model)
+  ## the_best <- wrap_age_model(diffs_tie, agem_sol, fix_0 = TRUE)
+#+end_src
 
 **** example function calls
 :PROPERTIES:
@@ -11952,16 +11961,11 @@ that means that if all of them take an average of 17 seconds (median value of bm
 
 which is pretty bad!
 
-**** try to call this function on the full dataframe
+**** call the rolling agemodel function on the full dataframe
 :PROPERTIES:
 :CREATED:  [2023-12-01 Fri 14:24]
 :END:
 #+begin_src R
-  # let's naively try to just get results for all detrend_types etc.
-  ## debug(wrap_age_model)
-  ## the_best <- wrap_age_model(diffs_tie, agem_sol, fix_0 = TRUE)
-
-
   library(future)
   library(furrr)
   plan(multisession, workers = 4)
@@ -11993,13 +11997,13 @@ which is pretty bad!
 
 I just compared fix_0 results for d13C ZB18a, and there the overal RMSD goes from 1.12 (with variable K/T age) to 1.07 while the computation time drops significantly!
 
-**** check if this is still needed
+**** NEXT apply the new age models to the data
 :PROPERTIES:
 :CREATED:  [2023-12-01 Fri 15:34]
 :END:
 #+begin_src R
-  the_best <- wrap_age_model(subs, agem_sol, fix_0 = TRUE)
-
+  the_superduper_best |>
+    mutate(data = map2(data, the_best, ))
 
   # filter out the best tie-point uncertainties from the age model
   am_tie <- agem_tie |>
