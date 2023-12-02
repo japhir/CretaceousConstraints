@@ -11566,7 +11566,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 #+begin_src R
   wrap_age_model <- function(data,
                              agemodel,
-                             astronomical_solutions = slns,
+                             astronomical_solution = sln,
                              tiepoint_uncertainty = seq(-4, 4, .5),
                              fix_0 = TRUE,
                              genplot = FALSE) {
@@ -11584,12 +11584,10 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     }
 
     the_best <- agemodel |>
-      assertr::verify(is_same(site),
-                      error_fun = stop("`site` must contain only one site")) |>
       assertr::verify(is_same(sol),
                       error_fun = stop("`sol` must contain only one Astronomical Solution")) |>
       rename(Ma405 = n) |>
-      select(all_of(c("sol", "site", "Ma405", "strat_bot", "age"))) |>
+      select(all_of(c("sol", "Ma405", "strat_bot", "age"))) |>
       mutate(tie_err = NA_real_, RMSD = NA_real_)
 
     if (min(data$Ma405) < 0) {
@@ -11642,8 +11640,8 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                                 pull(age),
                                 xout = .y)$y)) |>
             # linearly interpolate the astronomical solution eccentricity
-            mutate(ecc_sln = approx(slns$age[slns$sln == the_best$sol[[1]]], # TODO: risky!
-                                    slns$scl[slns$sln == the_best$sol[[1]]],
+            mutate(ecc_sln = approx(astronomical_solution$age,
+                                    astronomical_solution$scl,
                                     xout = age)$y) |>
             # calculate SD between ecc and ecc_sol
             mutate(SD = (ecc - ecc_sln)^2) #|>
@@ -11722,8 +11720,8 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                                 pull(age),
                                 xout = .y)$y)) |>
             # linearly interpolate the astronomical solution eccentricity
-            mutate(ecc_sln = approx(slns$age[slns$sln == the_best$sol[[1]]],
-                                    slns$scl[slns$sln == the_best$sol[[1]]],
+            mutate(ecc_sln = approx(astronomical_solution$age,
+                                    astronomical_solution$scl,
                                     xout = age)$y) |>
             # calculate SD between ecc and ecc_sol
             mutate(SD = (ecc - ecc_sln)^2) #|>
@@ -11789,8 +11787,8 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
                               pull(age),
                               xout = .y)$y)) |>
           # linearly interpolate the astronomical solution eccentricity
-          mutate(ecc_sln = approx(slns$age[slns$sln == the_best$sol[[1]]],
-                                  slns$scl[slns$sln == the_best$sol[[1]]],
+          mutate(ecc_sln = approx(astronomical_solution$age,
+                                  astronomical_solution$scl,
                                   xout = age)$y) |>
           # calculate SD between ecc and ecc_sol
           mutate(SD = (ecc - ecc_sln)^2) #|>
@@ -11964,26 +11962,34 @@ which is pretty bad!
   ## the_best <- wrap_age_model(diffs_tie, agem_sol, fix_0 = TRUE)
 
 
+  library(future)
+  library(furrr)
+  plan(multisession, workers = 4)
+
   # let's first get it to work with some mappage
-  the_superduper_best <- diffs_tie |>
-    # subset so that we have at least 2 for each (should take about 14 minutes)
-    ## filter(proxy %in% c("Lstar", "MS"),
-    ##        detrend_type %in% c("scl", "lin_gam_det"),
-    ##        comb %in% c("1:1", "0.5:1"),
-    ##        sol %in% c("ZB18a", "ZB20a")) |>
-    nest(.by = c(proxy, site, detrend_type, comb, filt_env, sol)) |>
-    slice(341) |> # sopelana wasn't working
-    mutate(the_best = furrr::future_pmap( # use cores
-                               .l = list(data, sol, site),
-                               .f = ~ ..1 |>
-                                 wrap_age_model(agemodel = agem_sol |>
-                                                  filter(sol == ..2, site == ..3),
-                                                tiepoint_uncertainty = seq(-2, 2, 1),
+  the_superduper_best <-
+    diffs_tie |>
+    nest(.by = c(proxy, ## site,
+                 detrend_type, comb, filt_env, sol)) |>
+    ## slice(341) |> # sopelana wasn't working
+    ## unnest(data) |>
+    ## glimpse()
+    mutate(the_best = furrr::future_map2( # use cores
+                               .x = data, .y = sol,
+                               ~ wrap_age_model(.x,
+                                                agemodel = agem_sol |>
+                                                  filter(sol == .y),
+                                                astronomical_solution = slns |>
+                                                  filter(sln == .y),
+                                                ## tiepoint_uncertainty = ,
+                                                # default -4, 4, .5
                                                 fix_0 = TRUE),
                                .progress = TRUE
-                             )) ## |>
-    ## write_rds("out/the_superduper_best.rds")
+                             )) |>
+    write_rds("out/the_superduper_best.rds")
 #+end_src
+
+#+RESULTS:
 
 I just compared fix_0 results for d13C ZB18a, and there the overal RMSD goes from 1.12 (with variable K/T age) to 1.07 while the computation time drops significantly!
 
