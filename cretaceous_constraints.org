@@ -31,7 +31,11 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
   # we use this to make sure the data are in the correct format
   # or we don't have too many rows
   library(assertr)
+  library(future)
+  library(furrr)
+
   theme_set(theme_bw())
+  plan(multisession, workers = 4)
 #+end_src
 
 #+RESULTS:
@@ -11556,6 +11560,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     filter(detrend_type == dty) |>
     filter(comb == cmb) |>
     filter(filt_env == fen)
+
   # remove them again so we're not accidentally grabbing these
   rm(list = c("ste", "prx", "sln", "cmb", "dty", "fen"))
 #+end_src
@@ -11829,7 +11834,14 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     if (genplot) {
       print(pl)
     }
-    the_best
+    # simplify output
+    the_best |>
+      # we limit the output to cycle 0 through what's there in the data
+      filter(Ma405 == 0 | !is.na(RMSD)) |>
+      mutate(depth = strat_bot + tie_err) |>
+      # make depth at 0 doesn't include the depth error?
+      mutate(depth = ifelse(Ma405 == 0, 0., depth)) |>
+      select(depth, age, RMSD_Ma405 = RMSD)
   } # end function definition
   ## ) # end microbenchmark mb_0
 #+end_src
@@ -11864,7 +11876,9 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C.png :width 900 :height 700
   # WARNING: still slow, but slightly less so
-  wrap_age_model(subs, agem_sol |> filter(site == "Zumaia", sol == "ZB18a"),
+  wrap_age_model(subs,
+                 agem_sol |> filter(site == "Zumaia", sol == "ZB18a"),
+                 astronomical_solution = slns |> filter(sln == "ZB18a"),
                  fix_0 = TRUE, genplot = TRUE)
 #+end_src
 
@@ -11945,7 +11959,7 @@ I tried out different versions of the functions to see how I can improve the spe
 #+RESULTS:
 [[file:imgs/benchmark_wrap_age_model.png]]
 
-ah, okay. So the_best has 600 unique combinations of site, sol, proxy, detrend_type, comb, filt_env.
+Ah, okay. So the_best has 600 unique combinations of site, sol, proxy, detrend_type, comb, filt_env.
 that means that if all of them take an average of 17 seconds (median value of bm_3) it will take a total of:
 
 #+begin_src R
@@ -11966,72 +11980,77 @@ which is pretty bad!
 :CREATED:  [2023-12-01 Fri 14:24]
 :END:
 #+begin_src R
-  library(future)
-  library(furrr)
-  plan(multisession, workers = 4)
-
   # let's first get it to work with some mappage
   the_superduper_best <-
     diffs_tie |>
-    nest(.by = c(proxy, ## site,
+    nest(.by = c(proxy, site,
                  detrend_type, comb, filt_env, sol)) |>
-    ## slice(341) |> # sopelana wasn't working
+    ## slice(1:3) |> # sopelana wasn't working
     ## unnest(data) |>
     ## glimpse()
     mutate(the_best = furrr::future_map2( # use cores
                                .x = data, .y = sol,
-                               ~ wrap_age_model(.x,
-                                                agemodel = agem_sol |>
-                                                  filter(sol == .y),
-                                                astronomical_solution = slns |>
-                                                  filter(sln == .y),
-                                                ## tiepoint_uncertainty = ,
-                                                # default -4, 4, .5
-                                                fix_0 = TRUE),
+                               .f = ~ .x |> wrap_age_model(
+                                     agemodel = agem_sol |>
+                                       filter(sol == .y),
+                                     astronomical_solution = slns |>
+                                       filter(sln == .y),
+                                     ## tiepoint_uncertainty = ,
+                                     # default -4, 4, .5
+                                     fix_0 = TRUE),
                                .progress = TRUE
                              )) |>
-    write_rds("out/the_superduper_best.rds")
+    write_rds("out/the_superduper_best_site.rds")
 #+end_src
 
 #+RESULTS:
 
 I just compared fix_0 results for d13C ZB18a, and there the overal RMSD goes from 1.12 (with variable K/T age) to 1.07 while the computation time drops significantly!
 
+**** DONE fix issue with overlapping record between sites?
+CLOSED: [2023-12-04 Mon 17:19]
+:PROPERTIES:
+:CREATED:  [2023-12-04 Mon 16:00]
+:END:
+hmm I think I can just *not* filter the age model/solutions but do filter the input?
 **** NEXT apply the new age models to the data
 :PROPERTIES:
 :CREATED:  [2023-12-01 Fri 15:34]
 :END:
 #+begin_src R
-  the_superduper_best |>
-    mutate(data = map2(data, the_best, ))
+  the_superduper_best <- read_rds("out/the_superduper_best.rds")
 
-  # filter out the best tie-point uncertainties from the age model
-  am_tie <- agem_tie |>
-    rename(Ma405 = n) |>
-    filter(sol == sln) |>
-    # we do not include uncertainty on the K/T boundary
-    ## tidylog::filter(!(Ma405 == 0 & tie_err != 0)) |>
-    tidylog::left_join(the_best,
-                       by = c("sol", "site", "Ma405", "tie_err")) |>
-    filter(!is.na(RMSD)) |>
-    write_csv(glue::glue("out/{sln}_{prx}_best_tiepoint_uncertainty.csv,"))
+  # apply the optimal age models for each solution/detrend_type etc.
+  suba <- the_superduper_best |>
+    # simplify age model
+    mutate(the_best = map(the_best,
+                          \(x) x |>
+                               mutate(tie_err = ifelse(is.na(tie_err),
+                                                       0, tie_err)) |>
+                               mutate(depth = strat_bot + tie_err) |>
+                               select(depth, age))) |>
+    unnest(cols = c(data)) |>
+    mutate(age = map2_dbl(depth, the_best,
+                          ~ Hmisc::approxExtrap(
+                                     x = .y |> pull(depth),
+                                     y = .y |> pull(age),
+                                     xout = .x)$y
+                          )) |>
+    select(-the_best)
 
-  # apply the optimized agemodel
-  suba <- subs |>
-    mutate(age = map_dbl(depth,
-             ~ Hmisc::approxExtrap(
-                        am_tie |> pull(depth),
-                            am_tie |> pull(age),
-                        xout = .x)$y)) |>
-    mutate(ecc_sln = approx(slns$age[slns$sln == sln],
-                            slns$scl[slns$sln == sln],
-                            xout = age)$y) |>
-    # calculate SD between ecc and ecc_sol
+  subdiff <- suba |>
+    nest(.by = sol) |>
+    mutate(data = map2(data, sol,
+                       ~ .x |>
+                         mutate(ecc_sln = approx(x = slns$age[slns$sln == .y],
+                                                 y = slns$scl[slns$sln == .y],
+                                                 xout = age)$y))) |>
+    unnest(cols = c(data)) |>
+    ## calculate SD between ecc and ecc_sol
     mutate(SD = (ecc - ecc_sln)^2)
 
-
   # sumamrize into RMSD
-  sumy <- suba |>
+  sumy <- subdiff |>
     summarize(RMSD = sqrt(mean(SD)),
               .by = c(proxy, site, comb,
                       detrend_type,
@@ -12154,6 +12173,26 @@ dbl (8): Ma405, strat_bot, age, depth_diff, age_diff, tie_err, depth, RMSD
 
 #+RESULTS:
 [[file:imgs/Zumaia_rolling_tiepoints.png]]
+
+**** new output figure
+:PROPERTIES:
+:CREATED:  [2023-12-04 Mon 15:44]
+:END:
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_rolling_tiepoints_parameter_combinations.png :width 800
+  sumy |>
+    ggplot(aes(x = sol,y = RMSD,
+               colour = detrend_type, shape = comb)) +
+    facet_grid(rows = vars(proxy), cols = vars(filt_env, site)) +
+    geom_point(size = 4) +
+    geom_line(aes(group = paste(comb,
+                                detrend_type,
+                                filt_env)))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_rolling_tiepoints_parameter_combinations.png]]
+
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
