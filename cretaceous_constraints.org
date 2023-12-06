@@ -11581,7 +11581,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 
 #+RESULTS:
 
-**** wrap age model
+**** [#A] wrap age model
 :PROPERTIES:
 :CREATED:  [2023-12-01 Fri 14:15]
 :END:
@@ -11600,24 +11600,37 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
     ##   mutate(Ma405 = list(unique(subs$Ma405))) |>
     ##   unnest(cols = c(Ma405)) |>
     valid_outputs <- c("default", "full")
+
     if (!output %in% valid_outputs) {
       cli::cli_abort(c("{.var output} must be one of {.or {.q {valid_outputs}}}",
                        "x" = "You've supplied {.q {output}}"))
 
     }
 
-    is_same <- function(x) {
-      x |>
-        unique() |>
-        length() == 1
+    if (length(unique(data$sol)) > 1) {
+      cli::cli_abort(c("{.var data} must contain only one unique astronomical solution in column {.var sol}.",
+                       "x" = "{.var data} contains {.and {unique(data$sol)}}"
+                       ))
+    }
+
+    if (length(unique(agemodel$sol)) > 1) {
+      cli::cli_abort(c("{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
+                       "x" = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"
+                       ))
+    }
+
+    if (length(unique(astronomical_solution$sln)) > 1) {
+      cli::cli_abort(c("{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
+                       "x" = "{.var astronomical_solution} contains {.and {unique(astronomical_solution$sln)}}"
+                       ))
     }
 
     the_best <- agemodel |>
-      assertr::verify(is_same(sol),
-                      error_fun = stop("`sol` must contain only one Astronomical Solution")) |>
       rename(Ma405 = n) |>
       select(all_of(c("sol", "Ma405", "strat_bot", "age"))) |>
-      mutate(tie_err = NA_real_, RMSD = NA_real_, cycles = NA)
+      mutate(tie_err = NA_real_, RMSD_Ma405 = NA_real_,
+             cycles = NA,
+             scl_Ma405 = NA_real_, wgt_Ma405 = NA_real_)
 
     if (min(data$Ma405) < 0) {
       it <- sort(unique(data$Ma405))[c(which(it >= 0), which(it < 0))]
@@ -11678,34 +11691,25 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
             # calculate SD between ecc and ecc_sol
             mutate(SD = (ecc - ecc_sln)^2) #|>
 
-
           # sumamrize into RMSD
           smy <- tmp |>
             summarize(RMSD = sqrt(mean(SD)),
-                      .by = c(tie))
+                      .by = c(tie)) |>
+            # we downscale the values that deviate a lot from the originally identified depth
+            mutate(scl = exp(abs(tie)) / 10 + 1) |>
+            mutate(wgt = scl * RMSD)
 
           # filter out only best tiepoint uncertainty
           bst <- smy |>
-            filter(RMSD == min(RMSD))
+            filter(wgt == min(wgt))
 
           # save the result to our overlord table
           the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
-          the_best$RMSD[the_best$Ma405 == cycle] <- bst$RMSD
-          if (output == "full") {
+          the_best$RMSD_Ma405[the_best$Ma405 == cycle] <- bst$RMSD
+          the_best$scl_Ma405[the_best$Ma405 == cycle] <- bst$scl
+          the_best$wgt_Ma405[the_best$Ma405 == cycle] <- bst$wgt
+          if (output == "full" | genplot) {
             the_best$cycles[the_best$Ma405 == cycle] <- list(smy)
-          }
-
-          if (genplot) {
-            require(patchwork)
-            pl <- smy |>
-              ggplot(aes(x = tie, y = RMSD)) +
-              geom_line() +
-              geom_point(colour = "red", size = 3,
-                         data = the_best |>
-                           filter(Ma405 == cycle) |>
-                           rename(tie = tie_err)) +
-              labs(title = paste("Ma405 cycle: ", cycle)) +
-              coord_cartesian(ylim = c(0, 2))
           }
 
         } else if ((cycle == 1 && !fix_0) | (cycle == min(data$Ma405) && !fix_0)) {
@@ -11778,9 +11782,9 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
           # save the result to our overlord table
           the_best$tie_err[the_best$Ma405 == 0] <- bst$tie_0
           the_best$tie_err[the_best$Ma405 == 1] <- bst$tie_1
-          the_best$RMSD[the_best$Ma405 == 0] <- bst$RMSD
-          the_best$RMSD[the_best$Ma405 == 1] <- bst$RMSD
-          if (output == "full") {
+          the_best$RMSD_Ma405[the_best$Ma405 == 0] <- bst$RMSD
+          the_best$RMSD_Ma405[the_best$Ma405 == 1] <- bst$RMSD
+          if (output == "full" | genplot) {
             the_best$cycles[the_best$Ma405 == cycle] <- list(smy)
           }
 
@@ -11836,56 +11840,74 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
         # sumamrize into RMSD
         smy <- tmp |>
           summarize(RMSD = sqrt(mean(SD)),
-                    .by = c(tie))
+                    .by = c(tie)) |>
+          # we downscale the values that deviate a lot from the originally identified depth
+          mutate(scl = exp(abs(tie)) / 10 + 1) |>
+          mutate(wgt = scl * RMSD)
 
         # filter out only best tiepoint uncertainty
         bst <- smy |>
-          filter(RMSD == min(RMSD))
+          ## filter(RMSD == min(RMSD))
+          filter(wgt == min(wgt))
 
         # save the result to our overlord table
         the_best$tie_err[the_best$Ma405 == cycle] <- bst$tie
-        the_best$RMSD[the_best$Ma405 == cycle] <- bst$RMSD
-        if (output == "full") {
+        the_best$RMSD_Ma405[the_best$Ma405 == cycle] <- bst$RMSD
+        the_best$scl_Ma405[the_best$Ma405 == cycle] <- bst$scl
+        the_best$wgt_Ma405[the_best$Ma405 == cycle] <- bst$wgt
+        if (output == "full" | genplot) {
           the_best$cycles[the_best$Ma405 == cycle] <- list(smy)
-        }
-
-        if (genplot) {
-          pl <- pl + (
-            smy |>
-            ggplot(aes(x = tie, y = RMSD)) +
-            geom_line() +
-            # this is off-by-one, we just computed it for the interval between cycle - 1 and cycle
-            ## geom_point(colour = "red", data = bst) +
-            geom_point(colour = "red", size = 3,
-                       data = the_best |>
-                         filter(Ma405 == cycle) |>
-                         rename(tie = tie_err)) +
-            labs(title = paste("Ma405 cycle: ", cycle)) +
-            coord_cartesian(ylim = c(0, 2))
-          )
         }
 
       } # end if
     } # end for-loop
 
-    if (genplot) {
-      print(pl)
-    }
+    # make it so the fixed tiepoint also prints?
+    ## if ((output == "full" | genplot) & fix_0) {
+    ##   the_best <- the_best |>
+    ##     mutate(tie_err = ifelse(Ma405 == 0 | Ma405 == min(data$Ma405), 0, tie_err)) |>
+    ##     mutate(RMSD_Ma405 = ifelse(Ma405 == 0 | Ma405 == min(data$Ma405), 0, RMSD_Ma405))
+    ## }
 
     # simplify output
     the_best <- the_best |>
       # we limit the output to cycle 0 through what's there in the data
-      filter(Ma405 == 0 | !is.na(RMSD)) |>
+      filter((Ma405 == 0 | Ma405 == min(data$Ma405) - 1) | !is.na(RMSD_Ma405)) |>
+      mutate(tie_err = ifelse(Ma405 == 0 | Ma405 == min(data$Ma405) - 1, 0, tie_err)) |>
+      mutate(RMSD_Ma405 = ifelse(Ma405 == 0 | Ma405 == min(data$Ma405) - 1, 0, RMSD_Ma405)) |>
       mutate(depth = strat_bot + tie_err) |>
       # make depth at 0 doesn't include the depth error?
       mutate(depth = ifelse(Ma405 == 0, 0., depth))
 
+    # For Sopelana, the lowest fixed Ma405 is 8
+    if (min(data$Ma405) > 0) {
+      the_best <- the_best |>
+        filter(Ma405 != 0)
+    }
+
+    # TODO: figure out how to plot !fix_0 as well?
+    if (genplot & fix_0) {
+      pl <- the_best |>
+        ggplot(aes(x = tie, y = RMSD)) +
+        facet_wrap(facets = vars(Ma405)) +
+        geom_line(aes(y = RMSD),
+                  data = \(x) x |> unnest(cycles)) +
+        geom_line(aes(y = scl),
+                  colour = "red",
+                  data = \(x) x |> unnest(cycles)) +
+        geom_line(aes(y = wgt),
+                  colour = "purple",
+                  data = \(x) x |> unnest(cycles)) +
+        geom_point(aes(x = tie_err, y = RMSD_Ma405), colour = "red", size = 3) +
+        geom_point(aes(x = tie_err, y = wgt_Ma405), colour = "purple", size = 3)
+      print(pl)
+    }
+
     if (output == "full") {
-      return(the_best |>
-             select(depth, age, Ma405, tie_err, cycles, RMSD_Ma405 = RMSD))
+      return(the_best)
     } else {
       return((the_best) |>
-             select(depth, age, Ma405, tie_err, RMSD_Ma405 = RMSD))
+             select(depth, age, Ma405, tie_err, RMSD_Ma405))
     }
   } # end function definition
   ## ) # end microbenchmark mb_0
@@ -11901,6 +11923,8 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
   debug(wrap_age_model)
   ## the_best <- wrap_age_model(diffs_tie, agem_sol, fix_0 = TRUE)
 #+end_src
+
+#+RESULTS:
 
 **** example function calls
 :PROPERTIES:
@@ -11928,14 +11952,35 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C.png :width 900 :height 700
   # WARNING: still slow, but slightly less so
-  tst <- wrap_age_model(subs,
+  wrap_age_model(subs,
+                 agem_sol |> filter(sol == "ZB18a"),
+                 astronomical_solution = slns |> filter(sln == "ZB18a"),
+                 fix_0 = TRUE, genplot = TRUE, output = "full") -> tst
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_fixed_d13C.png]]
+
+***** only Sopelana available
+:PROPERTIES:
+:CREATED:  [2023-12-05 Tue 10:17]
+:END:
+#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS.png :width 900 :height 700
+  # WARNING: still slow, but slightly less so
+  tst <- wrap_age_model(diffs_tie |>
+                 filter(site == "Sopelana",
+                        proxy == "MS",
+                        sol == "ZB18a",
+                        detrend_type == "scl",
+                        filt_env == "filter",
+                        comb == "0.5:1"),
                  agem_sol |> filter(sol == "ZB18a"),
                  astronomical_solution = slns |> filter(sln == "ZB18a"),
                  fix_0 = TRUE, genplot = TRUE, output = "full")
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia_fixed_d13C.png]]
+[[file:imgs/Sopelana_fixed_MS.png]]
 
 ***** attempt to scale the weights?
 :PROPERTIES:
@@ -11945,7 +11990,14 @@ Note that cycles 1, 4, and 9 were marked as "well-defined" in the field, indicat
 
 Perhaps we can dowscale the RMSD scores for different tie_errors so that the points closer to the point as identified in the field get a better score?
 
-#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C_weighted.png :width 900 :height 700
+This is now embedded in our ~wrap_age_model~ function!
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C_weighted.png :width 900 :height 700 :eval never
+  tst <- wrap_age_model(subs,
+                        agem_sol |> filter(sol == "ZB18a"),
+                        astronomical_solution = slns |> filter(sln == "ZB18a"),
+                        fix_0 = TRUE, genplot = FALSE, output = "full")
+
   tst |>
     unnest(cycles) |>
     mutate(scl = exp(abs(tie)) / 10 + 1) |>
@@ -11964,34 +12016,13 @@ Perhaps we can dowscale the RMSD scores for different tie_errors so that the poi
                colour = "purple",
                data = \(x) filter(x, wgt_best)) +
     coord_cartesian(ylim = c(0, 4)) +
-    labs(title = "Zumaia d13C 1:1 filter vs ZB18a",
+    labs(#title = "Zumaia d13C 1:1 filter vs ZB18a",
          subtitle = "Optimal fit find for each 405 kyr minimum tie-point")
 #+end_src
 
 #+RESULTS:
 [[file:imgs/Zumaia_fixed_d13C_weighted.png]]
 
-
-***** only Sopelana available
-:PROPERTIES:
-:CREATED:  [2023-12-05 Tue 10:17]
-:END:
-#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS.png :width 900 :height 700
-  # WARNING: still slow, but slightly less so
-  wrap_age_model(diffs_tie |>
-                 filter(site == "Sopelana",
-                        proxy == "MS",
-                        sol == "ZB18a",
-                        detrend_type == "scl",
-                        filt_env == "filter",
-                        comb == "0.5:1"),
-                 agem_sol |> filter(sol == "ZB18a"),
-                 astronomical_solution = slns |> filter(sln == "ZB18a"),
-                 fix_0 = TRUE, genplot = TRUE)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Sopelana_fixed_MS.png]]
 
 **** benchmarking
 :PROPERTIES:
@@ -12202,6 +12233,73 @@ hmm I think I can just *not* filter the age model/solutions but do filter the in
 #+end_src
 
 #+RESULTS:
+**** rerun my fancy function with full output on only the best fits
+:PROPERTIES:
+:CREATED:  [2023-12-06 Wed 15:15]
+:END:
+#+begin_src R
+  only_the_best_full <-
+    diffs_tie |>
+    nest(.by = c(proxy, site,
+                 detrend_type, comb, filt_env, sol)) |>
+    inner_join(bsty) |> # only get those that were THE BEST
+    ## slice(1:3) |> # test first few
+    ## slice(c(1, 550)) |> # sopelana wasn't working
+    ## unnest(data) |>
+    ## glimpse()
+    mutate(the_best = furrr::future_map2( # use cores
+                               .x = data, .y = sol,
+                               .f = ~ .x |> wrap_age_model(
+                                     agemodel = agem_sol |>
+                                       filter(sol == .y),
+                                     astronomical_solution = slns |>
+                                       filter(sln == .y),
+                                     ## tiepoint_uncertainty = ,
+                                     # default -4, 4, .5
+                                     fix_0 = TRUE,
+                                     output = "full"),
+                               .progress = TRUE
+                             )) |>
+    write_rds("out/only_the_best_full.rds")
+#+end_src
+**** apply agemodels from only_the_best
+:PROPERTIES:
+:CREATED:  [2023-12-06 Wed 15:44]
+:END:
+#+begin_src R
+  only_the_best_full <- read_rds("out/only_the_best_full.rds")
+
+  bsuba <- only_the_best_full |>
+    mutate(age = map2(data, the_best,
+                          ~ Hmisc::approxExtrap(
+                                     x = .y |> pull(depth),
+                                     y = .y |> pull(age),
+                                     xout = .x |> pull(depth))$y
+                      )) |>
+    select(-the_best) |>
+    unnest(cols = c(data, age))
+
+  bsubdiff <- bsuba |>
+    nest(.by = sol) |>
+    mutate(data = map2(data, sol,
+                       ~ .x |>
+                         mutate(ecc_sln = approx(x = slns$age[slns$sln == .y],
+                                                 y = slns$scl[slns$sln == .y],
+                                                 xout = age)$y))) |>
+    unnest(cols = c(data)) |>
+    ## calculate SD between ecc and ecc_sol
+    mutate(SD = (ecc - ecc_sln)^2)
+
+  # sumamrize into RMSD
+  bsumy <- bsubdiff |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, site, comb,
+                      detrend_type,
+                      filt_env,
+                      sol))
+#+end_src
+
+#+RESULTS:
 
 **** COMMENT read in the different age models
 :PROPERTIES:
@@ -12262,6 +12360,7 @@ dbl (8): Ma405, strat_bot, age, depth_diff, age_diff, tie_err, depth, RMSD
 :END:
 How did making the tiepoint uncertainty more variable affect the final RMSD scores?
 Arrows indicate how the value has shifted from the old score (small circle) to the new score (bigger circle). It seems like overall the 1:0.5 comb is best, but different orbital solutions benefitted to a different extent from this optimization.
+
 #+begin_src R :results output graphics file :file imgs/Zumaia_rolling_tiepoints_parameter_combinations.png :width 800
   sumy |>
     filter(filt_env == "filter") |>
@@ -12286,7 +12385,11 @@ Arrows indicate how the value has shifted from the old score (small circle) to t
     ##                             detrend_type,
     ##                             filt_env))) +
     geom_point(aes(y = age_RMSD, fill = comb),
-               colour = "black", shape = 21, size = 3)
+               colour = "black", shape = 21, size = 3) +
+    geom_point(aes(x = detrend_type, y = RMSD),
+               colour = "black", fill = "purple", shape = 21, size = 4, stroke = 3,
+               data = bsumy |>
+               filter(site != "Sopelana"))
 
     # how did our age model from the field without adjustments compare?
     ## geom_line(aes(y = age_RMSD, alpha = .2,
@@ -12327,9 +12430,9 @@ Looks like Sopelana's 0th cycle still has an issue...
               colour = factor(Ma405))) +
    facet_grid(rows = vars(proxy, sol)) +
    # annotate AS
-   geom_line(aes(y = scale(ecc_sln)[, 1],
-                 group = paste(site, proxy, detrend_type, filt_env, comb)),
-             colour = "gray") +
+   ## geom_line(aes(y = scale(ecc_sln)[, 1],
+   ##               group = paste(site, proxy, detrend_type, filt_env, comb)),
+   ##           colour = "gray") +
    ## # annotate 405 kyr minima in depth record filter
    ## geom_point(aes(x = depth, y = -2),
    ##            colour = "brown",
@@ -12339,16 +12442,20 @@ Looks like Sopelana's 0th cycle still has an issue...
    ##                     site %in% sumy$site)) +
    # annotate age model maxima as identified in the field
    geom_segment(aes(x = strat_bot, xend = strat_top, y = 2, yend = 2),
-              colour = "purple",
+              colour = "gray",
               data = agem |> filter(minmax == "maximum")) +
    # annotate age model minima as identified in the field
-   geom_point(aes(x = strat_bot, y = -1.8, size = comment),
-              colour = "purple",
+   geom_point(aes(x = strat_bot, y = -1.8),
+              colour = "black",
               data = agem_simple) +
+   geom_point(aes(x = strat_bot, y = -1.8),
+              colour = "black", size = 3,
+              data = agem_simple |> filter(!is.na(comment))) +
    # annotate potential tie-point uncertainties tried out
    geom_point(aes(x = depth, y = -1.8),
-              colour = "purple", size = .2,
-              data = agem_tie) +
+              colour = "gray", size = .2,
+              data = agem_tie |>
+                filter(n == 0 & tie_err == 0 | n != 0)) +
    # annotate best tie-point uncertainty
    geom_point(aes(x = depth, y = -2.2, shape = site),
               colour = "red",
@@ -12357,11 +12464,18 @@ Looks like Sopelana's 0th cycle still has an issue...
                 inner_join(sumy |>
                            filter(RMSD == min(RMSD),
                                   .by = c(proxy, site, sol)))) +
+   geom_point(aes(x = depth, y = -2.4, shape = site),
+              colour = "purple",
+              data = only_the_best_full |>
+                select(-sol) |>
+                unnest(cols = c(the_best))) +
    ## annotate("text", x = c(0, 0, 0) - 5, y = c(-2, -1.8, -2.2),
    ##          hjust = 0,
    ##          colour = c("brown", "purple", "red"),
    ##          label = c("record filter", "field ties", "optimized ties")) +
-   geom_line(aes(group = paste(site, proxy, detrend_type, filt_env, comb))) +
+    geom_line(aes(group = paste(site, proxy, detrend_type, filt_env, comb)),
+              ## linewidth = 2
+              ) +
    ## coord_cartesian(xlim = c(150, -20)) +
    scale_x_reverse() +
    labs(x = "Depth (m)", y = "Normalized proxy construct")
@@ -12377,15 +12491,22 @@ Looks like Sopelana's 0th cycle still has an issue...
      ggplot(aes(x = age / 1e3, y = ecc,
                 colour = factor(Ma405))) +
      facet_grid(rows = vars(proxy, sol)) +
+    # draw orbital solution
      geom_line(aes(y = scale(ecc_sln)[, 1],
                    group = paste(sol, site, proxy, detrend_type, filt_env, comb)), colour = "gray") +
+    # draw 405 kyr minima
      geom_point(aes(x = age / 1e3, y = -2, shape = site),
                colour = "red",
                data = the_superduper_best |> unnest(cols = c(the_best))) +
-     geom_line(aes(group = paste(sol, site, proxy, detrend_type, filt_env, comb))) +
+    # draw record
+    geom_line(aes(group = paste(sol, site, proxy, detrend_type, filt_env, comb)),
+              linewidth = 1.5) +
+    geom_line(aes(group = paste(sol, site, proxy, detrend_type, filt_env, comb)),
+              colour = "purple",
+              data = bsubdiff) +
      ## geom_vline(aes(xintercept = age1), data = kpg_ages |> filter(sln == "ZB18a") |> rename(sol = sln)) +
-     scale_x_reverse() +
-     labs(x = "Age (Ma)", y = "Normalized proxy construct") +
+    scale_x_reverse() +
+    labs(x = "Age (Ma)", y = "Normalized proxy construct") +
     labs(colour = "Ma405")
     ## scale_colour_brewer(type = "qual", palette = 1) +
     ## plot_layout(guides = "collect")
