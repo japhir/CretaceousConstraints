@@ -53,18 +53,6 @@ Here we aim to use the best available records older than the K/T boundary to con
 #+end_src
 
 #+RESULTS:
-#+begin_example
-── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
-✔ dplyr     1.1.4     ✔ readr     2.1.4
-✔ forcats   1.0.0     ✔ stringr   1.5.1
-✔ ggplot2   3.4.4     ✔ tibble    3.2.1
-✔ lubridate 1.9.3     ✔ tidyr     1.3.0
-✔ purrr     1.0.2
-── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-✖ dplyr::filter() masks stats::filter()
-✖ dplyr::lag()    masks stats::lag()
-ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-#+end_example
 ** functions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
@@ -11585,7 +11573,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 :PROPERTIES:
 :CREATED:  [2023-12-01 Fri 14:15]
 :END:
-#+begin_src R :tangle R/wrap_age_model.R
+#+begin_src R
   wrap_age_model <- function(data,
                              agemodel,
                              astronomical_solution = sln,
@@ -12159,7 +12147,7 @@ which is pretty bad!
 :END:
 #+begin_src R
   source("R/wrap_age_model.R")
-  prof <- profvis::profvis(
+  prof2 <- profvis::profvis(
                      wrap_age_model(subs,
                                     agem_sol |> filter(sol == "ZB18a"),
                                     astronomical_solution = slns |> filter(sln == "ZB18a"),
@@ -12167,13 +12155,8 @@ which is pretty bad!
 #+end_src
 
 #+RESULTS:
-: profvis: code exited with error:
-: replacement has length zero
-:
-: Warning message:
-: Unknown or uninitialised column: `RMSD`.
 
-**** call the rolling agemodel function on the full dataframe
+**** NEXT call the rolling agemodel function on the full dataframe
 :PROPERTIES:
 :CREATED:  [2023-12-01 Fri 14:24]
 :END:
@@ -12220,8 +12203,8 @@ hmm I think I can just *not* filter the age model/solutions but do filter the in
 :CREATED:  [2023-12-01 Fri 15:34]
 :END:
 #+begin_src R
-  ## the_superduper_best <- read_rds("out/the_superduper_best.rds")
-  the_superduper_best <- read_rds("out/the_superduper_best_site.rds")
+  the_superduper_best <- read_rds("out/the_superduper_best.rds")
+  ## the_superduper_best <- read_rds("out/the_superduper_best_site.rds")
 
   # apply the optimal age models for each solution/detrend_type etc.
   suba <- the_superduper_best |>
@@ -12255,6 +12238,14 @@ hmm I think I can just *not* filter the age model/solutions but do filter the in
 #+end_src
 
 #+RESULTS:
+: Error in `mutate()`:
+: ℹ In argument: `age = map2(...)`.
+: Caused by error in `map2()`:
+: ℹ In index: 1.
+: Caused by error in `pull()`:
+: Caused by error:
+: ! object 'depth' not found
+: Run `rlang::last_trace()` to see where the error occurred.
 **** best
 :PROPERTIES:
 :CREATED:  [2023-12-05 Tue 17:23]
@@ -12282,9 +12273,10 @@ hmm I think I can just *not* filter the age model/solutions but do filter the in
     ## unnest(data) |>
     ## glimpse()
     mutate(the_best = furrr::future_map2( # use cores
-                               .x = data, .y = sol,
+                               .x = data,
+                               .y = sol,
                                .f = ~ wrap_age_model(
-                                     data = .x
+                                     data = .x,
                                      agemodel = agem_sol |>
                                        filter(sol == .y),
                                      astronomical_solution = slns |>
@@ -12292,10 +12284,11 @@ hmm I think I can just *not* filter the age model/solutions but do filter the in
                                      ## tiepoint_uncertainty = ,
                                      # default -4, 4, .5
                                      fix_0 = TRUE,
+                                     genplot = FALSE,
                                      output = "full"),
                                .progress = TRUE
                              )) |>
-    write_rds("out/2023-12-07_only_the_best_full.rds")
+    write_rds(file = "out/2023-12-07_only_the_best_full.rds")
 #+end_src
 **** apply agemodels from only_the_best
 :PROPERTIES:
@@ -12494,6 +12487,7 @@ Are my error tolerances just way too large (\pm4 m right now)?
 
 I've sometimes seen a larger tie_err just because the RMSD was barely/slightly lower. Should I do some kind of weighing so that smaller tie_err's get preference when the diffs in RMSD are not that great?
 
+I've done that now, see purple points in above plots for the new best scores after scaling them by distance in some fancy way.
 **** plot depth and age signals
 :PROPERTIES:
 :CREATED:  [2023-11-29 Wed 16:38]
@@ -12592,7 +12586,230 @@ Looks like Sopelana's 0th cycle still has an issue...
 
 #+RESULTS:
 [[file:imgs/Zumaia_rolling_tiepoints_age.png]]
+*** overall variable tie-points
+:PROPERTIES:
+:CREATED:  [2023-12-08 Fri 10:07]
+:END:
 
+**** [#A] wrap age model
+:PROPERTIES:
+:CREATED:  [2023-12-08 Fri 10:08]
+:END:
+# it's useful to write to separate file, because then the debugger will jump from line to line :)
+# #+include: "./R/wrap_age_model.R" src R
+
+#+begin_src R :tangle R/wrap_age_model.R
+  wrap_age_model <- function(data,
+                             agemodel,
+                             astronomical_solution = sln,
+                             tiepoint_uncertainty = seq(-4, 4, .5),
+                             fix_0 = TRUE,
+                             genplot = FALSE,
+                             output = "default") {
+
+    valid_outputs <- c("default", "details", "plot", "full")
+
+    # validate user inputs
+    if (!output %in% valid_outputs) {
+      cli::cli_abort(c("{.var output} must be one of {.or {.q {valid_outputs}}}",
+                       "x" = "You've supplied {.q {output}}"))
+
+    }
+
+    if (length(unique(data$sol)) > 1) {
+      cli::cli_abort(c("{.var data} must contain only one unique astronomical solution in column {.var sol}.",
+                       "x" = "{.var data} contains {.and {unique(data$sol)}}"
+                       ))
+    }
+
+    if (length(unique(agemodel$sol)) > 1) {
+      cli::cli_abort(c("{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
+                       "x" = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"
+                       ))
+    }
+
+    if (length(unique(astronomical_solution$sln)) > 1) {
+      cli::cli_abort(c("{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
+                       "x" = "{.var astronomical_solution} contains {.and {unique(astronomical_solution$sln)}}"
+                       ))
+    }
+
+    if (output == "plot" & !genplot) {
+      cli::cli_inform("{.var output} = {.q plot}, setting {.var genplot} = {.q TRUE}")
+      genplot <- TRUE
+    }
+    # end input validation
+
+    tiepoints <- unique(data$Ma405) |> sort()
+
+    # make sure to fully initialize the whole output dataframe
+    # this will make looping less slow
+    the_best_summary <- agemodel |>
+      filter(n %in% tiepoints) |>
+      select(all_of(c("sol", "n", "strat_bot", "age"))) |>
+      mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
+             RMSD_cum = NA_real_) # best RMSD score for full record
+
+    the_best <- the_best_summary |>
+      select(-tie_err, -RMSD_cum) |>
+      mutate(
+        optimal = list(tibble(error = tiepoint_uncertainty,
+                              RMSD_tie = NA_real_))
+      ) |>
+      unnest(cols = c(optimal))
+
+    for (tiepoint in tiepoints) {
+      if (!tiepoint %in% agemodel$n) {
+        next
+      } else {
+        for (error in tiepoint_uncertainty) {
+
+          if (!(tiepoint - 1) %in% the_best_summary$n) {
+            am <- the_best_summary |>
+              mutate(tie = case_when(n == tiepoint ~ error,
+                                     .default = NA_real_)) |>
+              mutate(depth = case_when(!is.na(tie) ~ strat_bot + tie,
+                                       .default = strat_bot))
+
+          } else {
+            am <- the_best_summary |>
+              mutate(tie = case_when(n == tiepoint ~ error,
+                                     n < tiepoint ~ tie_err,
+                                     .default = NA_real_)) |>
+              mutate(depth = case_when(!is.na(tie) ~ strat_bot + tie,
+                                       .default = strat_bot))
+          }
+
+          tmp <- data |>
+            # TODO: make this filter match the depth based on the tie-point instead?
+            mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
+            # calculate age from age model for each uncertainty
+            mutate(age = map_dbl(depth,
+                     ~ Hmisc::approxExtrap(
+                                am |> pull(depth),
+                                am |> pull(age),
+                                xout = .x)$y)) |>
+            # linearly interpolate the astronomical solution eccentricity
+            mutate(ecc_sln = approx(astronomical_solution$age,
+                                    astronomical_solution$scl,
+                                    xout = age)$y) |>
+            # calculate SD between ecc and ecc_sol
+            mutate(SD = (ecc - ecc_sln)^2) #|>
+
+          # summarize into RMSD
+          smy <- tmp |>
+            summarize(RMSD = sqrt(mean(SD)))
+
+          # save the results to our tibble
+          the_best$RMSD_tie[the_best$n == tiepoint & the_best$error == error] <- smy$RMSD
+
+        } # end error loop
+
+        # append the best result
+        the_best_summary$tie_err[the_best_summary$n == tiepoint] <-
+          the_best |>
+          filter(n == tiepoint) |>
+          filter(RMSD_tie == min(RMSD_tie)) |>
+          pull(error)
+
+        the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <-
+          the_best |>
+          filter(n == tiepoint) |>
+          filter(RMSD_tie == min(RMSD_tie)) |>
+          pull(RMSD_tie)
+
+      } # end if
+    } # end tiepoint loop
+
+    # TODO: figure out how to plot !fix_0 as well?
+    if (genplot & fix_0) {
+      pl <- the_best |>
+        ggplot(aes(x = error, y = RMSD_tie, group = n)) +
+        facet_wrap(facets = vars(n)) +
+        geom_line() +
+        geom_point(aes(x = tie_err, y = RMSD_cum), colour = "red", size = 3,
+                   data = the_best_summary)
+      print(pl)
+    }
+
+    if (output == "default") {
+      return(the_best_summary)
+    } else if (output == "details") {
+      return(the_best)
+    } else if (output == "full") {
+      return(list(summary = the_best_summary, details = the_best))
+    } else if (output == "plot") {
+      return(pl)
+    }
+  } # end function definition
+#+end_src
+
+**** call it and debug it
+:PROPERTIES:
+:CREATED:  [2023-12-08 Fri 10:09]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C_overall.png :width 900 :height 700
+  source("R/wrap_age_model.R")
+  ## debug(wrap_age_model)
+  # WARNING: still slow, but slightly less so
+  tst2 <- wrap_age_model(subs,
+                 agem_sol |> filter(sol == "ZB18a"),
+                 astronomical_solution = slns |> filter(sln == "ZB18a"),
+                 fix_0 = TRUE, genplot = TRUE, output = "full")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_fixed_d13C_overall.png]]
+
+**** apply age model to selection of best results
+:PROPERTIES:
+:CREATED:  [2023-12-08 Fri 14:47]
+:END:
+#+begin_src R
+  rolling_age_optim <-
+    diffs_tie |>
+    nest(.by = c(proxy, site,
+                 detrend_type, comb, filt_env, sol)) |>
+    filter(filt_env != "hilbert") |>
+    filter(detrend_type != "lin_gam_det") |> # I already did these
+    filter(comb == "1:0.5") |>
+    mutate(the_best = furrr::future_map2(
+                               .x = data, .y = sol,
+                               .f = ~ .x |> wrap_age_model(
+                                     agemodel = agem_sol |>
+                                       filter(sol == .y),
+                                     astronomical_solution = slns |>
+                                       filter(sln == .y),
+                                     ## tiepoint_uncertainty = ,
+                                     # default -4, 4, .5
+                                     fix_0 = TRUE,
+                                     output = "default"),
+                               .progress = TRUE
+                             )) |>
+    ## write_rds("out/2023-12-08_rolling_age_optim.rds") # only lin_gam_det (hilbert, 1:0.5), 20 rows
+    write_rds("out/2023-12-08_rolling_age_optim_nld.rds") # remainder of detrend_type (no lin_gam_det, only hilbert, 1:0.5), 80 additional rows
+#+end_src
+
+**** compare overall RMSD scores
+:PROPERTIES:
+:CREATED:  [2023-12-08 Fri 15:39]
+:END:
+#+begin_src R
+  rolling_age_optim <- bind_rows(
+    read_rds("out/2023-12-08_rolling_age_optim.rds"),
+    read_rds("out/2023-12-08_rolling_age_optim_nld.rds"),
+  )
+
+  rolling_age_optim |>
+    select(-sol) |>
+    unnest(c(the_best)) |>
+    filter(n == tail(n, 1),
+           .by = c(proxy, site, detrend_type, comb, filt_env, sol)) |>
+    ggplot(aes(x = detrend_type, y = RMSD_cum)) +
+    facet_grid(cols = vars(site, sol), rows = vars(proxy)) +
+    geom_line(aes(group = paste(proxy, site, detrend_type, comb, filt_env))) +
+    geom_point()
+#+end_src
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
