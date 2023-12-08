@@ -14,7 +14,7 @@
 Hi Richard, this doc is getting quite big, so here are some links to jump through quickly! They should be clickable!
 - [[cref:sec:shared-code]] has my R code for MTM spectral analysis, bandpass filtering, plotting spectra, and getting/filtering the astronomical solutions.
 - I list all the sites I found data for and create some quick figures, but the Zumaia and Sopelana [[cref:sec:Zumaia-Sopelana]] is the most promising and has the most advanced analysis.
-- See [[cref:fig:best-age]] for the most recent figure of filtered Zumaia/Sopelana records compared to La11, ZB18a, and ZB20a solutions!
+- See cref:fig:rolling-rmsd for the most recent figure of filtered Zumaia/Sopelana records compared to La10b, La10c, ZB18a, and ZB20a solutions!
 * Introduction
 "Cool quote that addresses how crucial good dating is". (I like how some of RZ's paper's start with an ancient quote).
 Maybe something from [cite:@Berger1980] review?
@@ -11527,6 +11527,7 @@ This is [[cref:fig:best-age]], the most elaborate figure I've been able to conco
 :PROPERTIES:
 :CREATED:  [2023-11-28 Tue 16:54]
 :END:
+This approach does the computation one 405 kyr cyle at a time and is therefore probably wrong and useless! Leaving it in for now for posterity, but will probably cut it out entirely.
 
 **** add Ma405 and astronomical solutions to data
 :PROPERTIES:
@@ -12590,6 +12591,11 @@ Looks like Sopelana's 0th cycle still has an issue...
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 10:07]
 :END:
+Ahhh after clarification from Richard, what he does in stead is:
+- apply the normal age model
+- tweak the youngest tiepoint depth iteratively, then compute RMSD for the whole record
+- pick the best
+- move on to the next, use the previous results and continue
 
 **** [#A] wrap age model
 :PROPERTIES:
@@ -12598,7 +12604,7 @@ Looks like Sopelana's 0th cycle still has an issue...
 # it's useful to write to separate file, because then the debugger will jump from line to line :)
 # #+include: "./R/wrap_age_model.R" src R
 
-#+begin_src R :tangle R/wrap_age_model.R
+#+begin_src R :tangle R/wrap_age_model.R :exports code
   wrap_age_model <- function(data,
                              agemodel,
                              astronomical_solution = sln,
@@ -12758,6 +12764,7 @@ Looks like Sopelana's 0th cycle still has an issue...
                  fix_0 = TRUE, genplot = TRUE, output = "full")
 #+end_src
 
+#+caption: How does the RMSD evolve for the new rolling tiepoint uncertainty as we change the error on each tiepoint iteratively? (0 is the youngest tiepoint at the K/T boundary, 9 is the oldest one at the base of the Zumaia section). This is for d13C.
 #+RESULTS:
 [[file:imgs/Zumaia_fixed_d13C_overall.png]]
 
@@ -12771,8 +12778,12 @@ Looks like Sopelana's 0th cycle still has an issue...
     nest(.by = c(proxy, site,
                  detrend_type, comb, filt_env, sol)) |>
     filter(filt_env != "hilbert") |>
-    filter(detrend_type != "lin_gam_det") |> # I already did these
-    filter(comb == "1:0.5") |>
+    ## filter(detrend_type == "lin_gam_det") |> # I already did these
+    ## filter(detrend_type != "lin_gam_det") |> # I already did these
+    ## filter(detrend_type %in% c("lin_gam_det", "lin_scl")) |> # I already did these
+    filter(!detrend_type %in% c("lin_gam_det", "lin_scl")) |> # I already did these
+    ## filter(comb == "1:0.5") |>
+    filter(comb != "1:0.5") |> # did this one, now doing lin_gam_det and lin_scl
     mutate(the_best = furrr::future_map2(
                                .x = data, .y = sol,
                                .f = ~ .x |> wrap_age_model(
@@ -12787,17 +12798,21 @@ Looks like Sopelana's 0th cycle still has an issue...
                                .progress = TRUE
                              )) |>
     ## write_rds("out/2023-12-08_rolling_age_optim.rds") # only lin_gam_det (hilbert, 1:0.5), 20 rows
-    write_rds("out/2023-12-08_rolling_age_optim_nld.rds") # remainder of detrend_type (no lin_gam_det, only hilbert, 1:0.5), 80 additional rows
+    ## write_rds("out/2023-12-08_rolling_age_optim_nld.rds") # remainder of detrend_type (no lin_gam_det, only hilbert, 1:0.5), 80 additional rows
+    ## write_rds("out/2023-12-08_rolling_age_optim_combs.rds") # some additional combs
+    write_rds("out/2023-12-08_rolling_age_optim_combs2.rds") # some additional combs
 #+end_src
 
 **** compare overall RMSD scores
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 15:39]
 :END:
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/rolling_age_overview.png :width 1200 :height 900
   rolling_age_optim <- bind_rows(
     read_rds("out/2023-12-08_rolling_age_optim.rds"),
     read_rds("out/2023-12-08_rolling_age_optim_nld.rds"),
+    read_rds("out/2023-12-08_rolling_age_optim_combs.rds"),
+    read_rds("out/2023-12-08_rolling_age_optim_combs2.rds"),
   )
 
   rolling_age_optim |>
@@ -12805,11 +12820,63 @@ Looks like Sopelana's 0th cycle still has an issue...
     unnest(c(the_best)) |>
     filter(n == tail(n, 1),
            .by = c(proxy, site, detrend_type, comb, filt_env, sol)) |>
-    ggplot(aes(x = detrend_type, y = RMSD_cum)) +
-    facet_grid(cols = vars(site, sol), rows = vars(proxy)) +
-    geom_line(aes(group = paste(proxy, site, detrend_type, comb, filt_env))) +
+    ggplot(aes(x = sol, y = RMSD_cum, colour = comb)) +
+    facet_grid(cols = vars(site, detrend_type), rows = vars(proxy)) +
+    geom_line(aes(group = paste(proxy, site, comb, filt_env))) +
     geom_point()
 #+end_src
+
+#+name: fig:rolling-rmsd
+#+attr_latex: :width 1.2\textwidth
+#+caption: Best RMSD socres for different astronomical solutions (x-axis), sites and detrend types (column panels), and proxies (row panels). This analysis relies on iteratively shifting the tiepoints by \pm4 m and calculating the RMSD for the whole record at each iteration to decide which tiepoint error gives the best fit.
+#+RESULTS:
+[[file:imgs/rolling_age_overview.png]]
+
+#+begin_src R :results output graphics file :file imgs/rolling_age_vs_strat_bot.png :width 1200 :height 900
+  # vs depth
+  rolling_age_optim |>
+    select(-sol) |>
+    unnest(c(the_best)) |>
+    ggplot(aes(x = strat_bot + tie_err, y = RMSD_cum,
+               ## colour = comb,
+               colour = detrend_type,
+               group = paste(site, sol, proxy, comb, detrend_type))) +
+    facet_grid(
+      #cols = vars(## proxy,
+      #sol),
+      rows = vars(
+        sol
+        #proxy
+        #detrend_type
+               )) +
+    geom_line() +
+    geom_point(size = 3) +
+    geom_line(aes(group = paste(site, sol, proxy, n)),
+              orientation = "y",
+              ## colour = "black",
+              data = \(x) x |> arrange(RMSD_cum, n)) +
+    scale_x_reverse() +
+    geom_point(aes(x = strat_bot, y = 0.8),
+               size = 5,
+               shape = "triangle",
+               inherit.aes = FALSE,
+               data = agem_sol |>
+                 filter(comment == "well-defined")) +
+    geom_vline(aes(xintercept = strat_bot),
+               data = \(x) x |>
+                           distinct(n, strat_bot,
+                                    site,proxy,comb,detrend_type,sol,comb))
+#+end_src
+
+#+attr_latex: :width 1.2\textwidth
+#+caption: Evolving RMSD scores as the next (towards the left) agemodel tiepoint (black lines) is adjusted by \pm4 m in order to get a better overall fit of the record to the astronomical solution (row panels). Colours indicate different ways of detrending the record. Triangles mark "well-defined" 405 kyr minima [cite:@Batenburg2012;@Batenburg2014].
+#+RESULTS:
+[[file:imgs/rolling_age_vs_strat_bot.png]]
+
+**** NEXT make a figure of the best records vs age
+:PROPERTIES:
+:CREATED:  [2023-12-09 Sat 00:02]
+:END:
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
