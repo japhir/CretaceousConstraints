@@ -8735,7 +8735,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 2.05GB/s, eta:  0s                                                                                                                                            New names:
+-/                                                                                                       /                                                                                                       -                                                                                                       > > > + + + indexing 18696_2.csv [===============================================================] 1.47GB/s, eta:  0s                                                                                                                                            New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ─────────────────────────────────────────────────────────────────────────────────
@@ -9342,11 +9342,11 @@ It's pretty slow.
 
 #+RESULTS:
 
-**** COMMENT eha
+**** eha
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 15:33]
 :END:
-#+begin_src R
+#+begin_src R :results output graphics file :file imgs/Zumaia_MS_eha.png :width 400 :height 900
   smooth_pred |>
     filter(proxy == "MS",
            site == "Zumaia",
@@ -9356,36 +9356,22 @@ It's pretty slow.
     astrochron::eha(#sigID = TRUE,
                   win = 10, step = .5,
                   fmax = 1,
-                  ydir = -1)
+                  ydir = -1,
+                  genplot = FALSE, verbose = FALSE,
+                  output = 4) |> # harmonic CL
+    pivot_longer(-freq) |>
+    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+    rename(depth = name) |>
+    ggplot(aes(x = freq, y = depth, fill = value)) +
+    geom_raster() +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    coord_cartesian(expand = FALSE) +
+    labs(x = "Frequency", y = "Depth (m)")
 #+end_src
 
 #+RESULTS:
-#+begin_example
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1360
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.10458
- ,* New number of samples= 1349
-
- ----- PERFORMING EVOLUTIVE HARMONIC ANALYSIS -----
- ,* Number of data points in stratigraphic series: 1349
- ,* Stratigraphic series length (space or time): 140.9738
- ,* Sampling interval (space or time): 0.10458
- ,* Number of data points per window: 96
- ,* Moving window size (space or time): 9.9351
- ,* Window step points: 5
- ,* Window step (space or time): 0.5229
- ,* Number of windows: 251
- ,* Mean value for each window will be subtracted
- ,* Linear trend for each window will be subtracted
- ,* Nyquist frequency: 4.781029
- ,* Rayleigh frequency: 0.09960477
- ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.1992095
- ,* Will use 3 DPSS tapers
- ,* Padded to 256 points
-#+end_example
+[[file:imgs/Zumaia_MS_eha.png]]
 
 **** make plot of spectra and annotate the target frequency ranges for bp filtering
 :PROPERTIES:
