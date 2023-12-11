@@ -12757,6 +12757,24 @@ This code finds the optimal age model. The function compares the ~data~ with the
 #+RESULTS:
 [[file:imgs/Zumaia_fixed_d13C_overall.png]]
 
+#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS_overall.png :width 900 :height 700
+  source("R/wrap_age_model.R")
+  tst3 <- wrap_age_model(diffs_tie |>
+                   filter(site == "Sopelana",
+                          proxy == "MS",
+                          sol == "ZB18a",
+                          detrend_type == "scl",
+                          filt_env == "filter",
+                          comb == "0.5:1"),
+                 agem_sol |> filter(sol == "ZB18a"),
+                 astronomical_solution = slns |> filter(sln == "ZB18a"),
+                 fix_0 = TRUE, genplot = TRUE, output = "full")
+#+end_src
+
+#+caption: Second example for Sopelana MS.
+#+RESULTS:
+[[file:imgs/Sopelana_fixed_MS_overall.png]]
+
 **** apply age model to selection of best results
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 14:47]
@@ -12792,6 +12810,10 @@ This code finds the optimal age model. The function compares the ~data~ with the
     write_rds("out/2023-12-08_rolling_age_optim_combs2.rds") # some additional combs
 #+end_src
 
+**** NEXT I still have to use the best fit from the lowest Zumaia record for the top of the Sopelana record
+:PROPERTIES:
+:CREATED:  [2023-12-11 Mon 11:04]
+:END:
 **** compare overall RMSD scores
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 15:39]
@@ -12867,6 +12889,74 @@ This code finds the optimal age model. The function compares the ~data~ with the
 :PROPERTIES:
 :CREATED:  [2023-12-09 Sat 00:02]
 :END:
+#+begin_src R :results output graphics file :file imgs/rolling_age_best_records_depth.png :width 1200 :height 900
+  rolling_age_optim |>
+    ## slice(1) |>
+    mutate(
+      the_best = map(the_best,
+                     \(b) b |>
+                          mutate(depth = strat_bot + tie_err))) |>
+    ## select(-sol) |> unnest(the_best)
+    mutate(RMSD = map_dbl(the_best, \(x) x |>
+                                         filter(n == max(n), .by = c(sol)) |>
+                                         pull(RMSD_cum))) |>
+    unnest(data) |>
+    tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, sol)) |>
+    ggplot(aes(x = depth, y = ecc,
+               colour = detrend_type,
+               shape = comb## , alpha = RMSD
+               )) +
+    facet_grid(rows = vars(proxy, sol)## , cols = vars(comb)
+               ) +
+    scale_x_reverse() +
+    # annotate tiepoints + uncertainty + best
+    geom_vline(aes(xintercept = strat_bot), colour = "gray", data = agem_sol) +
+    geom_point(aes(x = depth, y = -2),
+               size = .3,
+               inherit.aes = FALSE,
+               colour = "gray", data = agem_tie) +
+    geom_point(aes(x = strat_bot, y = -2.6),
+               size = 2,
+               shape = "triangle",
+               inherit.aes = FALSE,
+               data = agem_sol |>
+                 filter(comment == "well-defined")) +
+    geom_point(aes(x = depth, y = -2),
+               colour = "purple",
+               data = \(x) x |> select(-depth, -sol) |> unnest(the_best)) +
+    # the below is nice but a bit too messy
+    ## geom_text(aes(x = depth, y = -2, label = round(RMSD_cum, 3)),
+    ##            colour = "purple",
+    ##            data = \(x) x |> select(-depth, -sol) |> unnest(the_best)) +
+    ## scale_alpha_binned(range = c(1, .1)) +
+    ## scale_linewidth_binned(range = c(3, .1)) +
+    # annotate astronomical solution
+    ## geom_line(aes(x = depth / 1e3, y = scl),
+    ##           inherit.aes = FALSE, colour = "gray",
+    ##           data = slns |>
+    ##             filter(sln != "La11") |>
+    ##             filter(age < 71.4e3, age > 65.8e3) |>
+    ##             rename(sol = sln)) +
+    # draw the best fits
+    geom_line(aes(group = paste(proxy, site, sol, detrend_type, comb, filt_env, sol))) +
+    # annotate RMSD score
+    geom_text(aes(label = round(RMSD, 3)),
+              position = position_jitter(height = 2.5, width = 0),
+              hjust = 0,
+              data = \(x) x |> distinct(proxy, site, sol,
+                                        detrend_type, comb,
+                                        filt_env, sol, RMSD,
+                                        .keep_all = TRUE)) +
+    ## geom_point() +
+    labs(x = "Depth (Ma)", y = "Normalized filtered record", colour = "Detrend type")
+#+end_src
+
+#+attr_latex: :width 1.2\textwidth
+#+name: fig:rolling-depth
+#+caption: Best fits in the depth domain using the rolling tiepoint uncertainty approach. Vertical gray lines show 405 kyr minima as identified in the field, with well-defined ones highlighted with a black triangle. Gray dots show all tiepoint uncertainties looked at, with the optimal (lowest overal RMSD score) tiepoint marked in purple. Numbers indicate RMSD score for the adjacent best fit. *NOTE*: mistake in the d13C record, where the uncertainties were so large that they allow the solution to skip a 405 kyr cycle.
+#+RESULTS:
+[[file:imgs/rolling_age_best_records_depth.png]]
+
 #+begin_src R :results output graphics file :file imgs/rolling_age_best_records.png :width 1200 :height 900
   rolling_age_optim |>
     ## slice(1) |>
@@ -12914,10 +13004,67 @@ This code finds the optimal age model. The function compares the ~data~ with the
     labs(x = "Age (Ma)", y = "Normalized filtered record", colour = "Detrend type")
 #+end_src
 
-#+caption: The filtered Zumaia/Sopelana records using the rolling tweaked tiepoint uncertainty. Note the skipped cycle in the d13C, which is a result of the large input \pm4 m uncertainty on the 405 kyr minima as identified in the field. Will need fixing!
+#+attr_latex: :width 1.2\textwidth
+#+name: fig:rolling-age
+#+caption: The filtered Zumaia/Sopelana records using the rolling tweaked tiepoint uncertainty. Numbers indicate RMSD score for the adjacent fit. Note the skipped cycle in the d13C, which is a result of the large input \pm4 m uncertainty on the 405 kyr minima as identified in the field. Will need fixing!
 #+RESULTS:
 [[file:imgs/rolling_age_best_records.png]]
 
+**** eha after applying age model
+:PROPERTIES:
+:CREATED:  [2023-12-11 Mon 14:01]
+:END:
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_MS_eha.png :width 400 :height 900
+  mini <- rolling_age_optim |>
+    ## slice(1) |>
+    mutate(
+      the_best = map(the_best,
+                     \(b) b |>
+                          mutate(depth = strat_bot + tie_err))) |>
+    ## select(-sol) |> unnest(the_best)
+    mutate(
+      data = map2(data, the_best,
+                  \(d, b) d |>
+                          mutate(age = Hmisc::approxExtrap(b$depth, b$age, xout = depth)$y))) |>
+    mutate(RMSD = map_dbl(the_best, \(x) x |>
+                                         filter(n == max(n), .by = c(sol)) |>
+                                         pull(RMSD_cum))) |>
+    unnest(data) |>
+    tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, sol)) |>
+    filter(proxy == "MS",
+           site == "Zumaia",
+           ## sol == "ZB20a",
+           sol == "La10b",
+           ## detrend_type == "lin_gam_det",
+           ## comb == "1:1"
+           ) |>
+    tidylog::left_join(smooth_all)
+
+  (mini |>
+   ggplot(aes(x = value, y = age / 1e3)) +
+   geom_line(orientation = "y") +
+   coord_cartesian(ylim = c(65.8, 69.7), expand = FALSE) +
+   labs(x = "Normalized, filtered MS", y = "Age (Ma)", title = round(mini$RMSD[[1]], 3))) +
+  (mini |>
+    select(age, ecc) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::eha(#sigID = TRUE,
+                  win = 500, step = 10,
+                  ## fmax = 1,
+                  ## ydir = -1,
+                  genplot = FALSE, verbose = FALSE,
+                  output = 3) |> # harmonic CL
+    pivot_longer(-freq) |>
+    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+    rename(age = name) |>
+    ggplot(aes(x = freq, y = age / 1e3, fill = value)) +
+    geom_raster() +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    coord_cartesian(xlim = c(0, 1 / 50), ylim = c(65.8, 69.7), expand = FALSE) +
+    labs(x = "Frequency", y = "Age (Ma)"))
+#+end_src
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
