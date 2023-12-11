@@ -12750,6 +12750,8 @@ Ahhh after clarification from Richard, what he does in stead is:
   } # end function definition
 #+end_src
 
+#+RESULTS:
+
 **** call it and debug it
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 10:09]
@@ -12808,6 +12810,7 @@ Ahhh after clarification from Richard, what he does in stead is:
 :CREATED:  [2023-12-08 Fri 15:39]
 :END:
 #+begin_src R :results output graphics file :file imgs/rolling_age_overview.png :width 1200 :height 900
+  # I ran this in some smaller batches in order of importance
   rolling_age_optim <- bind_rows(
     read_rds("out/2023-12-08_rolling_age_optim.rds"),
     read_rds("out/2023-12-08_rolling_age_optim_nld.rds"),
@@ -12828,7 +12831,7 @@ Ahhh after clarification from Richard, what he does in stead is:
 
 #+name: fig:rolling-rmsd
 #+attr_latex: :width 1.2\textwidth
-#+caption: Best RMSD socres for different astronomical solutions (x-axis), sites and detrend types (column panels), and proxies (row panels). This analysis relies on iteratively shifting the tiepoints by \pm4 m and calculating the RMSD for the whole record at each iteration to decide which tiepoint error gives the best fit.
+#+caption: Best RMSD scores for different astronomical solutions (x-axis), sites and detrend types (column panels), and proxies (row panels). This analysis relies on iteratively shifting the tiepoints by small increments up to \pm4 m and calculating the RMSD for the whole record at each iteration to decide which tiepoint error gives the best fit.
 #+RESULTS:
 [[file:imgs/rolling_age_overview.png]]
 
@@ -12838,7 +12841,7 @@ Ahhh after clarification from Richard, what he does in stead is:
     select(-sol) |>
     unnest(c(the_best)) |>
     ggplot(aes(x = strat_bot + tie_err, y = RMSD_cum,
-               ## colour = comb,
+               shape = comb,
                colour = detrend_type,
                group = paste(site, sol, proxy, comb, detrend_type))) +
     facet_grid(
@@ -12869,14 +12872,65 @@ Ahhh after clarification from Richard, what he does in stead is:
 #+end_src
 
 #+attr_latex: :width 1.2\textwidth
-#+caption: Evolving RMSD scores as the next (towards the left) agemodel tiepoint (black lines) is adjusted by \pm4 m in order to get a better overall fit of the record to the astronomical solution (row panels). Colours indicate different ways of detrending the record. Triangles mark "well-defined" 405 kyr minima [cite:@Batenburg2012;@Batenburg2014].
+#+caption: Evolving RMSD scores as the next (towards the left) agemodel tiepoint (black lines) is adjusted by \pm4 m in order to get a better overall fit of the record to the astronomical solution (row panels). Colours indicate different ways of detrending the record. Black triangles mark "well-defined" 405 kyr minima [cite:@Batenburg2012;@Batenburg2014].
 #+RESULTS:
 [[file:imgs/rolling_age_vs_strat_bot.png]]
 
-**** NEXT make a figure of the best records vs age
+**** make a figure of the best records vs age
 :PROPERTIES:
 :CREATED:  [2023-12-09 Sat 00:02]
 :END:
+#+begin_src R :results output graphics file :file imgs/rolling_age_best_records.png :width 1200 :height 900
+  rolling_age_optim |>
+    ## slice(1) |>
+    mutate(
+      the_best = map(the_best,
+                     \(b) b |>
+                          mutate(depth = strat_bot + tie_err))) |>
+    ## select(-sol) |> unnest(the_best)
+    mutate(
+      data = map2(data, the_best,
+                  \(d, b) d |>
+                          mutate(age = Hmisc::approxExtrap(b$depth, b$age, xout = depth)$y))) |>
+    mutate(RMSD = map_dbl(the_best, \(x) x |>
+                                         filter(n == max(n), .by = c(sol)) |>
+                                         pull(RMSD_cum))) |>
+    unnest(data) |>
+    tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, sol)) |>
+    ggplot(aes(x = age / 1e3, y = ecc,
+               colour = detrend_type,
+               shape = comb## , alpha = RMSD
+               )) +
+    facet_grid(rows = vars(proxy, sol)## , cols = vars(comb)
+               ) +
+    scale_x_reverse() +
+    ## scale_alpha_binned(range = c(1, .1)) +
+    ## scale_linewidth_binned(range = c(3, .1)) +
+    # annotate astronomical solution
+    geom_line(aes(x = age / 1e3, y = scl),
+              inherit.aes = FALSE, colour = "gray",
+              data = slns |>
+                filter(sln != "La11") |>
+                filter(age < 71.4e3, age > 65.8e3) |>
+                rename(sol = sln)) +
+    # draw the best fits
+    geom_line(aes(group = paste(proxy, site, sol, detrend_type, comb, filt_env, sol))) +
+    # annotate RMSD score
+    geom_text(aes(label = round(RMSD, 3)),
+              position = position_jitter(height = 2.5, width = 0),
+              hjust = 0,
+              data = \(x) x |> distinct(proxy, site, sol,
+                                        detrend_type, comb,
+                                        filt_env, sol, RMSD,
+                                        .keep_all = TRUE)) +
+    ## geom_point() +
+    labs(x = "Age (Ma)", y = "Normalized filtered record", colour = "Detrend type")
+#+end_src
+
+#+caption: The filtered Zumaia/Sopelana records using the rolling tweaked tiepoint uncertainty. Note the skipped cycle in the d13C, which is a result of the large input \pm4 m uncertainty on the 405 kyr minima as identified in the field. Will need fixing!
+#+RESULTS:
+[[file:imgs/rolling_age_best_records.png]]
+
 *** COMMENT save/load the workspace image (I didn't enjoy having to rerun everything everytime)
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 13:42]
