@@ -14,7 +14,8 @@
 Hi Richard, this doc is getting quite big, so here are some links to jump through quickly! They should be clickable!
 - [[cref:sec:shared-code]] has my R code for MTM spectral analysis, bandpass filtering, plotting spectra, and getting/filtering the astronomical solutions.
 - I list all the sites I found data for and create some quick figures, but the Zumaia and Sopelana [[cref:sec:Zumaia-Sopelana]] is the most promising and has the most advanced analysis.
-- See cref:fig:rolling-rmsd for the most recent figure of filtered Zumaia/Sopelana records compared to La10b, La10c, ZB18a, and ZB20a solutions!
+- See cref:fig:rolling-rmsd for the most recent figure of filtered Zumaia/Sopelana records compared to La10b, La10c, ZB18a, and ZB20a solutions. This uses the rolling overall best RMSD scores as they improve by tweaking each tiepoint uncertainty.
+- See cref:fig:rolling-depth and cref:fig:rolling-age for what those record matches look like in the depth and time domain.
 * Introduction
 "Cool quote that addresses how crucial good dating is". (I like how some of RZ's paper's start with an ancient quote).
 Maybe something from [cite:@Berger1980] review?
