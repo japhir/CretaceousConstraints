@@ -12590,7 +12590,7 @@ Ahhh after clarification from Richard, what he does in stead is:
 :END:
 # it's useful to write to separate file, because then the debugger will jump from line to line :)
 # #+include: "./R/wrap_age_model.R" src R
-
+This code finds the optimal age model. The function compares the ~data~ with the astronomical solution (~astronomical_solution~, can only contain one, e.g. ~ZB18a~) based on the 405 kyr minima as identified in the field (~agemodel~), and applies an input uncertainty (~tiepoint_uncertainty~, a vector of adjustments to make to each tiepoint). After tweaking the tiepoint, the RMSD is calculated and the best score is stored. It then loops through all tiepoints to find the overall best fit to the astronomical solution.
 #+begin_src R :tangle R/wrap_age_model.R :exports code
   wrap_age_model <- function(data,
                              agemodel,
