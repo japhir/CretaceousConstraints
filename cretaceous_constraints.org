@@ -8943,8 +8943,8 @@ We have several ways of subtracting the long-term trends prior to doing spectral
                                  method = "REML",
                                  data = .))) |>
     mutate(
-      # TODO: this outputs a <dbl[1d]> rather than a simple <dbl>
-      gam_pred = map(gam, predict),
+      ## gam_pred = map(gam, predict),
+      gam_pred = map(gam, \(x) x |> predict() |> as.vector()),
     ) |>
     select(-gam) |>
     unnest(cols = c(data, gam_pred)) |>
@@ -9014,7 +9014,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
                             method = "REML",
                             data = .)),
-      gam_pred = map_dbl(gamm, predict)
+      gam_pred = map(gamm, \(x) x |> predict() |> as.vector()),
     ) |>
     select(-gamm) |>
     unnest(cols = c(data, gam_pred)) |>
