@@ -1,0 +1,11 @@
+sol,Ma405,comment,strat_bot,site,age,depth_diff,age_diff,tie_err,depth,proxy,comb,detrend_type,filt_env,RMSD
+La10b,0,NA,0,Zumaia,65928,16,405,0.5,0.5,MS,1:1,scl,filter,0.7513140170375782
+La10b,1,well-defined,16,Zumaia,66333,16,405,-4,12,MS,1:1,scl,filter,0.7513140170375782
+La10b,2,NA,32,Zumaia,66738,15,406,-4,28,MS,1:1,scl,filter,0.7957757660171564
+La10b,3,NA,47,Zumaia,67144,14,402,-2.5,44.5,MS,1:1,scl,filter,1.1737739288229163
+La10b,4,well-defined,61,Zumaia,67546,15,400,0.5,61.5,MS,1:1,scl,filter,0.7087870143843198
+La10b,5,NA,76,Zumaia,67946,15,413,3.5,79.5,MS,1:1,scl,filter,0.6300603605852083
+La10b,6,NA,91,Zumaia,68359,20,402,-1,90,MS,1:1,scl,filter,1.064074971437959
+La10b,7,NA,111,Zumaia,68761,11,408,2,113,MS,1:1,scl,filter,0.8943930697935714
+La10b,8,NA,122,Zumaia,69169,13,416,2.5,124.5,MS,1:1,scl,filter,0.983200032636163
+La10b,9,well-defined,135,Zumaia,69585,14,400,4,139,MS,1:1,scl,filter,1.2718412466839901
