@@ -3,6 +3,8 @@
 #+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
 #+options: TOC:3 broken-links:ignore H:4
 #+startup: overview
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport nolatex
 
 \newpage
 * quick links to most relevant sections for Richard
@@ -49,18 +51,6 @@ Here we aim to use the best available records older than the K/T boundary to con
 #+end_src
 
 #+RESULTS:
-#+begin_example
-── Attaching core tidyverse packages ───────────────────────────────────────────────── tidyverse 2.0.0 ──
-✔ dplyr     1.1.4     ✔ readr     2.1.4
-✔ forcats   1.0.0     ✔ stringr   1.5.1
-✔ ggplot2   3.4.4     ✔ tibble    3.2.1
-✔ lubridate 1.9.3     ✔ tidyr     1.3.0
-✔ purrr     1.0.2
-── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-✖ dplyr::filter() masks stats::filter()
-✖ dplyr::lag()    masks stats::lag()
-ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-#+end_example
 ** functions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
@@ -877,6 +867,7 @@ dt{i} = diff(t{i}(kv));
   # filter 2 Myr ± 60% Gaussian
   # 2 Myr = 2000 kyr period = 1 / 2000 period
   x11(type = "cairo")
+
   bp2000 <- sol |>
     astrochron::bandpass(
                   padfac = 10, # 10x the number of data points
@@ -887,20 +878,25 @@ dt{i} = diff(t{i}(kv));
                   flow = 1 / 2000 - 0.6 * 1 / 2000,
                   fhigh = 1 / 2000 + 0.6 * 1 / 2000,
                   win = 1, # Gaussian window
-                  demean = TRUE, detrend = TRUE, #???
+                  ## win: Window type for bandpass filter: 0 = rectangular , 1=
+                  ## Gaussian, 2= Cosine-tapered window (a.k.a. Tukey window).
+                  demean = TRUE, detrend = TRUE,
                   addmean = FALSE,
                   xmax = .02)
+
   grDevices::savePlot("imgs/2023-08-28_0_2Myr_bandpass_filter.png")
 
   # get the peak maxima
   pk2000 <- bp2000 |>
     astrochron::peak()
+
   grDevices::savePlot("imgs/2023-08-28_1_peak.png")
 
   # but in the paper they do peak minima, we just flip the input
   pk2000_flip <- bp2000 |>
     mutate(ee = -ee) |>
     astrochron::peak(genplot = TRUE)
+
   grDevices::savePlot("imgs/2023-08-28_2_peak.png")
 
   # calculate deltas between peaks
@@ -920,6 +916,7 @@ dt{i} = diff(t{i}(kv));
     geom_line() +
     geom_point(aes(x = Location, y = Peak_Value, colour = "maxima"), data = pk2000_tidy) +
     geom_point(aes(x = Location, y = -Peak_Value, colour = "minima"), data = pk2000_flip_tidy)
+
   ggsave("~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous/imgs/2023-08-28_3_check_peaks.png")
 
   # create a plot similar to Zeebe and Lourens 2022 EPSL figure 6a
@@ -1130,6 +1127,8 @@ Warning messages:
 :CREATED:  [2023-08-31 Thu 12:48]
 :END:
 Sorted from young to older, longest records at the end.
+
+Might need to filter/reorder when I'm writing the paper
 
 ** [#C] IODP Leg 208 Site 1262
 :PROPERTIES:
@@ -10177,6 +10176,7 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:49]
 :END:
+***** mtm
 #+begin_src R
   specs_age <- smooth_ages |>
     spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
@@ -10184,6 +10184,45 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 #+end_src
 
 #+RESULTS:
+***** FFT periodogram
+:PROPERTIES:
+:CREATED:  [2023-12-19 Tue 16:00]
+:END:
+#+begin_src R
+  specs_fft_age <- smooth_ages |>
+    nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+    mutate(fft = map(data,
+                      ~ . |>
+                        select(age, value) |>
+                        astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                        astrochron::periodogram(genplot = F, verbose = F, output = 1) |>
+                        as_tibble()
+                        )) |>
+    select(-data) |>
+    unnest(cols = c(fft)) |>
+    rename(freq = Frequency, amp = Amplitude, power = Power, phase = Phase)
+#+end_src
+***** MTLS
+:PROPERTIES:
+:CREATED:  [2023-12-19 Tue 16:17]
+:END:
+  #+begin_src R
+    source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
+    source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
+
+    specs_mtls_age <- smooth_ages |>
+      nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+      mutate(mtls = map(data,
+                        ~ . |>
+                          select(age, value) |>
+                          # NOTE: no need to linearly interpolate!
+                          # That's the point!
+                          spec.mtls(plot = FALSE) |>
+                          as_tibble())) |>
+      select(-data) |>
+      unnest(mtls)
+  #+end_src
+
 **** COMMENT do eha on one example dataset
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 15:30]
@@ -10267,29 +10306,38 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 2400 :height 2400 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 2400 :height 2600 :res 300
+  my_filter <- \(x) x |>
+                      ## filter(detrend_type != "value") # default to show all
+                      ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
+                      filter(detrend_type == "lin_gam_det") # only one so we can see different spectral analysis
+
   # plot spectra w/ Freq on x-axis
   specs_age |>
-    filter(detrend_type != "value") |>
+    my_filter() |>
+    ## filter(detrend_type != "value") |>
     ## plot_spectrum() + # only works well for a single line
     ggplot(aes(x = freq, y = power,
                ## linetype = site,
-               colour = detrend_type)) +
+               ## colour = detrend_type
+               )) +
     ## scale_linetype_manual(values = c("Zumaia" = "solid",
     ##                                  "Sopelana" = "dashed")) +
     coord_cartesian(
       ## xlim = c(1 / 1000, 1 / 10), # for a log x axis
       ## xlim = c(0, .072),
-      xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
-      ylim = c(0, .025)) +
+      xlim = c(0, .066), # same as new Malinverno & Meyers 2023 preprint
+      ## xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
+      ## ylim = c(0, .025) # previous best
+      ylim = c(0, .020) # previous best
+    ) +
     ## scale_y_log10() +
     scale_x_continuous(
     ## scale_x_log10(
       sec.axis = sec_axis("Period (m)", trans = ~ 1 / .,
-                          breaks = c(2400, 405, 100))) +
+                          breaks = c(405, 100, 50, 20, 10))) +
     scale_y_continuous(breaks = c(0, .01, .02)) +
     ## annotation_logticks(sides = "l") +
-
     ## # plot AR1 fits/confidence levels
     ## ## geom_line(aes(y = AR1_power, group = paste(site, detrend_type, sol, .width))) +
     ## ## geom_line(aes(y = Harmonic_CL)) +
@@ -10297,7 +10345,6 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
     ##                 linetype = NA, fill = detrend_type,
     ##                 group = paste(detrend_type, site, sol, proxy, .width)),
     ##               alpha = .1) +
-
     # rectangles for target frequencies
     ## ggnewscale::new_scale_fill() +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
@@ -10308,11 +10355,23 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
               inherit.aes = FALSE,
               alpha = .1,
               data = my_filt_age) +
-
     # plot spectra
-    geom_line(aes(group = paste(site, sol, proxy, detrend_type))) +
-
-    labs(x = "Frequency (cycles/kyr)", y = "Power (-)") +
+    # FFT periodogram
+    geom_line(aes(colour = "FFT",
+                  group = paste(site, sol, proxy, detrend_type)),
+              data = specs_fft_age |>
+                my_filter()) +
+    # MTM
+    geom_line(aes(colour = "MTM",
+                  group = paste(site, sol, proxy, detrend_type))) +
+    # MTLS
+    geom_line(aes(colour = "MTLS",
+                  y = spec,
+                  group = paste(site, sol, proxy, detrend_type)),
+              data = specs_mtls_age |>
+                my_filter()) +
+    labs(x = "Frequency (cycles/kyr)", y = "Power (-)",
+         colour = "Spectral Analysis") +
     facet_grid(cols = vars(site), rows = vars(proxy, sol))
 #+end_src
 
@@ -12443,27 +12502,39 @@ This code finds the optimal age model. The function compares the ~data~ with the
 
     # validate user inputs
     if (!output %in% valid_outputs) {
-      cli::cli_abort(c("{.var output} must be one of {.or {.q {valid_outputs}}}",
-                       "x" = "You've supplied {.q {output}}"))
-
+      cli::cli_abort(c(
+             "{.var output} must be one of {.or {.q {valid_outputs}}}",
+             "x" = "You've supplied {.q {output}}"))
     }
 
     if (length(unique(data$sol)) > 1) {
-      cli::cli_abort(c("{.var data} must contain only one unique astronomical solution in column {.var sol}.",
-                       "x" = "{.var data} contains {.and {unique(data$sol)}}"
-                       ))
+      cli::cli_abort(c(
+             "{.var data} must contain only one unique astronomical solution in column {.var sol}.",
+             "x" = "{.var data} contains {.and {unique(data$sol)}}"
+           ))
     }
 
     if (length(unique(agemodel$sol)) > 1) {
-      cli::cli_abort(c("{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
-                       "x" = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"
-                       ))
+      cli::cli_abort(c(
+             "{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
+             "x" = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"
+       ))
     }
 
     if (length(unique(astronomical_solution$sln)) > 1) {
-      cli::cli_abort(c("{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
-                       "x" = "{.var astronomical_solution} contains {.and {unique(astronomical_solution$sln)}}"
-                       ))
+      cli::cli_abort(c(
+             "{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
+             "x" = "{.var astronomical_solution} contains {.and {unique(astronomical_solution$sln)}}"
+       ))
+    }
+
+    # can't check this in data, sometimes not passed
+    if (!(astronomical_solution$sln[[1]] == agemodel$sol[[1]])) {
+      cli::cli_abort(c(
+             "{.var sol} must be the same in {.var astronomical_solution} and {.var agemodel}",
+             "i" = "{.var sol} in {.var agemodel} = {agemodel$sol[[1]]}",
+             "i" = "{.var sln} in {.var astronomical_solution} = {astronomical_solution$sln[[1]]}"
+       ))
     }
 
     if (output == "plot" & !genplot) {
@@ -12554,23 +12625,38 @@ This code finds the optimal age model. The function compares the ~data~ with the
     } # end tiepoint loop
 
     if (genplot) {
+      # faceted plot
+      ## pl <- the_best |>
+      ##   ggplot(aes(x = error, y = RMSD_tie, group = n)) +
+      ##   facet_wrap(facets = vars(n)) +
+      ##   geom_line() +
+      ##   geom_point(aes(x = tie_err, y = RMSD_cum), colour = "red", size = 3,
+      ##              data = the_best_summary)
+      # new plot against depth
       pl <- the_best |>
-        ggplot(aes(x = error, y = RMSD_tie, group = n)) +
-        facet_wrap(facets = vars(n)) +
-        geom_line() +
-        geom_point(aes(x = tie_err, y = RMSD_cum), colour = "red", size = 3,
+        ggplot(aes(x = strat_bot + error, y = RMSD_tie)) +
+        labs(x = "Depth (m)", y = "RMSD") +
+        scale_x_reverse() +
+        geom_vline(aes(xintercept = strat_bot), colour = "gray",
+                 data = the_best_summary) +
+        geom_line(aes(group = n)) +
+        geom_point(aes(x = strat_bot + tie_err, y = RMSD_cum),
+                   colour = "red",
                    data = the_best_summary)
       print(pl)
     }
 
     if (output == "default") {
       return(the_best_summary)
-    } else if (output == "details") {
+    }
+    if (output == "details") {
       return(the_best)
-    } else if (output == "full") {
-      return(list(summary = the_best_summary, details = the_best))
-    } else if (output == "plot") {
+    }
+    if (output == "plot") {
       return(pl)
+    }
+    if (output == "full") {
+      return(list(summary = the_best_summary, details = the_best, plot = pl))
     }
   } # end function definition
 #+end_src
@@ -12582,7 +12668,7 @@ This code finds the optimal age model. The function compares the ~data~ with the
 :CREATED:  [2023-12-08 Fri 10:09]
 :END:
 ***** Zumaia d13C subs
-#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C_overall.png :width 1200 :height 1200 :res 300
+#+begin_src R
   source("R/wrap_age_model.R")
   ## debug(wrap_age_model)
   # WARNING: still slow, but slightly less so
@@ -12592,13 +12678,17 @@ This code finds the optimal age model. The function compares the ~data~ with the
                  genplot = TRUE, output = "full")
 #+end_src
 
+#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C_overall.png :width 2200 :height 1200 :res 300
+  tst2$plot + scale_x_reverse() + labs(x = "Depth (m)", y = "RMSD")
+#+end_src
+
 #+attr_latex: :width \textwidth
 #+caption: How does the RMSD evolve for the new rolling tiepoint uncertainty as we change the error on each tiepoint iteratively? (0 is the youngest tiepoint at the K/T boundary, 9 is the oldest one at the base of the Zumaia section). This is for d13C. *NOTE:* issue with tiepoints 8 and 9, which are quite close together and get lumped as close together as possible here.
 #+RESULTS:
 [[file:imgs/Zumaia_fixed_d13C_overall.png]]
 
 ***** COMMENT Sopelana MS ZB18a scl filter 0.5:1
-#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS_overall.png :width 900 :height 700 :res 300
+#+begin_src R
   source("R/wrap_age_model.R")
   tst3 <- wrap_age_model(diffs_tie |>
                    filter(site == "Sopelana",
@@ -12612,12 +12702,17 @@ This code finds the optimal age model. The function compares the ~data~ with the
                  genplot = TRUE, output = "full")
 #+end_src
 
+#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS_overall.png :width 900 :height 700 :res 300
+  ## tst3$plot
+  tst2$plot + scale_x_reverse() + labs(x = "Depth (m)", y = "RMSD")
+#+end_src
+
 #+caption: Second example for Sopelana MS scl 0.5:1 vs. ZB18a.
 #+RESULTS:
 [[file:imgs/Sopelana_fixed_MS_overall.png]]
 
 ***** COMMENT Zumaia MS lin_gam_det 1:1 vs La10b
-#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_MS_La10b_lgd_overall.png :width 900 :height 700
+#+begin_src R
   source("R/wrap_age_model.R")
   ## debug(wrap_age_model)
   # WARNING: still slow, but slightly less so
@@ -12634,11 +12729,51 @@ This code finds the optimal age model. The function compares the ~data~ with the
     genplot = TRUE, output = "full")
 #+end_src
 
+#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_MS_La10b_lgd_overall.png :width 900 :height 400
+  tst4$plot
+#+end_src
+
 #+caption: Zumaia MS lin_gam_det 1:1 vs. La10b.
 #+RESULTS:
 [[file:imgs/Zumaia_fixed_MS_La10b_lgd_overall.png]]
 
 
+***** COMMENT Zumaia d13C subs
+#+begin_src R :results output graphics file :file imgs/Zumaia_d13C_overall_ZB20a.png :width 1200 :height 1200 :res 300
+  ## source("R/wrap_age_model.R")
+  ## debug(wrap_age_model)
+  # WARNING: still slow, but slightly less so
+  ZC20_2 <- wrap_age_model(
+      diffs_tie |>
+      # best-scoring d13C zumaia ZB20a
+      filter(site == "Zumaia",
+             sol == "ZB20a",
+             proxy == "d13C",
+             detrend_type == "gam_det",
+             comb == "1:1",
+             filt_env == "filter"),
+    agem_sol |> filter(sol == "ZB20a"),
+    astronomical_solution = slns |> filter(sln == "ZB20a"),
+    ## tiepoint_uncertainty = seq(-4, 4, .5), # default
+    tiepoint_uncertainty = seq(-2, 2, .5), # smaller range
+    genplot = TRUE, output = "full")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_d13C_overall_ZB20a.png]]
+
+see if we can plot this better/figure out how to not mess up Ma_{405}7,8
+#+begin_src R
+  ZC20$details |>
+    ## glimpse()
+    ggplot(aes(x = strat_bot + error, y = RMSD_tie)) +
+    geom_vline(aes(xintercept = strat_bot), colour = "gray",
+               data = ZC20$summary) +
+    geom_line(aes(group = n)) +
+    geom_point(aes(x = strat_bot + tie_err, y = RMSD_cum),
+               colour = "red",
+               data = ZC20$summary)
+#+end_src
 **** apply age model to selection of best results
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 14:47]
@@ -12744,6 +12879,27 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+RESULTS:
 [[file:imgs/rolling_age_overview.png]]
 
+**** rerun the best fits with detailed output
+:PROPERTIES:
+:CREATED:  [2023-12-13 Wed 10:56]
+:END:
+#+begin_src R
+  best_age_details <- best_age_optim |>
+    mutate(deets = furrr::future_map2(
+                               .x = data, .y = sol,
+                               .f = ~ .x |> wrap_age_model(
+                                     agemodel = agem_sol |>
+                                       filter(sol == .y),
+                                     astronomical_solution = slns |>
+                                       filter(sln == .y),
+                                     ## tiepoint_uncertainty = ,
+                                     # default -4, 4, .5
+                                     output = "details"),
+                               .progress = TRUE
+                          )) |>
+    write_rds("out/2023-12-13_best_age_details.rds")
+#+end_src
+
 **** COMMENT plot RMSD as a function of depth
 #+begin_src R :results output graphics file :file imgs/rolling_age_vs_strat_bot.png :width 2400 :height 2600 :res 300
   # vs depth
@@ -12784,6 +12940,38 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+caption: Evolving RMSD scores as the next (towards the left) agemodel tiepoint (black lines) is adjusted by \pm4 m in order to get a better overall fit of the record to the astronomical solution for each proxy (row panels). Colours indicate different ways of detrending the record. Black triangles mark "well-defined" 405 kyr minima [cite:@Batenburg2012;@Batenburg2014]. Note that currently, the Sopelana records' top is not fixed to the optimal Zumaia record's bottom.
 #+RESULTS:
 [[file:imgs/rolling_age_vs_strat_bot.png]]
+
+**** plot best fits vs depth
+:PROPERTIES:
+:CREATED:  [2023-12-13 Wed 15:15]
+:END:
+#+begin_src R :results output graphics file :file imgs/best_age_details_tiepoint_uncertainty.png :width 2400 :height 2600 :res 300
+  best_age_details <- read_rds("out/2023-12-13_best_age_details.rds")
+  best_age_details |>
+    select(-sol) |>
+    unnest(deets) |>
+    ggplot(aes(x = strat_bot + error,
+               y = RMSD_tie, col = detrend_type, linetype = comb,
+               group = paste(proxy,detrend_type,site,comb,sol,n))) +
+    facet_grid(rows = vars(proxy, sol)) +
+    labs(x = "Depth (m)", y = "RMSD") +
+    geom_vline(aes(xintercept = strat_bot), colour = "gray", data = agem_sol) +
+    scale_linetype_manual(values = c("1:1" = "solid",
+                                     "1:0.5" = "dashed",
+                                     "0.5:1" = "dotted")) +
+    geom_line() +
+    geom_point(colour = "red",
+               data = \(x) x |>
+                           filter(RMSD_tie == min(RMSD_tie),
+                                  .by = c(sol, proxy, site, detrend_type, comb, filt_env, n))) +
+    scale_x_reverse()
+#+end_src
+
+#+name: fig:rolling-rmsd-improvement
+#+attr_latex: :width 1.2\textwidth
+#+caption: Tiepoint error RMSD score improvement for the best overall RMSD scores (larger triangles in cref:fig:rolling-rmsd). Vertical gray lines indicate tiepoints as identified in the field, red dots indicate "optimal" adjustments to these tiepoints when considering the whole record and the previous best fits (going from right to left, young to old). *NOTE:* the tiepoints for d13C merging at Ma_{405}8. *NOTE*: different optimal tiepoints for Zumaia (right) and Sopelana (left) in practically all solutions.
+#+RESULTS:
+[[file:imgs/best_age_details_tiepoint_uncertainty.png]]
 
 **** make a figure of the best records vs depth
 :PROPERTIES:
@@ -12848,7 +13036,7 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 
 #+attr_latex: :width 1.2\textwidth
 #+name: fig:rolling-depth
-#+caption: *Best rolling tiepoint uncertainty fits in the depth domain.* Vertical gray lines show 405 kyr minima as identified in the field, with well-defined ones highlighted with a black triangle. Gray dots show all tiepoint uncertainties looked at (\pm4 m), with the optimal (lowest overal RMSD score) tiepoint marked in purple. Numbers indicate RMSD score for the adjacent fit. *NOTE*: mistake in the d13C record, where the uncertainties were so large that they allow the fitting function to skip a 405 kyr cycle. *NOTE2*: Sopelana top is not linked to Zumaia base best tiepoint uncertainty.
+#+caption: *Best rolling tiepoint uncertainty fits in the depth domain.* Vertical gray lines show 405 kyr minima as identified in the field, with well-defined ones highlighted with a black triangle. Gray dots show all tiepoint uncertainties looked at (\pm4 m), with the optimal (lowest overal RMSD score) tiepoint marked in purple. Numbers indicate RMSD score for the adjacent fit. *NOTE*: mistake in the d13C record, where the uncertainties were so large that they allow the fitting function to skip a 405 kyr cycle. *NOTE*: Sopelana top is not linked to Zumaia base best tiepoint uncertainty.
 #+RESULTS:
 [[file:imgs/rolling_age_best_records_depth.png]]
 
@@ -12913,7 +13101,6 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 14:01]
 :END:
-
 #+begin_src R :results output graphics file :file imgs/Zumaia_MS_eha.png :width 400 :height 900
   mini <- rolling_age_optim |>
     ## slice(1) |>
@@ -12969,7 +13156,7 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+RESULTS:
 [[file:imgs/Zumaia_MS_eha.png]]
 
-**** [2/7] tasks
+**** [3/7] tasks
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:52]
 :END:
@@ -12984,15 +13171,16 @@ CLOSED: [2023-12-12 Tue 14:33]
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 14:33]
 :END:
-***** NEXT make sure the Zumaia d13C record doesn't just skip a 405 kyr cycle because I've made the tiepoint_uncertainty too large (in Ma405-8)
-:PROPERTIES:
-:CREATED:  [2023-12-11 Mon 15:14]
-:END:
-***** NEXT look at full RMSD vs tie-error plots for each of the best-scoring solutions
+***** DONE look at full RMSD vs tie-error plots for each of the best-scoring solutions
+CLOSED: [2023-12-14 Thu 10:50]
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:14]
 :END:
 this will be slow but might help me decide if the tie-error range of \pm4 m is too large or not. Should result in 20 new figures!
+***** NEXT make sure the Zumaia d13C record doesn't just skip a 405 kyr cycle because I've made the tiepoint_uncertainty too large (in Ma405-8)
+:PROPERTIES:
+:CREATED:  [2023-12-11 Mon 15:14]
+:END:
 ***** NEXT make Sopelana's top tiepoint rely on the best fit of the lowest Zumaia tiepoint uncertainty
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:15]
@@ -13003,7 +13191,7 @@ Currently the age models of Zumaia/Sopelana are independently tweaked. Not sure 
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:15]
 :END:
-Seems like the sedrate might have changed around 100 m, cycle Ma405_{7}.
+Seems like the sedrate might have changed around 100 m, cycle Ma_{405}7.
 See cref:fig:Zumaia-eha.
 ***** SOME now that I've finally figured out the analysis, apply it to other records as well
 :PROPERTIES:
@@ -13019,6 +13207,8 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 :CREATED:  [2023-11-22 Wed 13:42]
 :END:
 :LOGBOOK:
+- Note taken on [2023-12-19 Tue 16:28] \\
+  just added the MTLS and FFT spectral analyses for the simple age model
 - Note taken on [2023-11-28 Tue 16:51] \\
   this is the image after running the standard depth analysis as well as the simple agemodel time analysis after adding La10b and La10c
 :END:
@@ -13026,6 +13216,8 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 #+begin_src R :eval query
   save.image()
 #+end_src
+
+#+RESULTS:
 
 #+begin_src R
   load(".RData")
@@ -13333,11 +13525,12 @@ https://doi.pangaea.de/10.1594/PANGAEA.834794
 #+cite_export: csl apa.csl
 #+print_bibliography:
 
-
-* latex settings that I haven't settled on yet :noexport:
+* latex settings that I haven't settled on yet         :noexport:
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 13:08]
 :END:
+#+latex_compiler: lualatex
+#+latex_header: \usepackage[utf8]{luainputenc}
 ** engraved
 :PROPERTIES:
 :CREATED:  [2023-11-22 Wed 10:54]
