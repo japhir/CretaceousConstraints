@@ -96,8 +96,9 @@ wrap_age_model <- function(data,
           # calculate age from age model for each uncertainty
           mutate(age = map_dbl(depth,
                    ~ Hmisc::approxExtrap(
-                              am |> pull(depth),
-                              am |> pull(age),
+                              # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
+                              am$depth,
+                              am$age,
                               xout = .x)$y)) |>
           # linearly interpolate the astronomical solution eccentricity
           mutate(ecc_sln = approx(astronomical_solution$age,
@@ -115,18 +116,23 @@ wrap_age_model <- function(data,
 
       } # end error loop
 
-      # append the best result
-      the_best_summary$tie_err[the_best_summary$n == tiepoint] <-
-        the_best |>
-        filter(n == tiepoint) |>
-        filter(RMSD_tie == min(RMSD_tie)) |>
-        pull(error)
+      tb <- the_best[the_best$n == tiepoint, ]
+      bst <- min(tb$RMSD_tie)
+      tb <- tb[tb$RMSD_tie == bst, ]
 
-      the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <-
-        the_best |>
-        filter(n == tiepoint) |>
-        filter(RMSD_tie == min(RMSD_tie)) |>
-        pull(RMSD_tie)
+      # append the best result
+      the_best_summary$tie_err[the_best_summary$n == tiepoint] <- tb$error
+        # this clocks in at 81.6 µs, while dplyr alternatives below at 830 µs
+#& the_best$RMSD_tie == min(the_best$RMSD_tie), "error"]##  |>
+        ## filter(n == tiepoint) |>
+        ## filter(RMSD_tie == min(RMSD_tie)) |>
+        ## pull(error)
+
+      the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <- tb$RMSD_tie
+        ## the_best[the_best$n == tiepoint & RMSD_tie == min(RMSD_tie), "RMSD_tie"]##  |>
+        ## filter(n == tiepoint) |>
+        ## filter(RMSD_tie == min(RMSD_tie)) |>
+        ## pull(RMSD_tie)
 
     } # end if
   } # end tiepoint loop
