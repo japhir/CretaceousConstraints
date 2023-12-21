@@ -86,6 +86,7 @@ The R source code to reproduce this analysis will be made available on https://g
 ** functions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
+:header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output :tangle R/functions.R
 :END:
 *** spectral analysis
 :PROPERTIES:
@@ -182,53 +183,71 @@ It's not much better, gets a bit messy if plotted on log10 scale.
   }
 #+end_src
 
-
 *** bandpass filter
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:08]
 :END:
 This filters out all the frequencies in dataframe ~freqs~.
 #+begin_src R
-  bandpass_filter <- function(data, freqs, x, y, nest) {
+  #' Bandpass filter
+  #'
+  #' @param data data.frame()
+  #' @param frequencies data.frame() with columns `target`, `flow`, and `fhigh`.
+  #'   Can contain multiple rows for multiple frequency filtering.
+  #' @param x Column name in `data` that holds the depth/age information.
+  #' @param y Column name in `data` that holds the proxy variable name.
+  bandpass_filter <- function(data, frequencies, x, y) {
     if (! "data.frame" %in% class(data)) {
       cli::cli_abort(c(
              "{.var data} must be a {.cls data.frame}",
              "x" = "You supplied a {.cls {class(data)}}"))
     }
-    if (! "data.frame" %in% class(freqs)) {
+    if (! "data.frame" %in% class(frequencies)) {
       cli::cli_abort(c(
              "{.var freqs} must be a {.cls data.frame}",
              "x" = "You've supplied a {.cls {class(freqs)}}"))
     }
-    if (! all(c("fhigh", "flow") %in% colnames(freqs))) {
+    if (! all(c("fhigh", "flow", "target") %in% colnames(frequencies))) {
       cli::cli_abort(c("{.var freqs} must have columns `flow` and `fhigh`",
                        "i" = "{.var freqs} has column{?s} {.val {colnames(freqs)}}"))
     }
+
+    data |>
+      mutate(filt = list(frequencies)) |>
+      unnest(filt) |>
+      nest(.by = all_of(colnames(frequencies))) |>
+      mutate(
+        lt = map(data, \(d) d |>
+                            select({{x}}, {{y}}) |>
+                            astrochron::linterp(genplot = FALSE, verbose = FALSE)),
+        bp = pmap(list(lt, flow, fhigh), \(d, l, h)
+                  d |>
+                   astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                        genplot = FALSE, verbose = FALSE) |>
+                   select(filter = {{y}}))) |>
+      select(-data) |>
+      unnest(cols = c(lt, bp))
+  }
+
+
+  #' Nested bandpass filter
+  #'
+  #' @inheritParams bandpass_filter
+  #' @param nest character() Vector with column names in `data` to nest by.
+  nested_bandpass_filter <- function(data, frequencies, x, y, nest) {
     if (! all(nest %in% colnames(data))) {
       cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
                        "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
                        "x" = "You've supplied {.val {nest}}"))
     }
 
-
     data |>
       nest(.by = all_of(nest)) |>
-      mutate(filt = list(freqs)) |>
-      unnest(filt) |>
-      mutate(
-        bp = pmap(list(data, flow, fhigh),
-                  \(d, l, h) d |>
-                             select({{x}}, {{y}}) |>
-                             astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                             astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                                  genplot = FALSE, verbose = FALSE) |>
-                             rename(filt = {{y}}))
-      ) |>
-      select(-data) |>
-      unnest(cols = c(bp)) #|>
-      ## select(sln, target, {{x}}, filt) |>
-      ## pivot_wider(names_from = target, values_from = filt) |>
-      ## mutate(filter = scale(1 * `405 kyr` + 1 * `100 kyr`)[, 1])
+      mutate(bp = purrr::map(data,
+                 \(d) d |>
+                        bandpass_filter(frequencies = frequencies, x = {{x}}, y = {{y}}))) |>
+      unnest(bp) |>
+      select(-data)
   }
 #+end_src
 
@@ -531,10 +550,17 @@ I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those 
            fhigh = f + range,
            ref = "This study")
 
+  ## source("R/functions.R") # this is just to make debugging easier
+
+  # test individual bp
+  slns[slns$sln == "ZB18a", ] |>
+    bandpass_filter(frequencies = my_filt_age |> filter(target != "prec"),
+                    x = age, y = ecc)
+
   sln_filters <- slns |>
-    bandpass_filter(freqs = my_filt_age,
-                    x = age, y = ecc,
-                    nest = "sln")
+      nested_bandpass_filter(frequencies = my_filt_age |> filter(target != "prec"),
+                      x = age, y = ecc,
+                      nest = "sln")
 #+end_src
 
 #+RESULTS:
@@ -546,11 +572,12 @@ Just to check, this results in the following periods for filtering the AS:
 #+end_src
 
 #+RESULTS:
-: # A tibble: 2 × 9
+: # A tibble: 3 × 9
 :   target      p       f    range    flow   fhigh ref         plow phigh
 :   <chr>   <dbl>   <dbl>    <dbl>   <dbl>   <dbl> <chr>      <dbl> <dbl>
-: 1 405 kyr   405 0.00247 0.000988 0.00148 0.00346 This study  675  289.
-: 2 100 kyr   100 0.01    0.004    0.006   0.014   This study  167.  71.4
+: 1 405 kyr   405 0.00247 0.000988 0.00148 0.00346 This study 675   289.
+: 2 100 kyr   100 0.01    0.004    0.006   0.014   This study 167.   71.4
+: 3 prec       22 0.0455  0.0182   0.0273  0.0636  This study  36.7  15.7
 
 So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenburg2014], where they filter the La11 solution between 300 and 623 kyr to target the 405 kyr solution.
 
@@ -643,20 +670,25 @@ These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens
 
 #+RESULTS:
 
-** plot orbital solutions
+* plot astronomical solutions
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 14:51]
 :END:
+In this study we focus on those astronomical solutions that showed the best compatibility with the Walvis Ridge datasets for the Paleocene [cite:@ZeebeLourens2022EPSL].. This includes La10b, La10c, ZB18a, and ZB20a (cref:fig:astronomical-solutions).
+
 #+begin_src R :results output graphics file :file imgs/orbital_solutions.png :width 900 :exports both
-  slns |>
+  sln_filters |>
+    filter(sln != "La11") |>
     ggplot(aes(x = age / 1000, y = ecc)) +
+    # double-check that linear interpolation went ok
+    ## geom_line(linewidth = 1.2, alpha = .3, data = slns) +
     geom_line(linewidth = 1.2, alpha = .3) +
-    geom_line(aes(x = age / 1000, y = filt, colour = target),
-              linewidth = 1,
-              data = sln_filters) +
-    geom_point(aes(x = age / 1000, y = 0), colour = "indianred", data = sln_peaks) +
-    geom_vline(aes(xintercept = age1), data = kpg_ages) +
-    geom_vline(aes(xintercept = age2), data = kpg_ages) +
+    geom_line(aes(y = filter, colour = target),
+              linewidth = 1) +
+    geom_point(aes(x = age / 1000, y = 0), colour = "indianred",
+               data = sln_peaks |> filter(sln != "La11")) +
+    geom_vline(aes(xintercept = age1), data = kpg_ages |> filter(sln != "La11")) +
+    geom_vline(aes(xintercept = age2), data = kpg_ages |> filter(sln != "La11")) +
     # add agem_sol points, if they're available!
     ## geom_point(aes(y = 0), colour = "black", data = agem_sol |> rename(sln = sol)) +
     coord_cartesian(xlim = c(66 + 13*.405, 65)) +
@@ -664,7 +696,8 @@ These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens
     facet_grid(rows = vars(sln))
 #+end_src
 
-#+caption: Example time slice of the different orbital solutions.
+#+name: fig:astronomical-solutions
+#+caption: Example time slice of the different astronomical solutions with 405 kyr and 100 kyr filters (frequencies \pm40%, e.g. 0.6 * 1/405 to 1.4 * 1/405).
 #+RESULTS:
 [[file:imgs/orbital_solutions.png]]
 
@@ -9615,7 +9648,6 @@ Evolutive harmonics analysis from Astrochron.
 #+RESULTS:
 [[file:imgs/Zumaia_d13C_eha.png]]
 
-
 **** wavelet analysis
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 10:48]
@@ -9833,14 +9865,13 @@ The filter intervals are perhaps not so good for Sopelana?
 #+RESULTS:
 [[file:imgs/Sopelana_Lstar_wavelet.png]]
 
-
 **** Bandpass Filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:56]
 :END:
 #+begin_src R
   filts <- smooth_pred |>
-    bandpass_filter(freqs = my_filters, x = depth, y = value,
+    nested_bandpass_filter(frequencies = my_filters, x = depth, y = value,
                     nest = c("proxy", "site", "detrend_type"))
 #+end_src
 
@@ -10792,8 +10823,9 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
 :END:
 #+begin_src R :results none
   filts_age <- smooth_ages |>
-    bandpass_filter(freqs = my_filt_age, x = age, y = value,
-                    nest = c("proxy", "site", "detrend_type", "sol"))
+    nested_bandpass_filter(frequencies = my_filt_age,
+                           x = age, y = value,
+                           nest = c("proxy", "site", "detrend_type", "sol"))
 #+end_src
 
 **** calculate hilbert transform of precession data in the time domain
@@ -10805,7 +10837,7 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
     filter(target == "prec") |>
     nest(.by = c(site, proxy, detrend_type, sol)) |>
     mutate(hb = map(data, \(d) d |>
-                               select(age, filt) |>
+                               select(age, filter) |>
                                astrochron::hilbert(genplot = FALSE, verbose = FALSE))) |>
     unnest(hb) |>
     select(-data)
@@ -10816,32 +10848,42 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
 :CREATED:  [2023-09-26 Tue 16:50]
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_records_and_filters.png :width 2400 :height 2900 :res 300
-  smooth_ages |>
+  ## smooth_ages |>
+  filts_age |>
     filter(detrend_type != "value") |>
+    filter(target != "prec") |>
     ## mutate(det = scale(value)[, 1], .by = c(site, proxy)) |>
     ggplot(aes(x = age / 1e3, y = value, colour = detrend_type)) +
     facet_grid(rows = vars(proxy, sol),
                scales = "free", space = "free_x") +
-    geom_vline(aes(xintercept = age / 1e3), data = agem_sol) +
-    geom_line(aes(group = paste(detrend_type, site)), alpha = .6) +
-    geom_line(aes(y = filt + as.integer(as.factor(target)),
-                  group = paste(detrend_type, site, target)),
-              data = filts_age |> filter(detrend_type != "value")) +
-    geom_line(aes(y = envelope + 3.5, group = paste(detrend_type, site)),
-              data = hb_prec_age |> filter(detrend_type != "value")) +
-    geom_point(aes(y = pk),
+    # agemodel tie-points
+    geom_vline(aes(xintercept = age / 1e3), alpha = .3, data = agem_sol) +
+
+    # record
+    geom_line(aes(group = paste(detrend_type, site)), alpha = .2) +
+    # filters
+    geom_line(aes(y = filter + as.integer(as.factor(target)),
+                  group = paste(detrend_type, site, target))) +
+
+    ## # hilbert transform
+    ## geom_line(aes(y = envelope + 3.5, group = paste(detrend_type, site)),
+    ##           data = hb_prec_age |> filter(detrend_type != "value")) +
+
+    # 405 kyr minima as points
+    geom_point(aes(y = pk - 2),
                size = 2,
                data = filts_age |>
                  filter(target == "405 kyr") |>
                  filter(detrend_type != "value") |>
                  nest(.by = c(proxy, site, detrend_type, sol, flow, fhigh)) |>
                  mutate(pk = map(data, \(d) d |>
-                                            select(age, filt) |>
-                                            mutate(filt = -filt) |> # we want minima rather than maxima
+                                            select(age, filter) |>
+                                            mutate(filter = -filter) |> # we want minima rather than maxima
                                             astrochron::peak(genplot = FALSE, verbose = FALSE))) |>
                  unnest(pk) |>
                  rename(age = Location, pk = Peak_Value) |>
                  mutate(pk = -pk)) +
+
     scale_x_reverse(breaks = seq(60, 75, 1),
                     minor_breaks = seq(60, 75, .1)) +
     labs(x = "Age (Ma)", y = "Normalized proxy",
@@ -10862,8 +10904,8 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
 #+begin_src R :results none
   data_ecc_age <- filts_age |>
     select(-p, -f, -range, -flow, -fhigh, -ref) |>
-    pivot_wider(id_cols = c(proxy, site, detrend_type, sol, age),
-                names_from = target, values_from = filt) |>
+    pivot_wider(id_cols = c(proxy, site, detrend_type, sol, age, value),
+                names_from = target, values_from = filter) |>
     tidylog::left_join(hb_prec_age) |>
     mutate(
       fracs = list(tribble( ~ comb, ~ s405, ~ s100,
@@ -10886,7 +10928,7 @@ We just filter by 405 kyr, 100 kyr and 23 kyr \pm40%.
            .by = c(proxy, detrend_type, sol, comb)) |>
     pivot_longer(c(filter, hilbert),
                  names_to = "filt_env", values_to = "ecc") |>
-    arrange(rev(site), rev(proxy), filt_env, comb, age)
+    arrange(rev(site), rev(proxy), sol, detrend_type, filt_env, comb, age)
 #+end_src
 
 **** [#B] add the orbital solution to the ecc curve and compute the RMSD
@@ -11114,7 +11156,7 @@ For which time periods is the construction doing well and where is it failing?
     geom_point(aes(x = age / 1e3, y = -2), inherit.aes = FALSE, data = agem_sol) +
     # proxy 'eccentricity' record
     geom_line(aes(y = ecc, RMSD = RMSD,
-                  colour = sol,
+                  ## colour = sol,
                   ## alpha = RMSD,
                  ##  colour = paste("K/T age = ", kpg_age / 1000,
                  ##                 "\ntau = ", tau,
@@ -11124,7 +11166,8 @@ For which time periods is the construction doing well and where is it failing?
     geom_text(aes(x = age / 1e3, y = as.integer(as.factor(filt_env)) + 2.7,
                   group = site,
                   label = round(RMSD, 3),
-                  colour = sol),
+                  ## colour = sol
+                  ),
               size = 3,
               hjust = 0, alpha = 1,
               data = data_diffs_age |>
@@ -11136,7 +11179,7 @@ For which time periods is the construction doing well and where is it failing?
                   label = paste(## proxy_lag,
                                 detrend_type, comb## , filt_env
                   )),
-              hjust = 0,
+              hjust = 0, nudge_y = 1,
               size = 3,
               data = data_diffs_age |>
                 inner_join(best_age) |>
@@ -11146,7 +11189,7 @@ For which time periods is the construction doing well and where is it failing?
                                   detrend_type, comb, filt_env))) +
     scale_x_reverse(breaks = 66:72, minor_breaks = seq(59.9, 73, .1)) +
     ## scale_colour_viridis_d() +
-    scale_colour_brewer(type = "qual", guide = FALSE) +
+    ## scale_colour_brewer(type = "qual", guide = "none") +
     scale_alpha_continuous(range = c(1, .5)) +
     ## geom_vline(aes(xintercept = kpg_age * 0.001), colour = "red") +
     geom_vline(aes(xintercept = age1),
@@ -11455,11 +11498,11 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 #+begin_src R :tangle R/wrap_age_model.R :exports code
   #' Wrap Age Model
   #'
-  #' @param data data.frame(). Must contain columns `depth` and `ecc`.
-  #' @param agemodel data.frame() with the agemodel. Must contain columns `sol`, `n`, `strat_bot`, and `age`.
-  #' @param astronomical_solution data.frame() A dataframe with the astronomical solution to calculate RMSD scores against. Must have column `sln`, xxx
-  #' @param tiepoint_uncertainty numeric() Sequence of tiepoint uncertainty variations to try out in same units as data$depth.
-  #' @genplot logical(1): Do you wish to generate a plot of the RMSD scores for each tiepoint uncertainty?
+  #' @param data data.frame(). The data must contain columns `depth`, `ecc`, and `Ma405`.
+  #' @param agemodel data.frame() The agemodel must contain columns `sol`, `n`, `strat_bot`, and `age`.
+  #' @param astronomical_solution data.frame() The astronomical solution to calculate RMSD scores against. Must have column `sln`, `age`, and `scl`.
+  #' @param tiepoint_uncertainty Numeric vector of tiepoint uncertainty variations to try out in same units as data$depth.
+  #' @param genplot logical(1) Whether or not to generate a plot of the RMSD scores for each tiepoint uncertainty.
   #' @param output character(1) Which output do you want the function to return? See details.
   #'
   #' @details
@@ -11560,14 +11603,19 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
             # TODO: make this filter match the depth based on the tie-point instead?
             # TODO: remove n, since we don't use it anyway?
             ## mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
-
             # calculate age from age model for each uncertainty
             mutate(age = map_dbl(depth,
                      ~ Hmisc::approxExtrap(
                                 # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
                                 am$depth,
                                 am$age,
-                                xout = .x)$y)) |>
+                                xout = .x)$y))
+
+          # TODO: filter 405 and 100 kyr cycles
+          flt <- tmp |>
+            bandpass_filter(frequencies)
+
+          tmp <- tmp |>
             # linearly interpolate the astronomical solution eccentricity
             mutate(ecc_sln = approx(astronomical_solution$age,
                                     astronomical_solution$scl,
@@ -12343,7 +12391,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 :END:
 #+begin_src R :results none
   filts_age_optim <- smooth_optim_age_value |>
-    bandpass_filter(freqs = my_filt_age, x = age, y = value,
+    nested_bandpass_filter(frequencies = my_filt_age, x = age, y = value,
                     nest = c("proxy", "site", "detrend_type", "sol"))
 #+end_src
 

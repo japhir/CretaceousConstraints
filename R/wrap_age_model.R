@@ -1,3 +1,14 @@
+#' Wrap Age Model
+#'
+#' @param data data.frame(). The data must contain columns `depth`, `ecc`, and `Ma405`.
+#' @param agemodel data.frame() The agemodel must contain columns `sol`, `n`, `strat_bot`, and `age`.
+#' @param astronomical_solution data.frame() The astronomical solution to calculate RMSD scores against. Must have column `sln`, `age`, and `scl`.
+#' @param tiepoint_uncertainty Numeric vector of tiepoint uncertainty variations to try out in same units as data$depth.
+#' @param genplot logical(1) Whether or not to generate a plot of the RMSD scores for each tiepoint uncertainty.
+#' @param output character(1) Which output do you want the function to return? See details.
+#'
+#' @details
+#' Output must be one of `"default"`, `"details"`, `"plot"`, or `"full"`.
 wrap_age_model <- function(data,
                            agemodel,
                            astronomical_solution = sln,
@@ -92,14 +103,21 @@ wrap_age_model <- function(data,
 
         tmp <- data |>
           # TODO: make this filter match the depth based on the tie-point instead?
-          mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
+          # TODO: remove n, since we don't use it anyway?
+          ## mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
           # calculate age from age model for each uncertainty
           mutate(age = map_dbl(depth,
                    ~ Hmisc::approxExtrap(
                               # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
                               am$depth,
                               am$age,
-                              xout = .x)$y)) |>
+                              xout = .x)$y))
+
+        # TODO: filter 405 and 100 kyr cycles
+        flt <- tmp |>
+          bandpass_filter(frequencies)
+
+        tmp <- tmp |>
           # linearly interpolate the astronomical solution eccentricity
           mutate(ecc_sln = approx(astronomical_solution$age,
                                   astronomical_solution$scl,

@@ -1,0 +1,192 @@
+spectral_analysis <- function(data, x, y) {
+  data |>
+    select({{x}}, {{y}}) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
+    pivot_longer(c(AR1_90_power, AR1_95_power, AR1_99_power),
+                 names_to = c("AR1", ".width"), names_pattern = "^(AR1)_(9[950])",
+                 values_to = "AR1_power") |>
+    select(-AR1) |>
+    mutate(.width = parse_double(paste0(".", .width))) |>
+    rename(frequency = Frequency, power = Power, harmonic_cl = Harmonic_CL,
+           ar1_cl = AR1_CL, ar1_fit = AR1_fit, .width = .width)
+}
+
+nested_spectral_analysis <- function(data, nest, x, y) {
+  if (! "data.frame" %in% class(data)) {
+    cli::cli_abort(c(
+           "{.var data} must be a {.cls data.frame}",
+           "x" = "You supplied a {.cls {class(data)}}"))
+  }
+  if (! all(nest %in% colnames(data))) {
+    cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
+                     "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
+                     "x" = "You've supplied {.val {nest}}"))
+  }
+
+  data |>
+    nest(.by = all_of(nest)) |>
+    mutate(
+      mtm = map(data, spectral_analysis, x = {{x}}, y = {{y}})
+    ) |>
+    select(-data) |>
+    unnest(mtm)
+}
+
+evolutive_analysis <- function(data, nest, x, y) {
+  if (! "data.frame" %in% class(data)) {
+    cli::cli_abort(c(
+           "{.var data} must be a {.cls data.frame}",
+           "x" = "You supplied a {.cls {class(data)}}"))
+  }
+  if (! all(nest %in% colnames(data))) {
+    cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
+                     "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
+                     "x" = "You've supplied {.val {nest}}"))
+  }
+
+  data |>
+    nest(.by = all_of(nest)) |>
+    mutate(
+      eha = map(data,
+                ~ . |>
+                  select({{x}}, {{y}}) |>
+                  astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                  astrochron::eha(output = 3, genplot = FALSE, verbose = FALSE) |>
+                  pivot_longer(-freq) |>
+                  mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+                  rename({{x}} := name))
+    ) |>
+    select(-data) |>
+    unnest(eha)
+}
+
+#' Bandpass filter
+#'
+#' @param data data.frame()
+#' @param frequencies data.frame() with columns `target`, `flow`, and `fhigh`.
+#'   Can contain multiple rows for multiple frequency filtering.
+#' @param x Column name in `data` that holds the depth/age information.
+#' @param y Column name in `data` that holds the proxy variable name.
+bandpass_filter <- function(data, frequencies, x, y) {
+  if (! "data.frame" %in% class(data)) {
+    cli::cli_abort(c(
+           "{.var data} must be a {.cls data.frame}",
+           "x" = "You supplied a {.cls {class(data)}}"))
+  }
+  if (! "data.frame" %in% class(frequencies)) {
+    cli::cli_abort(c(
+           "{.var freqs} must be a {.cls data.frame}",
+           "x" = "You've supplied a {.cls {class(freqs)}}"))
+  }
+  if (! all(c("fhigh", "flow", "target") %in% colnames(frequencies))) {
+    cli::cli_abort(c("{.var freqs} must have columns `flow` and `fhigh`",
+                     "i" = "{.var freqs} has column{?s} {.val {colnames(freqs)}}"))
+  }
+
+  data |>
+    mutate(filt = list(frequencies)) |>
+    unnest(filt) |>
+    nest(.by = all_of(colnames(frequencies))) |>
+    mutate(
+      lt = map(data, \(d) d |>
+                          select({{x}}, {{y}}) |>
+                          astrochron::linterp(genplot = FALSE, verbose = FALSE)),
+      bp = pmap(list(lt, flow, fhigh), \(d, l, h)
+                d |>
+                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                      genplot = FALSE, verbose = FALSE) |>
+                 select(filter = {{y}}))) |>
+    select(-data) |>
+    unnest(cols = c(lt, bp))
+}
+
+
+#' Nested bandpass filter
+#'
+#' @inheritParams bandpass_filter
+#' @param nest character() Vector with column names in `data` to nest by.
+nested_bandpass_filter <- function(data, frequencies, x, y, nest) {
+  if (! all(nest %in% colnames(data))) {
+    cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
+                     "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
+                     "x" = "You've supplied {.val {nest}}"))
+  }
+
+  data |>
+    nest(.by = all_of(nest)) |>
+    mutate(bp = purrr::map(data,
+               \(d) d |>
+                      bandpass_filter(frequencies = frequencies, x = {{x}}, y = {{y}}))) |>
+    unnest(bp) |>
+    select(-data)
+}
+
+plot_spectrum <- function(spec) {
+  spec |>
+    ggplot(aes(x = freq, y = power)) +
+    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                    linetype = NA, group = .width),
+                alpha = .1) +
+    geom_line() +
+    annotation_logticks() +
+    scale_y_log10() +
+    scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
+    labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+}
+
+get_rmcd <- function(data, rmcd = "dat/ODP208_1267_rmcd.csv") {
+  rmcd <- readr::read_csv(rmcd) |>
+    separate(label, into = c("sitehole", "coretype", "Sec"),
+               sep = "-", remove = FALSE) |>
+    separate(sitehole, into = c("Site", "H"), sep = -1) |>
+    separate(coretype, into = c("Core", "T"), sep = -1) |>
+    # we do not rename the interval, may not be the same as in the data!
+    # rename the CC sections into 7, the naming convention in the MS data
+    mutate(Sec = ifelse(Sec == "7", "7", Sec),
+           Sec = ifelse(Sec == "cc", "C", Sec)) |>
+    mutate(diff = depth_rmcd - depth_mbsf, .after = depth_rmcd) |>
+    mutate(diff2 = depth_rmcd2 - depth_mbsf2, .after = depth_rmcd2) |>
+    mutate(row = 1:n())
+
+  # the right side of the splice table only
+  rmcd2 <- rmcd |>
+    select(label, link, label2, interval2, depth_mbsf2, depth_rmcd2, diff2, row) |>
+    separate(label2, into = c("sitehole", "coretype", "Sec"),
+               sep = "-", remove = FALSE) |>
+    separate(sitehole, into = c("Site", "H"), sep = -1) |>
+    separate(coretype, into = c("Core", "T"), sep = -1) |>
+    # we do not rename the interval, may not be the same as in the data!
+    mutate(Sec = ifelse(Sec == "7", "7", Sec),
+           Sec = ifelse(Sec == "cc", "C", Sec))
+
+  out <- data |>
+    tidylog::left_join(rmcd |>
+                     # make the types the same
+                     mutate(across(c(Site, Core), parse_double)) |>
+                     # do NOT match by section, only by core!
+                     rename(section = Sec) |>
+                     select(top = label, to = label2,
+                            Site, H, Core, T, section, interval,
+                            depth_mbsf, depth_rmcd, diff, row)) |>
+    # add the right-hand side of the splice table
+    tidylog::left_join(rmcd2 |>
+                       mutate(across(c(Site, Core), parse_double)) |>
+                       rename(section2 = Sec) |>
+                       select(from = label, bot = label2,
+                              Site, H, Core, T, section2, interval2,
+                              depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
+  mutate(my_rmcd = case_when(
+  (Sec <= section) | ((Sec == section) & (`Top (cm)` <= interval)) ~
+    `Depth (mbsf)` + diff,
+  (Sec >= section2) | ((Sec == section2) & (`Top (cm)` >= interval2)) ~
+    `Depth (mbsf)` + diff2,
+  TRUE ~ NA_real_)) |>
+    mutate(on_splice = (Sec < section | ((Sec == section) &
+                                         (`Top (cm)` <= interval))) &
+             (Sec > section2 | ((Sec == section2) &
+                                `Top (cm)` >= interval2))) |>
+    mutate(on_splice = ifelse(is.na(on_splice), FALSE, on_splice))
+
+  return(out)
+}
