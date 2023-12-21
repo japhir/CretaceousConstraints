@@ -83,7 +83,6 @@ The R source code to reproduce this analysis will be made available on https://g
   plan(multisession, workers = 4) # set up 4 cores
 #+end_src
 
-#+RESULTS:
 ** functions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
@@ -13095,36 +13094,51 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+RESULTS:
 [[file:imgs/rolling_age_best_records_depth.png]]
 
+**** get the data vs time
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 14:16]
+:END:
+#+begin_src R
+  smooth_optim_age <- rolling_age_optim |>
+      ## slice(1) |>
+      mutate(
+        the_best = map(the_best,
+                       \(b) b |>
+                            mutate(depth = strat_bot + tie_err))) |>
+      ## select(-sol) |> unnest(the_best)
+      mutate(
+        data = map2(data, the_best,
+                    \(d, b) d |>
+                            mutate(age = Hmisc::approxExtrap(b$depth, b$age, xout = depth)$y))) |>
+      mutate(RMSD = map_dbl(the_best, \(x) x |>
+                                           filter(n == max(n), .by = c(sol)) |>
+                                           pull(RMSD_cum))) |>
+      unnest(data) #|>
+      ## tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, sol))
+#+end_src
+
+#+RESULTS:
+
 **** best records against age
 #+begin_src R :results output graphics file :file imgs/rolling_age_best_records.png :width 2400 :height 2200 :res 300
-  rolling_age_optim |>
-    ## slice(1) |>
-    mutate(
-      the_best = map(the_best,
-                     \(b) b |>
-                          mutate(depth = strat_bot + tie_err))) |>
-    ## select(-sol) |> unnest(the_best)
-    mutate(
-      data = map2(data, the_best,
-                  \(d, b) d |>
-                          mutate(age = Hmisc::approxExtrap(b$depth, b$age, xout = depth)$y))) |>
-    mutate(RMSD = map_dbl(the_best, \(x) x |>
-                                         filter(n == max(n), .by = c(sol)) |>
-                                         pull(RMSD_cum))) |>
-    unnest(data) |>
+  smooth_optim_age |>
     tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, sol)) |>
     ggplot(aes(x = age / 1e3, y = ecc,
                colour = detrend_type,
                shape = comb,# alpha = RMSD
-               linetype = comb,
+               ## linetype = comb,
+               alpha = comb,
                )) +
     facet_grid(rows = vars(proxy, sol)## , cols = vars(comb)
                ) +
     scale_x_reverse() +
     scale_y_continuous(breaks = c(-2, 0, 2)) +
-    scale_linetype_manual(values = c("1:1" = "solid",
-                                     "1:0.5" = "dashed",
-                                     "0.5:1" = "dotted")) +
+    scale_alpha_manual(values = c("1:1" = 1,
+                                  "1:0.5" = 0.7,
+                                  "0.5:1" = 0.8)) +
+    ## scale_linetype_manual(values = c("1:1" = "solid",
+    ##                                  "1:0.5" = "dashed",
+    ##                                  "0.5:1" = "dotted")) +
     # annotate astronomical solution
     geom_line(aes(x = age / 1e3, y = scl),
               inherit.aes = FALSE, colour = "gray",
@@ -13151,6 +13165,175 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+caption: *The best filtered Zumaia/Sopelana matches using the rolling tweaked tiepoint uncertainty.* Numbers indicate RMSD score for the adjacent fit. *NOTE:* skipped cycle in the d13C, which is a result of the large input \pm4 m uncertainty on the 405 kyr minima as identified in the field. Will need fixing!
 #+RESULTS:
 [[file:imgs/rolling_age_best_records.png]]
+
+
+**** calculate spectra in the time domain
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 14:15]
+:END:
+Here we use the new "optimal" age models and apply them to the raw data, then we do spectral analysis in the time domain on those new records.
+***** interpolate the original data back
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 14:33]
+:END:
+#+begin_src R
+  smooth_optim_age_value <- smooth_optim_age |>
+    # I think I need to interpolate because of previous linear interpolation?
+    tidylog::left_join(
+               smooth_pred |>
+               select(-c(comment, colour, lin, lin_gam)) |>
+               nest(data = c(depth, value))
+             ) |>
+    mutate(value = map2_dbl(depth, data, \(x, y) approx(y$depth, y$value, xout = x)$y)) |>
+    select(-data)
+#+end_src
+***** mtm
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:06]
+:END:
+#+begin_src R
+  specs_optim_age <- smooth_optim_age_value |>
+    spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
+                      x = age, y = value)
+#+end_src
+
+#+RESULTS:
+: Warning message:
+: There were 100 warnings in `mutate()`.
+: The first warning was:
+: ℹ In argument: `mtm = map(...)`.
+: Caused by warning in `regularize.values()`:
+: ! collapsing to unique 'x' values
+: ℹ Run `dplyr::last_dplyr_warnings()` to see the 99 remaining warnings.
+***** FFT periodogram
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:06]
+:END:
+#+begin_src R
+  specs_fft_optim_age <- smooth_optim_age_value |>
+    nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+    mutate(fft = map(data,
+                      ~ . |>
+                        select(age, value) |>
+                        astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                        astrochron::periodogram(genplot = F, verbose = F, output = 1) |>
+                        as_tibble()
+                        )) |>
+    select(-data) |>
+    unnest(cols = c(fft)) |>
+    rename(freq = Frequency, amp = Amplitude, power = Power, phase = Phase)
+#+end_src
+
+#+RESULTS:
+: Warning message:
+: There were 100 warnings in `mutate()`.
+: The first warning was:
+: ℹ In argument: `fft = map(...)`.
+: Caused by warning in `regularize.values()`:
+: ! collapsing to unique 'x' values
+: ℹ Run `dplyr::last_dplyr_warnings()` to see the 99 remaining warnings.
+
+***** MTLS
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:06]
+:END:
+  #+begin_src R
+    source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
+    source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
+
+    specs_mtls_optim_age <- smooth_optim_age_value |>
+      nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+      mutate(mtls = map(data,
+                        ~ . |>
+                          select(age, value) |>
+                          # NOTE: no need to linearly interpolate!
+                          # That's the point!
+                          spec.mtls(plot = FALSE) |>
+                          as_tibble())) |>
+      select(-data) |>
+      unnest(mtls)
+  #+end_src
+
+
+**** plot spectra
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:04]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_optimal.png :width 2400 :height 2600 :res 300
+  my_filter <- \(x) x |>
+                      ## filter(detrend_type != "value") # default to show all
+                      ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
+                      filter(detrend_type == "lin_gam_det") # only one so we can see different spectral analysis
+
+  # plot spectra w/ Freq on x-axis
+  specs_optim_age |>
+    my_filter() |>
+    ## filter(detrend_type != "value") |>
+    ## plot_spectrum() + # only works well for a single line
+    ggplot(aes(x = freq, y = power,
+               ## linetype = site,
+               ## colour = detrend_type
+               )) +
+    ## scale_linetype_manual(values = c("Zumaia" = "solid",
+    ##                                  "Sopelana" = "dashed")) +
+    coord_cartesian(
+      ## xlim = c(1 / 1000, 1 / 10), # for a log x axis
+      ## xlim = c(0, .072),
+      xlim = c(0, .066), # same as new Malinverno & Meyers 2023 preprint
+      ## xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
+      ## ylim = c(0, .025) # previous best
+      ylim = c(0, .010) # previous best
+      ## ylim = c(.0001, 0.020) # log axis
+    ) +
+    scale_x_continuous(
+    ## scale_x_log10(
+      sec.axis = sec_axis("Period (m)", trans = ~ 1 / .,
+                          breaks = c(405, 100, 50, 20, 10))) +
+    scale_y_continuous(breaks = c(0, .01, .02)) +
+    ## scale_y_log10() +
+    ## annotation_logticks(sides = "l") +
+    ## # plot AR1 fits/confidence levels
+    ## ## geom_line(aes(y = AR1_power, group = paste(site, detrend_type, sol, .width))) +
+    ## ## geom_line(aes(y = Harmonic_CL)) +
+    ## geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+    ##                 linetype = NA, fill = detrend_type,
+    ##                 group = paste(detrend_type, site, sol, proxy, .width)),
+    ##               alpha = .1) +
+    # rectangles for target frequencies
+    ## ggnewscale::new_scale_fill() +
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+              inherit.aes = FALSE,
+              alpha = .1,
+              data = bat_age_filters) +
+    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+              inherit.aes = FALSE,
+              alpha = .1,
+              data = my_filt_age) +
+    # plot spectra
+    # FFT periodogram
+    geom_line(aes(colour = "FFT",
+                  group = paste(site, sol, proxy, detrend_type)),
+              data = specs_fft_optim_age |>
+                my_filter()) +
+    # MTM
+    geom_line(aes(colour = "MTM",
+                  group = paste(site, sol, proxy, detrend_type))) +
+    # MTLS
+    geom_line(aes(colour = "MTLS",
+                  y = spec,
+                  group = paste(site, sol, proxy, detrend_type)),
+              data = specs_mtls_optim_age |>
+                my_filter()) +
+    labs(x = "Frequency (cycles/kyr)", y = "Power (-)",
+         colour = "Spectral Analysis") +
+    facet_grid(cols = vars(site), rows = vars(proxy, sol))
+#+end_src
+
+#+attr_latex: :width \linewidth
+#+name: fig:specs-optim
+#+caption: Zumaia/Sopelana spectral analysis after tuning each of the 405 kyr minima from the field [cite:@Batenburg2012] to 405 kyr mimima in each of the orbital solutions and adjusting them by \pm4 m to get the lowest RMSD score.
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_spectra_optimal.png]]
 
 **** COMMENT eha after applying age model
 :PROPERTIES:
@@ -13211,7 +13394,65 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+RESULTS:
 [[file:imgs/Zumaia_MS_eha.png]]
 
-**** [3/7] tasks
+
+**** calculate bandpass filters in the time domain
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:16]
+:END:
+#+begin_src R :results none
+  filts_age_optim <- smooth_optim_age_value |>
+    bandpass_filter(freqs = my_filt_age, x = age, y = value,
+                    nest = c("proxy", "site", "detrend_type", "sol"))
+#+end_src
+
+**** plot the filtered records with the data
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:18]
+:END:
+#+begin_src R :results graphics file output :file imgs/Zumaia_Sopelana_filters_after_optim.png :width 2400 :height 2600 :res 300
+  filts_age_optim |>
+    filter(target != "prec") |>
+    filter(proxy == "MS", site == "Zumaia", detrend_type == "lin_gam_det") |>
+    ggplot(aes(x = age / 1e3, y = filt, group = paste(target, proxy, sol, site, detrend_type))) +
+    facet_grid(
+      rows = vars(proxy, sol),
+    ) +
+    scale_x_reverse() +
+    geom_line(aes(colour = "optim filter")) +
+    # contrast new filter to various previous steps:
+    ## previous raw filters in age domain prior to shifting the records
+    geom_line(aes(color = "field age filter"),
+              data = filts_age |>
+                filter(target != "prec") |>
+                filter(proxy == "MS", site == "Zumaia", detrend_type == "lin_gam_det"))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_filters_after_optim.png]]
+
+#+begin_src R :results graphics file output :file imgs/Zumaia_Sopelana_ecc_after_optim.png :width 2400 :height 2600 :res 300
+  filts_age_optim |>
+    filter(target != "prec") |>
+    filter(proxy == "MS", site == "Zumaia", detrend_type == "lin_gam_det") |>
+    summarize(ecc = sum(filt), .by = c(proxy, site, detrend_type, sol, age)) |>
+    ggplot(aes(x = age / 1e3, y = ecc, group = paste(proxy, sol, site, detrend_type))) +
+    facet_grid(
+      rows = vars(proxy, sol),
+    ) +
+    scale_x_reverse() +
+    geom_line(aes(colour = "apply optim agem, filter, combine")) +
+    # unfortunately I only exported the combined record
+    geom_line(aes(x = age / 1e3, y = ecc / 2, group = paste(proxy, sol, site, detrend_type, comb),
+                  colour = "squished ecc from optim"),
+              data = smooth_optim_age_value |>
+                filter(proxy == "MS", site == "Zumaia", detrend_type == "lin_gam_det", comb == "1:1"))
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_ecc_after_optim.png]]
+
+**** [6/10] tasks
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:52]
 :END:
@@ -13236,18 +13477,38 @@ this will be slow but might help me decide if the tie-error range of \pm4 m is t
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:14]
 :END:
-***** NEXT make Sopelana's top tiepoint rely on the best fit of the lowest Zumaia tiepoint uncertainty
+***** CANC make Sopelana's top tiepoint rely on the best fit of the lowest Zumaia tiepoint uncertainty
+CLOSED: [2023-12-20 Wed 15:51]
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:15]
 :END:
 Currently the age models of Zumaia/Sopelana are independently tweaked. Not sure if this is needed/how reliable to link between the two records as identified in the field is.
-
+hmm I think I like that they're independent?
 ***** NEXT do eha/wavelet to double-check if I can lump the whole Zumaia/Sopelana record together or whether I should cut it into chunks of
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:15]
 :END:
 Seems like the sedrate might have changed around 100 m, cycle Ma_{405}7.
 See cref:fig:Zumaia-eha.
+
+***** DONE run spectral analysis on new optimized output
+CLOSED: [2023-12-20 Wed 15:39]
+
+***** SOME calculate RMSD against newly filtered record?
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:53]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-12-20 Wed 15:53]
+:END:
+
+***** DONE compare new filters to squished ecc record
+CLOSED: [2023-12-20 Wed 15:51]
+:PROPERTIES:
+:CREATED:  [2023-12-20 Wed 15:40]
+:END:
+I've got it compared to the raw filter output, but I might have to construct a new record again..
+Only did it for d13C single example now.
 ***** SOME now that I've finally figured out the analysis, apply it to other records as well
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 14:41]
