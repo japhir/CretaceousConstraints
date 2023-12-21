@@ -10409,7 +10409,6 @@ We can also make a nice overview figure of all the different parameter perturbat
 #+RESULTS:
 [[file:imgs/Zumaia-depth-RMSD-scores.png]]
 
-
 **** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:03]
@@ -10690,7 +10689,6 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 #+end_src
 
 #+RESULTS:
-
 
 **** add a tibble with our desired filter intervals here
 :PROPERTIES:
@@ -11035,7 +11033,6 @@ For which time periods is the construction doing well and where is it failing?
 #+caption: *Squared difference as a function of age* Here we vary the age of the K/T and apply the age model based on 405 kyr cycles identified in the field. The RMSD is the mean squared difference between the filtered and scaled proxy record and the filtered and scaled orbital solution.
 #+RESULTS:
 [[file:imgs/Zumaia_age_MSD-overview.png]]
-
 
 **** which one is best?
 :PROPERTIES:
@@ -11699,7 +11696,7 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 ***** Zumaia d13C subs
 #+begin_src R
   source("R/wrap_age_model.R")
-  ## debug(wrap_age_model)
+  debug(wrap_age_model)
   # WARNING: still slow, but slightly less so
   tst2 <- wrap_age_model(subs,
                  agem_sol |> filter(sol == "ZB18a"),
@@ -12156,7 +12153,6 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 #+RESULTS:
 [[file:imgs/rolling_age_best_records.png]]
 
-
 **** calculate spectra in the time domain
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 14:15]
@@ -12243,7 +12239,6 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
       select(-data) |>
       unnest(mtls)
   #+end_src
-
 
 **** plot spectra
 :PROPERTIES:
@@ -12383,7 +12378,6 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 
 #+RESULTS:
 [[file:imgs/Zumaia_MS_eha.png]]
-
 
 **** calculate bandpass filters in the time domain
 :PROPERTIES:
