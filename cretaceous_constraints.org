@@ -94,7 +94,21 @@ The R source code to reproduce this analysis will be made available on https://g
 This does spectral analysis on data within each group in ~nest~ based on parameters ~x~ and ~y~. In ~astrochron~, you have to give it a ~data.frame~ with only 2 columns, which loses all the rich metadata for the data.
 
 #+begin_src R
-  spectral_analysis <- function(data, nest, x, y) {
+  spectral_analysis <- function(data, x, y) {
+    data |>
+      select({{x}}, {{y}}) |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
+      pivot_longer(c(AR1_90_power, AR1_95_power, AR1_99_power),
+                   names_to = c("AR1", ".width"), names_pattern = "^(AR1)_(9[950])",
+                   values_to = "AR1_power") |>
+      select(-AR1) |>
+      mutate(.width = parse_double(paste0(".", .width))) |>
+      rename(frequency = Frequency, power = Power, harmonic_cl = Harmonic_CL,
+             ar1_cl = AR1_CL, ar1_fit = AR1_fit, .width = .width)
+  }
+
+  nested_spectral_analysis <- function(data, nest, x, y) {
     if (! "data.frame" %in% class(data)) {
       cli::cli_abort(c(
              "{.var data} must be a {.cls data.frame}",
@@ -109,29 +123,10 @@ This does spectral analysis on data within each group in ~nest~ based on paramet
     data |>
       nest(.by = all_of(nest)) |>
       mutate(
-        mtm = map(data,
-                  ~ . |>
-                    select({{x}}, {{y}}) |>
-                    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                    astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE))
+        mtm = map(data, spectral_analysis, x = {{x}}, y = {{y}})
       ) |>
       select(-data) |>
-      unnest(mtm) |>
-      pivot_longer(c(AR1_90_power, AR1_95_power, AR1_99_power),
-                   names_to = c("AR1", ".width"), names_pattern = "^(AR1)_(9[950])",
-                   values_to = "AR1_power") |>
-      select(-AR1) |>
-      mutate(.width = parse_double(paste0(".", .width))) |>
-      rename(freq = Frequency, power = Power, harmonic_cl = Harmonic_CL,
-             AR1_CL = AR1_CL, AR1_fit = AR1_fit, .width = .width)##  |>
-      ## pivot_longer(c(Harmonic_CL,
-      ##                AR1_CL, AR1_fit,
-      ##                AR1_90_power, AR1_95_power, AR1_99_power),
-      ##              names_to = c("fit_type", "x"),
-      ##              names_pattern = "^([A-z0-9]+)_9?[095]?_?([A-z]+)$",
-      ##              values_to = "power") |>
-      ## separate(fit_type, into = c("fit_type", ".width")) |>
-      ## mutate(.width = parse_integer(.width))
+      unnest(mtm)
   }
 #+end_src
 
@@ -2051,7 +2046,7 @@ from [cite:@Husson2011] but now with rmcd
   MS_ |>
     pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
                  names_to = "smooth_type") |>
-    spectral_analysis(nest = c("smooth_type"), x = my_rmcd, y = value) |>
+    nested_spectral_analysis(nest = c("smooth_type"), x = my_rmcd, y = value) |>
     ## filter(smooth_type == "var") |>
     ## select(-smooth_type) |>
     ## plot_spectrum() #+ # I don't know how to do this with another, unpredictable mapping
@@ -2100,7 +2095,7 @@ The purple regions show how I decide to filter the record based on the spectral 
   MS_ |>
     pivot_longer(c(var, scl_ma, scl_gam, scl_loess),
                  names_to = "smooth_type") |>
-    spectral_analysis(nest = c("smooth_type"), x = my_rmcd, y = value) |>
+    nested_spectral_analysis(nest = c("smooth_type"), x = my_rmcd, y = value) |>
     filter(smooth_type == "var") |>
     select(-smooth_type) |>
     ggplot(aes(x = freq, y = AR1_CL)) +
@@ -8683,7 +8678,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
 #+begin_src R :results output graphics file :file imgs/IODP342_U1403_d18O_spec.png :width 800
   dat |>
     mutate(ref = "Batenburg et al., 2018") |>
-    spectral_analysis(nest = "ref",
+    nested_spectral_analysis(nest = "ref",
                       x = `Depth comp r [rmcd]`,
                       y = `δ18O carb [‰ PDB]`) |>
     plot_spectrum() +
@@ -8745,7 +8740,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
   dat |>
     mutate(ref = "Batenburg et al., 2018") |>
     mutate(FeCa = log(`Fe count [#]` / `Ca count [#]`)) |>
-    spectral_analysis(nest = "ref",
+    nested_spectral_analysis(nest = "ref",
                       x = `Depth comp r [rmcd]`,
                       y = FeCa) |>
     plot_spectrum() +
@@ -9278,8 +9273,8 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :END:
 #+begin_src R
   specs_fancy <- smooth_pred |>
-    spectral_analysis(nest = c("proxy", "site", "detrend_type"),
-                      x = depth, y = value)
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type"),
+                             x = depth, y = value)
 #+end_src
 
 #+RESULTS:
@@ -9300,7 +9295,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                         )) |>
     select(-data) |>
     unnest(cols = c(fft)) |>
-    rename(freq = Frequency, amp = Amplitude, power = Power, phase = Phase)
+    rename(frequency = Frequency, amplitude = Amplitude, power = Power, phase = Phase)
 #+end_src
 
 #+RESULTS:
@@ -9336,7 +9331,8 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     mutate(freq = map(bt, pluck, "freq"),
            spec = map(bt, pluck, "spec")) |>
     select(-bt) |>
-    unnest(cols = c(freq, spec))
+    unnest(cols = c(freq, spec)) |>
+    rename(frequency = freq, power = spec)
 #+end_src
 
 #+RESULTS:
@@ -9361,7 +9357,8 @@ It's pretty slow.
                         spec.mtls(plot = FALSE) |>
                         as_tibble())) |>
     select(-data) |>
-    unnest(mtls)
+    unnest(mtls) |>
+    rename(frequency = freq, power = spec)
 #+end_src
 
 #+RESULTS:
@@ -9428,7 +9425,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2400 :height 2300 :res 300
   specs_fancy |>
     filter(detrend_type != "value") |>
-    ggplot(aes(x = freq, y = power, colour = detrend_type, group = detrend_type)) +
+    ggplot(aes(x = frequency, y = power, colour = detrend_type, group = detrend_type)) +
     facet_grid(cols = vars(site), rows = vars(proxy)) +
     # annotate the Batenburg 2014 filters
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
@@ -9458,7 +9455,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     ##                 linetype = NA, group = paste(detrend_type, .width)),
     ##             alpha = .1) +
     # annotate the MTLS spectra
-    geom_line(aes(y = spec, linetype = "MTLS"),
+    geom_line(aes(linetype = "MTLS"),
               data = specs_mtls |> filter(detrend_type != "value")) +
     ## scale_y_log10() +
     annotation_logticks(sides = "l") + # remember to update if we switch back to log!
@@ -10562,7 +10559,7 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 ***** mtm
 #+begin_src R
   specs_age <- smooth_ages |>
-    spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
                       x = age, y = value)
 #+end_src
 
@@ -11561,7 +11558,9 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 
           tmp <- data |>
             # TODO: make this filter match the depth based on the tie-point instead?
-            mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
+            # TODO: remove n, since we don't use it anyway?
+            ## mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
+
             # calculate age from age model for each uncertainty
             mutate(age = map_dbl(depth,
                      ~ Hmisc::approxExtrap(
@@ -12136,7 +12135,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 :END:
 #+begin_src R
   specs_optim_age <- smooth_optim_age_value |>
-    spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
                       x = age, y = value)
 #+end_src
 
