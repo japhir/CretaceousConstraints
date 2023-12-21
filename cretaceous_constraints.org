@@ -153,6 +153,40 @@ It's not much better, gets a bit messy if plotted on log10 scale.
 :LOGBOOK:
 - State "SOME"       from "DONE"       [2023-11-15 Wed 21:50]
 :END:
+*** eha
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 10:15]
+:END:
+#+begin_src R
+  evolutive_analysis <- function(data, nest, x, y) {
+    if (! "data.frame" %in% class(data)) {
+      cli::cli_abort(c(
+             "{.var data} must be a {.cls data.frame}",
+             "x" = "You supplied a {.cls {class(data)}}"))
+    }
+    if (! all(nest %in% colnames(data))) {
+      cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
+                       "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
+                       "x" = "You've supplied {.val {nest}}"))
+    }
+
+    data |>
+      nest(.by = all_of(nest)) |>
+      mutate(
+        eha = map(data,
+                  ~ . |>
+                    select({{x}}, {{y}}) |>
+                    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                    astrochron::eha(output = 3, genplot = FALSE, verbose = FALSE) |>
+                    pivot_longer(-freq) |>
+                    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+                    rename({{x}} := name))
+      ) |>
+      select(-data) |>
+      unnest(eha)
+  }
+#+end_src
+
 
 *** bandpass filter
 :PROPERTIES:
@@ -9016,8 +9050,7 @@ Like they do in [cite:@Batenburg2012]
     )
 
 #+end_src
-**** DONE subtract red/white interval means and then do a gam for the whole record
-CLOSED: [2023-12-12 Tue 14:45]
+**** subtract red/white interval means and then do a gam for the whole record
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:35]
 :END:
@@ -9383,40 +9416,6 @@ It's pretty slow.
 
 #+RESULTS:
 
-**** eha
-:PROPERTIES:
-:CREATED:  [2023-11-17 Fri 15:33]
-:END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_MS_eha.png :width 2400 :height 900 :res 300
-  smooth_pred |>
-    filter(proxy == "MS",
-           site == "Zumaia",
-           detrend_type == "lin_gam_det") |>
-    select(depth, value) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::eha(#sigID = TRUE,
-                  win = 10, step = .5,
-                  fmax = 1,
-                  ydir = -1,
-                  genplot = FALSE, verbose = FALSE,
-                  output = 3) |> # harmonic CL
-    pivot_longer(-freq) |>
-    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
-    rename(depth = name) |>
-    ggplot(aes(x = depth, y = freq, fill = value)) +
-    geom_raster() +
-    scale_fill_viridis_c() +
-    scale_x_reverse() +
-    coord_cartesian(expand = FALSE) +
-    labs(y = "Frequency", x = "Depth (m)")
-#+end_src
-
-#+name: fig:Zumaia-eha
-#+attr_latex: :width \textwidth
-#+caption: Zumaia MS amplitude of EHA analysis in the depth domain. Do we see a shift in sedimentation rate?
-#+RESULTS:
-[[file:imgs/Zumaia_MS_eha.png]]
-
 **** make plot of spectra and annotate the target frequency ranges for bp filtering
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:57]
@@ -9485,6 +9484,358 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 #+caption: Zumaia/Sopelana spectral analysis in the depth domain. See cref:tab:detrend_types for a description of the different detrending methods. FFT = fast fourier transform, MTM = multi-taper method, MTLS = Multi-taper averaged Lomb-Scargle periodogram of unevenly spaced data.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_mtm.png]]
+
+**** eha
+:PROPERTIES:
+:CREATED:  [2023-11-17 Fri 15:33]
+:END:
+Evolutive harmonics analysis from Astrochron.
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_eha.png :width 2400 :height 2600 :res 300
+  smooth_pred |>
+    ## filter(detrend_type == "value") |>
+    filter(detrend_type == "scl") |>
+    ## filter(detrend_type == "lin_scl") |>
+    ## filter(detrend_type == "gam_det") |>
+    ## filter(detrend_type == "lin_gam_det") |>
+    evolutive_analysis(nest = c("proxy", "site", "detrend_type"), x = depth, y = value) |>
+    mutate(width = lead(depth) - depth, .by = c(proxy, site, detrend_type, freq)) |>
+    ggplot(aes(x = depth, y = freq, fill = value)) +
+    facet_grid(rows = vars(proxy), cols = vars(site), scales = "free_x", space = "free_x") +
+    scale_fill_viridis_c() +
+    ## geom_raster() + # different pixel sizes because of different interpolation to median sample interval
+    geom_tile(aes(width = width), height = .05) +
+    scale_x_reverse() +
+    coord_cartesian(ylim = c(0, 0.5), expand = FALSE) +
+    labs(x = "Depth (m)", y = "Frequency (cycles / m)",
+         ## fill = "Power"  # for output = 2
+         fill = "Amplitude" # if I set output = 3
+         ## fill = "Probability" # for output = 4
+         ) +
+    geom_hline(yintercept = my_filters$f, linetype = "dotted", colour = "white") +
+    geom_hline(yintercept = my_filters$flow, linetype = "dashed") +
+    geom_hline(yintercept = my_filters$fhigh, linetype = "dashed")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_eha.png]]
+
+
+***** COMMENT Zumaia MS lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 09:57]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_MS_eha.png :width 2400 :height 900 :res 300
+  smooth_pred |>
+    filter(proxy == "MS",
+           site == "Zumaia",
+           detrend_type == "lin_gam_det") |>
+    select(depth, value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::eha(#sigID = TRUE,
+                  win = 10, step = .5,
+                  fmax = 2,
+                  ydir = -1,
+                  genplot = FALSE, verbose = FALSE,
+                  output = 3) |> # harmonic CL
+    pivot_longer(-freq) |>
+    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+    rename(depth = name) |>
+    ggplot(aes(x = depth, y = freq, fill = value)) +
+    scale_fill_viridis_c() +
+    scale_x_reverse() +
+    coord_cartesian(expand = FALSE) +
+    labs(y = "Frequency", x = "Depth (m)") +
+    geom_raster() +
+    geom_hline(yintercept = my_filters$f, linetype = "dotted", colour = "white") +
+    geom_hline(yintercept = my_filters$flow, linetype = "dashed") +
+    geom_hline(yintercept = my_filters$fhigh, linetype = "dashed")
+#+end_src
+
+#+name: fig:Zumaia-eha
+#+attr_latex: :width \textwidth
+#+caption: Zumaia MS amplitude of EHA analysis in the depth domain. Do we see a shift in sedimentation rate?
+#+RESULTS:
+[[file:imgs/Zumaia_MS_eha.png]]
+***** COMMENT Zumaia Lstar lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 09:57]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_eha.png :width 2400 :height 900 :res 300
+  smooth_pred |>
+    filter(proxy == "Lstar",
+           site == "Zumaia",
+           detrend_type == "lin_gam_det") |>
+    select(depth, value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::eha(#sigID = TRUE,
+                  win = 10, step = .5,
+                  fmax = 1,
+                  ydir = -1,
+                  genplot = FALSE, verbose = FALSE,
+                  output = 3) |> # harmonic CL
+    pivot_longer(-freq) |>
+    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+    rename(depth = name) |>
+    ggplot(aes(x = depth, y = freq, fill = value)) +
+    geom_raster() +
+    scale_fill_viridis_c() +
+    scale_x_reverse() +
+    coord_cartesian(expand = FALSE) +
+    labs(y = "Frequency", x = "Depth (m)")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Lstar_eha.png]]
+
+***** COMMENT Zumaia d13C lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 09:57]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_d13C_eha.png :width 2400 :height 900 :res 300
+  smooth_pred |>
+    filter(proxy == "d13C",
+           site == "Zumaia",
+           detrend_type == "lin_gam_det") |>
+    select(depth, value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::eha(#sigID = TRUE,
+                  win = 10, step = .5,
+                  fmax = 1,
+                  ydir = -1,
+                  genplot = FALSE, verbose = FALSE,
+                  output = 3) |> # harmonic CL
+    pivot_longer(-freq) |>
+    mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
+    rename(depth = name) |>
+    ggplot(aes(x = depth, y = freq, fill = value)) +
+    geom_raster() +
+    scale_fill_viridis_c() +
+    scale_x_reverse() +
+    coord_cartesian(expand = FALSE) +
+    labs(y = "Frequency", x = "Depth (m)")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_d13C_eha.png]]
+
+
+**** wavelet analysis
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 10:48]
+:END:
+I found the ~astrochron::eha~ output a bit difficult to interpret, so I'm also doing wavelet analysis using ~WaverideR~.
+
+Though it's using base graphics, seems like Michiel figured out exactly what I would want to plot :).
+
+The filter intervals are perhaps not so good for Sopelana?
+
+***** Zumaia MS lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 11:12]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_MS_wavelet.png :width 2400 :height 1200 :res 300
+  ## smooth_wavelet <-
+    smooth_pred |>
+    ## filter(detrend_type == "value") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type == "lin_scl") |>
+    ## filter(detrend_type == "gam_det") |>
+    filter(detrend_type == "lin_gam_det") |>
+    filter(proxy == "MS") |>
+    ## filter(proxy == "Lstar") |>
+    ## filter(proxy == "d13C") |>
+    filter(site == "Zumaia") |>
+    ## filter(site == "Sopelana") |>
+    select(depth, value) |>
+    WaverideR::analyze_wavelet(lowerPeriod = .4,
+                               upperPeriod = 30,
+                               omega_nr = 8,
+                               ## verbose = TRUE
+                               ) |>
+      WaverideR::plot_wavelet(plot_dir = FALSE,
+                              palette_name = "inferno",
+                            siglvl = .95,
+                            dev_new = FALSE,
+                            add_avg = TRUE,
+                            add_MTM = TRUE,
+                            add_MTM_peaks = TRUE,
+                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
+                            )
+  # wanted to customize this but it has already moved on to another subplot by the end
+  ## abline(h = my_filters$p, colour = "white")
+  ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_MS_wavelet.png]]
+
+
+***** Zumaia Lstar lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 11:12]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_Lstar_wavelet.png :width 2400 :height 1200 :res 300
+  ## smooth_wavelet <-
+    smooth_pred |>
+    ## filter(detrend_type == "value") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type == "lin_scl") |>
+    ## filter(detrend_type == "gam_det") |>
+    filter(detrend_type == "lin_gam_det") |>
+    ## filter(proxy == "MS") |>
+    filter(proxy == "Lstar") |>
+    ## filter(proxy == "d13C") |>
+    filter(site == "Zumaia") |>
+    ## filter(site == "Sopelana") |>
+    select(depth, value) |>
+    WaverideR::analyze_wavelet(lowerPeriod = .4,
+                               upperPeriod = 30,
+                               omega_nr = 8,
+                               ## verbose = TRUE
+                               ) |>
+      WaverideR::plot_wavelet(plot_dir = FALSE,
+                              palette_name = "inferno",
+                            siglvl = .95,
+                            dev_new = FALSE,
+                            add_avg = TRUE,
+                            add_MTM = TRUE,
+                            add_MTM_peaks = TRUE,
+                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
+                            )
+  # wanted to customize this but it has already moved on to another subplot by the end
+  ## abline(h = my_filters$p, colour = "white")
+  ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_Lstar_wavelet.png]]
+
+***** Zumaia d13C lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 11:12]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_d13C_wavelet.png :width 2400 :height 1200 :res 300
+  ## smooth_wavelet <-
+    smooth_pred |>
+    ## filter(detrend_type == "value") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type == "lin_scl") |>
+    ## filter(detrend_type == "gam_det") |>
+    filter(detrend_type == "lin_gam_det") |>
+    ## filter(proxy == "MS") |>
+    ## filter(proxy == "Lstar") |>
+    filter(proxy == "d13C") |>
+    filter(site == "Zumaia") |>
+    ## filter(site == "Sopelana") |>
+    select(depth, value) |>
+    WaverideR::analyze_wavelet(lowerPeriod = .4,
+                               upperPeriod = 30,
+                               omega_nr = 8,
+                               ## verbose = TRUE
+                               ) |>
+      WaverideR::plot_wavelet(plot_dir = FALSE,
+                              palette_name = "inferno",
+                            siglvl = .95,
+                            dev_new = FALSE,
+                            add_avg = TRUE,
+                            add_MTM = TRUE,
+                            add_MTM_peaks = TRUE,
+                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
+                            )
+  # wanted to customize this but it has already moved on to another subplot by the end
+  ## abline(h = my_filters$p, colour = "white")
+  ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_d13C_wavelet.png]]
+
+***** Sopelana MS lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 11:12]
+:END:
+#+begin_src R :results output graphics file :file imgs/Sopelana_MS_wavelet.png :width 2400 :height 1200 :res 300
+  ## smooth_wavelet <-
+    smooth_pred |>
+    ## filter(detrend_type == "value") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type == "lin_scl") |>
+    ## filter(detrend_type == "gam_det") |>
+    filter(detrend_type == "lin_gam_det") |>
+    filter(proxy == "MS") |>
+    ## filter(proxy == "Lstar") |>
+    ## filter(proxy == "d13C") |>
+    ## filter(site == "Zumaia") |>
+    filter(site == "Sopelana") |>
+    select(depth, value) |>
+    WaverideR::analyze_wavelet(lowerPeriod = .4,
+                               upperPeriod = 30,
+                               omega_nr = 8,
+                               ## verbose = TRUE
+                               ) |>
+      WaverideR::plot_wavelet(plot_dir = FALSE,
+                              palette_name = "inferno",
+                            siglvl = .95,
+                            dev_new = FALSE,
+                            add_avg = TRUE,
+                            add_MTM = TRUE,
+                            add_MTM_peaks = TRUE,
+                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
+                            )
+  # wanted to customize this but it has already moved on to another subplot by the end
+  ## abline(h = my_filters$p, colour = "white")
+  ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Sopelana_MS_wavelet.png]]
+
+
+***** Sopelana Lstar lin_gam_det
+:PROPERTIES:
+:CREATED:  [2023-12-21 Thu 11:12]
+:END:
+#+begin_src R :results output graphics file :file imgs/Sopelana_Lstar_wavelet.png :width 2400 :height 1200 :res 300
+  ## smooth_wavelet <-
+    smooth_pred |>
+    ## filter(detrend_type == "value") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type == "lin_scl") |>
+    ## filter(detrend_type == "gam_det") |>
+    filter(detrend_type == "lin_gam_det") |>
+    ## filter(proxy == "MS") |>
+    filter(proxy == "Lstar") |>
+    ## filter(proxy == "d13C") |>
+    ## filter(site == "Zumaia") |>
+    filter(site == "Sopelana") |>
+    select(depth, value) |>
+    WaverideR::analyze_wavelet(lowerPeriod = .4,
+                               upperPeriod = 30,
+                               omega_nr = 8,
+                               ## verbose = TRUE
+                               ) |>
+      WaverideR::plot_wavelet(plot_dir = FALSE,
+                              palette_name = "inferno",
+                            siglvl = .95,
+                            dev_new = FALSE,
+                            add_avg = TRUE,
+                            add_MTM = TRUE,
+                            add_MTM_peaks = TRUE,
+                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
+                            )
+  # wanted to customize this but it has already moved on to another subplot by the end
+  ## abline(h = my_filters$p, colour = "white")
+  ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Sopelana_Lstar_wavelet.png]]
+
 
 **** Bandpass Filtering
 :PROPERTIES:
