@@ -69,13 +69,19 @@ wrap_age_model <- function(data,
 
   if (!"Ma405" %in% colnames(data)) {
     data <- data |>
-      # not sure if this is correct?
       mutate(Ma405 = findInterval(depth, agemodel$strat_bot))
     # should be correct, see
     # [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*Did
     # we number the Ma405 correctly?][Did we number the Ma405 correctly?]]
   }
-  tiepoints <- unique(data$Ma405) |> sort()
+  # this is kind of hard
+  # while the above was correct, I want to /interpolate/, so should always
+  # include one tiepoint lower and one higher.
+  # if the tiepoint isn't in the agemodel (i.e. for d13C)
+  # it'll skip it anyway.
+  tiepoints <- c(min(data$Ma405) - 1,
+                 unique(data$Ma405),
+                 max(data$Ma405) + 1) |> sort()
 
   # end input validation
 
