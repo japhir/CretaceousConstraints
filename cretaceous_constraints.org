@@ -82,6 +82,7 @@ The R source code to reproduce this analysis will be made available on https://g
   library(future)    # this is for parallel computing
   library(furrr)     # parallel purrr::map functions
   plan(multisession, workers = 4) # set up 4 cores
+  devtools::load_all()
 #+end_src
 
 ** functions
@@ -89,13 +90,22 @@ The R source code to reproduce this analysis will be made available on https://g
 :CREATED:  [2023-09-28 Thu 14:00]
 :header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
 :END:
+*** SOME make this into a package for myself
+:PROPERTIES:
+:CREATED:  [2023-12-22 Fri 21:59]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2023-12-22 Fri 21:59]
+:END:
+
+#+transclude: [[file:DESCRIPTION]]
 *** spectral analysis
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
 :END:
 This does spectral analysis on data within each group in ~nest~ based on parameters ~x~ and ~y~. In ~astrochron~, you have to give it a ~data.frame~ with only 2 columns, which loses all the rich metadata for the data.
 
-#+transclude: [[file:R/spectral_analysis.R]] :src R
+#+transclude: [[file:R/spectral_analysis.R]]  :src R
 
 **** SOME add astrochron::periodogram as fft?
 :PROPERTIES:
@@ -114,6 +124,12 @@ It's not much better, gets a bit messy if plotted on log10 scale.
 :LOGBOOK:
 - State "SOME"       from "DONE"       [2023-11-15 Wed 21:50]
 :END:
+
+**** SOME add MTLS
+:LOGBOOK:
+- State "SOME"       from              [2023-12-22 Fri 21:52]
+:END:
+
 *** plot spectrum
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 16:16]
@@ -127,7 +143,7 @@ This plots the MTM spectrum with a log axis on both x and y.
 :CREATED:  [2023-12-21 Thu 10:15]
 :END:
 
-#+transclude: [[file:R/evolutive_analysis.R]] :src R
+#+transclude: [[file:R/evolutive_analysis.R]]  :src R
 
 *** bandpass filter
 :PROPERTIES:
@@ -135,14 +151,14 @@ This plots the MTM spectrum with a log axis on both x and y.
 :END:
 This filters out all the frequencies in dataframe ~freqs~.
 
-#+transclude: [[file:R/bandpass_filter.R]] :src R
+#+transclude: [[file:R/bandpass_filter.R]]  :src R
 
 *** construct_eccentricity
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 16:35]
 :END:
 
-#+transclude: [[file:R/construct_eccentricity.R]] :src R
+#+transclude: [[file:R/construct_eccentricity.R]]  :src R
 
 *** SOME hilbert transform
 :PROPERTIES:
@@ -159,7 +175,7 @@ I haven't written clean code for this yet, not sure if it'll be useful. The idea
 :END:
 This function calculates the (r)mcd from a dataset with mbsf and a splice table.
 
-#+transclude: [[file:R/get_rmcd.R]] :src R
+#+transclude: [[file:R/get_rmcd.R]]  :src R
 
 ** Astronomical Solutions
 :PROPERTIES:
@@ -9090,7 +9106,6 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 #+RESULTS:
 [[file:imgs/Zumaia_linear-gam-trend-removal.png]]
 
-
 ***** COMMENT gam with custom knots around the colour transitions
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:43]
@@ -11420,9 +11435,8 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 :CREATED:  [2023-12-22 Fri 20:45]
 :END:
 #+begin_src R
-  source("R/functions.R")
   source("R/wrap_age_model.R")
-  debug(wrap_age_model)
+  ## debug(wrap_age_model)
 #+end_src
 
 #+RESULTS:
@@ -11531,7 +11545,7 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 #+RESULTS:
 [[file:imgs/Sopelana_fixed_MS_overall.png]]
 
-***** COMMENT Zumaia MS lin_gam_det 1:1 vs La10b
+***** [#A] COMMENT Zumaia MS lin_gam_det 1:1 vs La10b
 #+begin_src R
   tst4 <- data_ecc |>
     filter(proxy == "MS",
@@ -11546,118 +11560,6 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 #+end_src
 
 #+RESULTS:
-#+begin_example
-debugging in: wrap_age_model(filter(data_ecc, proxy == "MS", detrend_type ==
-    "lin_gam_det", comb == "1:1", site == "Zumaia"), filter(agem_sol,
-    sol == "La10b"), astronomical_solution = filter(slns, sln ==
-    "La10b"), genplot = TRUE, output = "full")
-debug at R/wrap_age_model.R#12: {
-    data_input_columns <- c("depth", "value")
-    if (!all(data_input_columns %in% colnames(data))) {
-        cli::cli_abort(c("{.var data} must contain columns {.and {.q {data_input_columns}}}",
-            x = "You've supplied a dataframe with columns {.and {.q {colnames(data)}}}"))
-    }
-    if ("sol" %in% colnames(data)) {
-        if (length(unique(data$sol)) > 1) {
-            cli::cli_abort(c("{.var data} must contain only one unique astronomical solution in column {.var sol}.",
-                x = "{.var data} contains {.and {unique(data$sol)}}"))
-        }
-    }
-    valid_outputs <- c("default", "details", "plot", "full")
-    if (!output %in% valid_outputs) {
-        cli::cli_abort(c("{.var output} must be one of {.or {.q {valid_outputs}}}",
-            x = "You've supplied {.q {output}}"))
-    }
-    if (length(unique(agemodel$sol)) > 1) {
-        cli::cli_abort(c("{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
-            x = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"))
-    }
-    if (length(unique(astronomical_solution$sln)) > 1) {
-        cli::cli_abort(c("{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
-            x = "{.var astronomical_solution} contains {.and {unique(astronomical_solution$sln)}}"))
-    }
-    if (!(astronomical_solution$sln[[1]] == agemodel$sol[[1]])) {
-        cli::cli_abort(c("{.var sol} must be the same in {.var astronomical_solution} and {.var agemodel}",
-            i = "{.var sol} in {.var agemodel} = {agemodel$sol[[1]]}",
-            i = "{.var sln} in {.var astronomical_solution} = {astronomical_solution$sln[[1]]}"))
-    }
-    if (output == "plot" & !genplot) {
-        cli::cli_inform("{.var output} = {.q plot}, setting {.var genplot} = {.q TRUE}")
-        genplot <- TRUE
-    }
-    if (!"Ma405" %in% colnames(data)) {
-        data <- mutate(data, Ma405 = findInterval(depth, agemodel$strat_bot))
-    }
-    tiepoints <- sort(unique(data$Ma405))
-    the_best_summary <- mutate(select(filter(agemodel, n %in%
-        tiepoints), all_of(c("sol", "n", "strat_bot", "age"))),
-        tie_err = NA_real_, RMSD_cum = NA_real_)
-    the_best <- unnest(mutate(select(the_best_summary, -tie_err,
-        -RMSD_cum), optimal = list(tibble(error = tiepoint_uncertainty,
-        RMSD_tie = NA_real_))), cols = c(optimal))
-    for (tiepoint in tiepoints) {
-        if (!tiepoint %in% agemodel$n) {
-            next
-        }
-        else {
-            for (error in tiepoint_uncertainty) {
-                if (!(tiepoint - 1) %in% the_best_summary$n) {
-                  am <- mutate(mutate(the_best_summary, tie = case_when(n ==
-                    tiepoint ~ error, .default = NA_real_)),
-                    depth = case_when(!is.na(tie) ~ strat_bot +
-                      tie, .default = strat_bot))
-                }
-                else {
-                  am <- mutate(mutate(the_best_summary, tie = case_when(n ==
-                    tiepoint ~ error, n < tiepoint ~ tie_err,
-                    .default = NA_real_)), depth = case_when(!is.na(tie) ~
-                    strat_bot + tie, .default = strat_bot))
-                }
-                tmp <- mutate(data, age = map_dbl(depth, ~Hmisc::approxExtrap(am$depth,
-                  am$age, xout = .x)$y), .after = depth)
-                flt <- bandpass_filter(tmp, frequencies = filter(my_filt_age,
-                  target != "23 kyr"), x = age, y = value, add_depth = TRUE)
-                ecc <- construct_eccentricity(flt, id_cols = c(depth,
-                  age, value), f = filter, sign = 1, weights = c(1,
-                  1))
-                esd <- mutate(mutate(ecc, ecc_sln = approx(astronomical_solution$age,
-                  astronomical_solution$scl, xout = age)$y),
-                  SD = (ecc - ecc_sln)^2)
-                smy <- summarize(esd, RMSD = sqrt(mean(SD)))
-                the_best$RMSD_tie[the_best$n == tiepoint & the_best$error ==
-                  error] <- smy$RMSD
-            }
-            tb <- the_best[the_best$n == tiepoint, ]
-            bst <- min(tb$RMSD_tie)
-            tb <- tb[tb$RMSD_tie == bst, ]
-            the_best_summary$tie_err[the_best_summary$n == tiepoint] <- tb$error
-            the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <- tb$RMSD_tie
-        }
-    }
-    if (genplot) {
-        pl <- ggplot(the_best, aes(x = strat_bot + error, y = RMSD_tie)) +
-            labs(x = "Depth (m)", y = "RMSD") + scale_x_reverse() +
-            geom_vline(aes(xintercept = strat_bot), colour = "gray",
-                data = the_best_summary) + geom_line(aes(group = n)) +
-            geom_point(aes(x = strat_bot + tie_err, y = RMSD_cum),
-                colour = "red", data = the_best_summary)
-        print(pl)
-    }
-    if (output == "default") {
-        return(the_best_summary)
-    }
-    if (output == "details") {
-        return(the_best)
-    }
-    if (output == "plot") {
-        return(pl)
-    }
-    if (output == "full") {
-        return(list(summary = the_best_summary, details = the_best,
-            plot = pl))
-    }
-}
-#+end_example
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_fixed_MS_La10b_lgd_overall_new.png :width 900 :height 400
   tst4$plot
@@ -11754,6 +11656,7 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 
 it's swapping quite hard, so maybe I should write the intermediate outputs?
 #+begin_src R :eval never
+  message("current time: ", lubridate::now())
   rolling_age_optim <-
     ## data_ecc |>
     data_ecc_age |> # I use age because it already has sol's
@@ -11799,7 +11702,12 @@ it's swapping quite hard, so maybe I should write the intermediate outputs?
     ## write_rds("out/2023-12-08_rolling_age_optim_combs.rds") # some additional combs
     ## write_rds("out/2023-12-08_rolling_age_optim_combs2.rds") # some additional combs
     write_rds("out/2023-12-22_rolling_age_optim_1-1_details.rds") # after refactor
+  message("current time: ", lubridate::now())
 #+end_src
+current time: 2023-12-22 22:26:18.565137
+ Progress: ───────────────────────────────────────────────── 100%
+ > current time: 2023-12-22 22:49:15.228392
+ah so ~23 minutes total!
 
 **** load cached results
 :PROPERTIES:
@@ -11956,7 +11864,7 @@ improvement after optimization
 #+RESULTS:
 [[file:imgs/rolling_age_vs_strat_bot.png]]
 
-**** plot best fits vs depth
+**** plot best fits RMSD evolution vs depth
 :PROPERTIES:
 :CREATED:  [2023-12-13 Wed 15:15]
 :END:
@@ -11976,8 +11884,8 @@ improvement after optimization
                                      "1:0.5" = "dashed",
                                      "0.5:1" = "dotted")) +
     geom_line() +
-    geom_line(aes(y = RMSD_tie, group = n), colour = "black", linetype = 1, data = tst4$details) +
-    geom_line(aes(y = RMSD_tie, group = n), colour = "black", linetype = 1, data = tst2$details) +
+    ## geom_line(aes(y = RMSD_tie, group = n), colour = "black", linetype = 1, data = tst4$details) +
+    ## geom_line(aes(y = RMSD_tie, group = n), colour = "black", linetype = 1, data = tst2$details) +
     ## geom_point(aes(y = RMSD_cum), colour = "black", shape = 21, data = tst4$summary) +
     geom_point(colour = "red", size = .3,
                data = \(x) x |>

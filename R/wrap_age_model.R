@@ -80,8 +80,9 @@ wrap_age_model <- function(data,
   # if the tiepoint isn't in the agemodel (i.e. for d13C)
   # it'll skip it anyway.
   tiepoints <- c(min(data$Ma405) - 1,
-                 unique(data$Ma405),
-                 max(data$Ma405) + 1) |> sort()
+                 unique(data$Ma405)#,
+                 ## max(data$Ma405) + 1
+                 ) |> sort()
 
   # end input validation
 

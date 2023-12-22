@@ -1,4 +1,19 @@
-spectral_analysis <- function(data, x, y) {
+##' Spectral Analysis
+##'
+##' @param data Dataframe with input data.
+##' @param x Column in `data`, i.e. `depth`, `height`, or `age`.
+##' @param y Column in `data` with variable of interest.
+##' @param method Character specifying which spectral analysis method to apply.
+##' @return Dataframe with spectral outcome. Defaults to MTM with output = 1.
+spectral_analysis <- function(data, x, y, method = "MTM") {
+  if ("MTM" != method) {
+    cli::cli_abort(c("Only method MTM is currently supported.",
+                     "i" = "Other methods I may implement:",
+                     "*" = "FFT = periodogram",
+                     "*" = "Blackman-Tukey",
+                     "*" = "MTLS?"))
+  }
+
   data |>
     select({{x}}, {{y}}) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
@@ -12,6 +27,10 @@ spectral_analysis <- function(data, x, y) {
            ar1_cl = AR1_CL, ar1_fit = AR1_fit, .width = .width)
 }
 
+##' Nested Spectral Analysis
+##'
+##' @inheritParams spectral_analysis
+##' @param nest Character vector to nest by.
 nested_spectral_analysis <- function(data, nest, x, y) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
