@@ -1,0 +1,18 @@
+#' Construct eccentricity from filtered record
+#'
+#' @param data data.frame() Result of [bandpass_filter()]. Must contain columns
+#'   `depth`, `value`, `filter`, and `target`.
+#' @param sign numeric(0) with the desired phase relationship for this proxy. -1 for d13C and Lstar, +1 for MS!
+# #' @param x, y Column names in `data` that contain depth and values.
+# #' @param weights Numeric vector of weights to apply for each target.
+construct_eccentricity <- function(data, sign = 1, weights = c("405" = 1, "100" = 1),
+                                   id_cols = c(depth, age, value), f = filter
+                                   ) {
+  data |>
+    pivot_wider(id_cols = {{id_cols}},
+                names_from = target,
+                values_from = {{f}}
+                ) |>
+    mutate(ecc = sign * weights[[1]] * scale(`405 kyr`)[, 1] +
+             sign * weights[[2]] * scale(`100 kyr`)[, 1])
+}
