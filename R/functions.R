@@ -5,7 +5,7 @@ spectral_analysis <- function(data, x, y) {
     astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
     pivot_longer(c(AR1_90_power, AR1_95_power, AR1_99_power),
                  names_to = c("AR1", ".width"), names_pattern = "^(AR1)_(9[950])",
-                 values_to = "AR1_power") |>
+                 values_to = "ar1_power") |>
     select(-AR1) |>
     mutate(.width = parse_double(paste0(".", .width))) |>
     rename(frequency = Frequency, power = Power, harmonic_cl = Harmonic_CL,
@@ -33,17 +33,52 @@ nested_spectral_analysis <- function(data, nest, x, y) {
     unnest(mtm)
 }
 
-plot_spectrum <- function(spec) {
-  spec |>
-    ggplot(aes(x = freq, y = power)) +
-    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
-                    linetype = NA, group = .width),
-                alpha = .1) +
+plot_spectrum <- function(spec, group = "none", logx = FALSE, logy = FALSE, ar1 = FALSE) {
+
+  if ("none" %in% group) {
+    pl <- spec |>
+      ggplot(aes(x = frequency, y = power))
+    if (ar1) {
+      pl <- pl +
+        geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                        linetype = NA, group = .width),
+                    alpha = .1)
+    }
+  } else {
+    pl <- spec |>
+      ggplot(aes(x = frequency, y = power, colour = .data[[group]]))
+    if (ar1) {
+      pl <- pl +
+        geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power, fill = .data[[group]],
+                        linetype = NA, group = paste(c(group, .width))),
+                    alpha = .1)
+      }
+  }
+
+  periods <- c(405, 132.5, 124, 99.7, 95)
+  if (logx & logy) {
+    pl <- pl + annotation_logticks() +
+      scale_y_log10() +
+      scale_x_log10(sec.axis = sec_axis(breaks = periods,
+                                        trans = \(x) 1 / x, name = "Period (m)"))
+  } else if (logx){
+      pl <- pl + annotation_logticks(sides = "b") +
+        scale_x_log10(sec.axis = sec_axis(breaks = periods,
+                                          trans = \(x) 1 / x, name = "Period (m)"))
+  } else if (logy) {
+    pl <- pl + annotation_logticks(sides = "l") + scale_y_log10() +
+      scale_x_continuous(sec.axis = sec_axis(breaks = periods,
+                                             trans = \(x) 1 / x, name = "Period (m)"))
+  } else {# neither
+    pl <- pl +
+      scale_x_continuous(sec.axis = sec_axis(breaks = periods,
+                                             trans = \(x) 1 / x, name = "Period (m)"))
+  }
+
+  pl <- pl +
     geom_line() +
-    annotation_logticks() +
-    scale_y_log10() +
-    scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
     labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+  return(pl)
 }
 
 evolutive_analysis <- function(data, nest, x, y) {
@@ -81,7 +116,7 @@ evolutive_analysis <- function(data, nest, x, y) {
 #'   Can contain multiple rows for multiple frequency filtering.
 #' @param x Column name in `data` that holds the depth/age information.
 #' @param y Column name in `data` that holds the proxy variable name.
-bandpass_filter <- function(data, frequencies, x, y) {
+bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
            "{.var data} must be a {.cls data.frame}",
@@ -97,21 +132,34 @@ bandpass_filter <- function(data, frequencies, x, y) {
                      "i" = "{.var freqs} has column{?s} {.val {colnames(freqs)}}"))
   }
 
-  data |>
+  out <- data |>
     mutate(filt = list(frequencies)) |>
     unnest(filt) |>
-    nest(.by = all_of(colnames(frequencies))) |>
+    nest(.by = all_of(colnames(frequencies)))
+
+  out <- out |>
     mutate(
       lt = map(data, \(d) d |>
                           select({{x}}, {{y}}) |>
                           astrochron::linterp(genplot = FALSE, verbose = FALSE)),
       bp = pmap(list(lt, flow, fhigh), \(d, l, h)
                 d |>
-                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                      genplot = FALSE, verbose = FALSE) |>
-                 select(filter = {{y}}))) |>
+                astrochron::bandpass(flow = l, fhigh = h, win = 0,
+                                     genplot = FALSE, verbose = FALSE) |>
+                select(filter = {{y}}))) |>
     select(-data) |>
     unnest(cols = c(lt, bp))
+
+  if (add_depth) {
+    # interpolate depth back to new age scale
+    out <- out |>
+      mutate(depth = approx(data |> pull({{x}}),
+                            data$depth,
+                            out |> pull({{x}}))$y,
+             .before = {{x}})
+  }
+
+  out
 }
 
 
@@ -119,7 +167,7 @@ bandpass_filter <- function(data, frequencies, x, y) {
 #'
 #' @inheritParams bandpass_filter
 #' @param nest character() Vector with column names in `data` to nest by.
-nested_bandpass_filter <- function(data, frequencies, x, y, nest) {
+nested_bandpass_filter <- function(data, frequencies, x, y, nest, add_depth = FALSE) {
   if (! all(nest %in% colnames(data))) {
     cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
                      "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
@@ -130,7 +178,9 @@ nested_bandpass_filter <- function(data, frequencies, x, y, nest) {
     nest(.by = all_of(nest)) |>
     mutate(bp = purrr::map(data,
                \(d) d |>
-                      bandpass_filter(frequencies = frequencies, x = {{x}}, y = {{y}}))) |>
+                    bandpass_filter(frequencies = frequencies,
+                                    x = {{x}}, y = {{y}},
+                                    add_depth = add_depth))) |>
     unnest(bp) |>
     select(-data)
 }
@@ -143,10 +193,10 @@ nested_bandpass_filter <- function(data, frequencies, x, y, nest) {
 # #' @param x, y Column names in `data` that contain depth and values.
 # #' @param weights Numeric vector of weights to apply for each target.
 construct_eccentricity <- function(data, sign = 1, weights = c("405" = 1, "100" = 1),
-                                   x = depth, y = value, f = filter
+                                   id_cols = c(depth, age, value), f = filter
                                    ) {
   data |>
-    pivot_wider(id_cols = c({{x}}, {{y}}),
+    pivot_wider(id_cols = {{id_cols}},
                 names_from = target,
                 values_from = {{f}}
                 ) |>

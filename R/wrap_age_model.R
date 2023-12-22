@@ -129,13 +129,14 @@ wrap_age_model <- function(data,
 
         flt <- tmp |>
           # TODO: make frequencies a parameter!!!
-          bandpass_filter(frequencies = my_filt_age |> filter(target != "prec"),
-                          x = age, y = value)
+          bandpass_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
+                          x = age, y = value, add_depth = TRUE)
 
         ecc <- flt |>
           # TODO: sign should be passed based on proxy, -1 for d13C and Lstar, +1 for MS
           # TODO: pass in different weights, previously comb.
-          construct_eccentricity(x = age, y = value, f = filter, sign = 1, weights = c(1, 1))
+          construct_eccentricity(id_cols = c(depth, age, value), f = filter,
+                                 sign = 1, weights = c(1, 1))
 
         esd <- ecc |>
           # linearly interpolate the astronomical solution eccentricity
