@@ -149,6 +149,28 @@ It's not much better, gets a bit messy if plotted on log10 scale.
 :LOGBOOK:
 - State "SOME"       from "DONE"       [2023-11-15 Wed 21:50]
 :END:
+*** plot spectrum
+:PROPERTIES:
+:CREATED:  [2023-09-28 Thu 16:16]
+:END:
+This plots the MTM spectrum with a log axis on both x and y.
+#+begin_src R
+  plot_spectrum <- function(spec) {
+    spec |>
+      ggplot(aes(x = freq, y = power)) +
+      geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                      linetype = NA, group = .width),
+                  alpha = .1) +
+      geom_line() +
+      annotation_logticks() +
+      scale_y_log10() +
+      scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
+      labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+  }
+#+end_src
+
+#+RESULTS:
+
 *** eha
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 10:15]
@@ -253,23 +275,28 @@ This filters out all the frequencies in dataframe ~freqs~.
 
 #+RESULTS:
 
-*** plot spectrum
+*** construct_eccentricity
 :PROPERTIES:
-:CREATED:  [2023-09-28 Thu 16:16]
+:CREATED:  [2023-12-21 Thu 16:35]
 :END:
-This plots the MTM spectrum with a log axis on both x and y.
 #+begin_src R
-  plot_spectrum <- function(spec) {
-    spec |>
-      ggplot(aes(x = freq, y = power)) +
-      geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
-                      linetype = NA, group = .width),
-                  alpha = .1) +
-      geom_line() +
-      annotation_logticks() +
-      scale_y_log10() +
-      scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
-      labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+  #' Construct eccentricity from filtered record
+  #'
+  #' @param data data.frame() Result of [bandpass_filter()]. Must contain columns
+  #'   `depth`, `value`, `filter`, and `target`.
+  #' @param sign numeric(0) with the desired phase relationship for this proxy. -1 for d13C and Lstar, +1 for MS!
+  # #' @param x, y Column names in `data` that contain depth and values.
+  # #' @param weights Numeric vector of weights to apply for each target.
+  construct_eccentricity <- function(data, sign = 1, weights = c("405" = 1, "100" = 1),
+                                     x = depth, y = value, f = filter
+                                     ) {
+    data |>
+      pivot_wider(id_cols = c({{x}}, {{y}}),
+                  names_from = target,
+                  values_from = {{f}}
+                  ) |>
+      mutate(ecc = sign * weights[[1]] * scale(`405 kyr`)[, 1] +
+               sign * weights[[2]] * scale(`100 kyr`)[, 1])
   }
 #+end_src
 
@@ -10041,17 +10068,20 @@ Richard says that the Hilbert transform is useful for visual inspection, but num
 #+caption: Zumaia and Sopelana trend removal using various strategies. See cref:tab:detrend_types for an overview.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_complicated.png]]
-**** construct an eccentricity curve from the filters in the depth domain
+**** NEXT construct an eccentricity curve from the filters in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:50]
+:END:
+:LOGBOOK:
+- Note taken on [2023-12-21 Thu 16:51] \\
+  should get this working with new ~construct_eccentricity~ function
 :END:
 We normalize the filtered record and combine them in a few different proportions (for now 1:1, 0.5:1, and 1:0.5) using both a filtering approach (default) and a hilbert transform of the precession-filtered record. Furthermore we set the phase relationship to -1 for the d13C and Lstar proxies and to +1 for the MS.
 
 #+begin_src R :results none
   data_ecc <- filts |>
-    select(-p, -f, -range, -flow, -fhigh, -ref) |>
-    pivot_wider(id_cols = c(proxy, site, detrend_type, depth),
-                names_from = target, values_from = filt) |>
+    select(-p, -f, -range, -flow, -fhigh, -    pivot_wider(id_cols = c(proxy, site, detrend_type, depth, value),
+                names_from = target, values_from = filter) |>
     tidylog::left_join(hb_prec) |>
     mutate(
       fracs = list(tribble( ~ comb, ~ s405, ~ s100,
@@ -11511,20 +11541,27 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
                              genplot = FALSE,
                              output = "default") {
 
-    valid_outputs <- c("default", "details", "plot", "full")
+    data_input_columns <- c("depth", "value")
+    if (!all(data_input_columns %in% colnames(data))) {
+      cli::cli_abort(c(
+             "{.var data} must contain columns {.and {.q {data_input_columns}}}",
+             "x" = "You've supplied a dataframe with columns {.and {.q {colnames(data)}}}"))
+    }
+    if ("sol" %in% colnames(data)) {
+      if (length(unique(data$sol)) > 1) {
+        cli::cli_abort(c(
+               "{.var data} must contain only one unique astronomical solution in column {.var sol}.",
+               "x" = "{.var data} contains {.and {unique(data$sol)}}"
+             ))
+      }
+    }
 
+    valid_outputs <- c("default", "details", "plot", "full")
     # validate user inputs
     if (!output %in% valid_outputs) {
       cli::cli_abort(c(
              "{.var output} must be one of {.or {.q {valid_outputs}}}",
              "x" = "You've supplied {.q {output}}"))
-    }
-
-    if (length(unique(data$sol)) > 1) {
-      cli::cli_abort(c(
-             "{.var data} must contain only one unique astronomical solution in column {.var sol}.",
-             "x" = "{.var data} contains {.and {unique(data$sol)}}"
-           ))
     }
 
     if (length(unique(agemodel$sol)) > 1) {
@@ -11554,9 +11591,18 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
       cli::cli_inform("{.var output} = {.q plot}, setting {.var genplot} = {.q TRUE}")
       genplot <- TRUE
     }
-    # end input validation
 
+    if (!"Ma405" %in% colnames(data)) {
+      data <- data |>
+        # not sure if this is correct?
+        mutate(Ma405 = findInterval(depth, agemodel$strat_bot))
+      # should be correct, see
+      # [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*Did
+      # we number the Ma405 correctly?][Did we number the Ma405 correctly?]]
+    }
     tiepoints <- unique(data$Ma405) |> sort()
+
+    # end input validation
 
     # make sure to fully initialize the whole output dataframe
     # this will make looping less slow
@@ -11596,23 +11642,27 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
                                        .default = strat_bot))
           }
 
+          # calculate age from age model for each uncertainty
           tmp <- data |>
-            # TODO: make this filter match the depth based on the tie-point instead?
-            # TODO: remove n, since we don't use it anyway?
-            ## mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
-            # calculate age from age model for each uncertainty
             mutate(age = map_dbl(depth,
                      ~ Hmisc::approxExtrap(
                                 # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
                                 am$depth,
                                 am$age,
-                                xout = .x)$y))
+                                xout = .x)$y),
+                   .after = depth)
 
-          # TODO: filter 405 and 100 kyr cycles
           flt <- tmp |>
-            bandpass_filter(frequencies)
+            # TODO: make frequencies a parameter!!!
+            bandpass_filter(frequencies = my_filt_age |> filter(target != "prec"),
+                            x = age, y = value)
 
-          tmp <- tmp |>
+          ecc <- flt |>
+            # TODO: sign should be passed based on proxy, -1 for d13C and Lstar, +1 for MS
+            # TODO: pass in different weights, previously comb.
+            construct_eccentricity(x = age, y = value, f = filter, sign = 1, weights = c(1, 1))
+
+          esd <- ecc |>
             # linearly interpolate the astronomical solution eccentricity
             mutate(ecc_sln = approx(astronomical_solution$age,
                                     astronomical_solution$scl,
@@ -11621,7 +11671,7 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
             mutate(SD = (ecc - ecc_sln)^2) #|>
 
           # summarize into RMSD
-          smy <- tmp |>
+          smy <- esd |>
             summarize(RMSD = sqrt(mean(SD)))
 
           # save the results to our tibble
@@ -11696,16 +11746,30 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 ***** Zumaia d13C subs
 #+begin_src R
   source("R/wrap_age_model.R")
-  debug(wrap_age_model)
+  ## debug(wrap_age_model)
   # WARNING: still slow, but slightly less so
-  tst2 <- wrap_age_model(subs,
+
+  tst2 <- data_ecc |>
+    filter(proxy == "d13C", detrend_type == "value", comb == "1:1", filt_env == "filter") |>
+    wrap_age_model(
                  agem_sol |> filter(sol == "ZB18a"),
                  astronomical_solution = slns |> filter(sln == "ZB18a"),
                  genplot = TRUE, output = "full")
+
+  # looking for better ways to find the "optimal" error
+  tst2$plot +
+    geom_line(aes(y = deriv),
+              colour = "red",
+              data = \(d) d |>
+                          mutate(deriv = RMSD_tie - lag(RMSD_tie), .by = n)) +
+    geom_line(aes(y = deriv_deriv), colour = "purple",
+              data = \(d) d |>
+                          mutate(deriv = RMSD_tie - lag(RMSD_tie), .by = n) |>
+                          mutate(deriv_deriv = deriv - lag(deriv), .by = n))
 #+end_src
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_fixed_d13C_overall.png :width 2200 :height 1200 :res 300
-  tst2$plot + scale_x_reverse() + labs(x = "Depth (m)", y = "RMSD")
+  tst2$plot
 #+end_src
 
 #+attr_latex: :width \textwidth
@@ -11716,24 +11780,23 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 ***** COMMENT Sopelana MS ZB18a scl filter 0.5:1
 #+begin_src R
   source("R/wrap_age_model.R")
-  tst3 <- wrap_age_model(diffs_tie |>
-                   filter(site == "Sopelana",
-                          proxy == "MS",
-                          sol == "ZB18a",
-                          detrend_type == "scl",
-                          filt_env == "filter",
-                          comb == "0.5:1"),
-                 agem_sol |> filter(sol == "ZB18a"),
-                 astronomical_solution = slns |> filter(sln == "ZB18a"),
-                 genplot = TRUE, output = "full")
+
+  tst3 <- data_ecc |>
+    filter(proxy == "MS",
+           detrend_type == "scl",
+           comb == "1:1",
+           filt_env == "filter",
+           site == "Sopelana") |>
+    wrap_age_model(agem_sol |> filter(sol == "ZB18a"),
+                   astronomical_solution = slns |> filter(sln == "ZB18a"),
+                   genplot = TRUE, output = "full")
 #+end_src
 
-#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS_overall.png :width 900 :height 700 :res 300
-  ## tst3$plot
-  tst2$plot + scale_x_reverse() + labs(x = "Depth (m)", y = "RMSD")
+#+begin_src R :results output graphics file :file imgs/Sopelana_fixed_MS_overall.png :width 1700 :height 1200 :res 300
+  tst3$plot
 #+end_src
 
-#+caption: Second example for Sopelana MS scl 0.5:1 vs. ZB18a.
+#+caption: Second example for Sopelana MS scl 1:1 vs. ZB18a.
 #+RESULTS:
 [[file:imgs/Sopelana_fixed_MS_overall.png]]
 
@@ -11742,47 +11805,50 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
   source("R/wrap_age_model.R")
   ## debug(wrap_age_model)
   # WARNING: still slow, but slightly less so
-  tst4 <- wrap_age_model(
-    diffs_tie |>
-    filter(site == "Zumaia",
-           sol == "La10b",
-           proxy == "MS",
+  tst4 <- data_ecc |>
+    filter(proxy == "MS",
            detrend_type == "lin_gam_det",
            comb == "1:1",
-           filt_env == "filter"),
-    agem_sol |> filter(sol == "La10b"),
-    astronomical_solution = slns |> filter(sln == "La10b"),
-    genplot = TRUE, output = "full")
+           filt_env == "filter",
+           site == "Zumaia") |>
+    wrap_age_model(
+      agem_sol |> filter(sol == "La10b"),
+      astronomical_solution = slns |> filter(sln == "La10b"),
+      genplot = TRUE, output = "full")
 #+end_src
 
-#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_MS_La10b_lgd_overall.png :width 900 :height 400
+#+begin_src R :results output graphics file :file imgs/Zumaia_fixed_MS_La10b_lgd_overall_new.png :width 900 :height 400
   tst4$plot
 #+end_src
 
-#+caption: Zumaia MS lin_gam_det 1:1 vs. La10b.
+#+caption: Zumaia MS lin_gam_det 1:1 vs. La10b using the new filtery approach.
 #+RESULTS:
+[[file:imgs/Zumaia_fixed_MS_La10b_lgd_overall_new.png]]
+
+
+#+caption: Zumaia MS lin_gam_det 1:1 vs. La10b using the old squishy approach.
+
 [[file:imgs/Zumaia_fixed_MS_La10b_lgd_overall.png]]
 
 
 ***** COMMENT Zumaia d13C subs
-#+begin_src R :results output graphics file :file imgs/Zumaia_d13C_overall_ZB20a.png :width 1200 :height 1200 :res 300
+#+begin_src R
   ## source("R/wrap_age_model.R")
   ## debug(wrap_age_model)
   # WARNING: still slow, but slightly less so
-  ZC20_2 <- wrap_age_model(
-      diffs_tie |>
-      # best-scoring d13C zumaia ZB20a
-      filter(site == "Zumaia",
-             sol == "ZB20a",
-             proxy == "d13C",
-             detrend_type == "gam_det",
-             comb == "1:1",
-             filt_env == "filter"),
-    agem_sol |> filter(sol == "ZB20a"),
-    astronomical_solution = slns |> filter(sln == "ZB20a"),
-    ## tiepoint_uncertainty = seq(-4, 4, .5), # default
-    tiepoint_uncertainty = seq(-2, 2, .5), # smaller range
-    genplot = TRUE, output = "full")
+  tst5 <-
+    data_ecc |>
+      filter(site == "Zumaia", proxy == "d13C", detrend_type == "gam_det", comb == "1:1", filt_env == "filter") |>
+    wrap_age_model(
+      agem_sol |> filter(sol == "ZB20a"),
+      astronomical_solution = slns |> filter(sln == "ZB20a"),
+      tiepoint_uncertainty = seq(-4, 4, .5), # default
+      ## tiepoint_uncertainty = seq(-2, 2, .5), # smaller range
+      genplot = TRUE, output = "full")
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_d13C_overall_ZB20a.png :width 2400 :height 1200 :res 300
+  tst5$plot
 #+end_src
 
 #+RESULTS:
@@ -11807,10 +11873,14 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 :END:
 #+begin_src R
   source("R/wrap_age_model.R")
-  pr2 <- profvis(wrap_age_model(subs,
-                   agem_sol |> filter(sol == "ZB18a"),
-                   astronomical_solution = slns |> filter(sln == "ZB18a"),
-                   genplot = TRUE, output = "full"), interval = 0.01)
+
+  pr2 <- profvis(
+      data_ecc |>
+        filter(site == "Zumaia", proxy == "d13C", detrend_type == "gam_det", comb == "1:1", filt_env == "filter") |>
+      wrap_age_model(
+        agem_sol |> filter(sol == "ZB18a"),
+        astronomical_solution = slns |> filter(sln == "ZB18a"),
+        genplot = TRUE, output = "full"))
 #+end_src
 
 #+RESULTS:

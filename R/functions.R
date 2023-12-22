@@ -33,6 +33,19 @@ nested_spectral_analysis <- function(data, nest, x, y) {
     unnest(mtm)
 }
 
+plot_spectrum <- function(spec) {
+  spec |>
+    ggplot(aes(x = freq, y = power)) +
+    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
+                    linetype = NA, group = .width),
+                alpha = .1) +
+    geom_line() +
+    annotation_logticks() +
+    scale_y_log10() +
+    scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
+    labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+}
+
 evolutive_analysis <- function(data, nest, x, y) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
@@ -122,17 +135,23 @@ nested_bandpass_filter <- function(data, frequencies, x, y, nest) {
     select(-data)
 }
 
-plot_spectrum <- function(spec) {
-  spec |>
-    ggplot(aes(x = freq, y = power)) +
-    geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
-                    linetype = NA, group = .width),
-                alpha = .1) +
-    geom_line() +
-    annotation_logticks() +
-    scale_y_log10() +
-    scale_x_log10(sec.axis = sec_axis(trans = ~ 1 / .x, name = "Period (m)")) +
-    labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+#' Construct eccentricity from filtered record
+#'
+#' @param data data.frame() Result of [bandpass_filter()]. Must contain columns
+#'   `depth`, `value`, `filter`, and `target`.
+#' @param sign numeric(0) with the desired phase relationship for this proxy. -1 for d13C and Lstar, +1 for MS!
+# #' @param x, y Column names in `data` that contain depth and values.
+# #' @param weights Numeric vector of weights to apply for each target.
+construct_eccentricity <- function(data, sign = 1, weights = c("405" = 1, "100" = 1),
+                                   x = depth, y = value, f = filter
+                                   ) {
+  data |>
+    pivot_wider(id_cols = c({{x}}, {{y}}),
+                names_from = target,
+                values_from = {{f}}
+                ) |>
+    mutate(ecc = sign * weights[[1]] * scale(`405 kyr`)[, 1] +
+             sign * weights[[2]] * scale(`100 kyr`)[, 1])
 }
 
 get_rmcd <- function(data, rmcd = "dat/ODP208_1267_rmcd.csv") {

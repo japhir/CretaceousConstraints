@@ -16,20 +16,27 @@ wrap_age_model <- function(data,
                            genplot = FALSE,
                            output = "default") {
 
-  valid_outputs <- c("default", "details", "plot", "full")
+  data_input_columns <- c("depth", "value")
+  if (!all(data_input_columns %in% colnames(data))) {
+    cli::cli_abort(c(
+           "{.var data} must contain columns {.and {.q {data_input_columns}}}",
+           "x" = "You've supplied a dataframe with columns {.and {.q {colnames(data)}}}"))
+  }
+  if ("sol" %in% colnames(data)) {
+    if (length(unique(data$sol)) > 1) {
+      cli::cli_abort(c(
+             "{.var data} must contain only one unique astronomical solution in column {.var sol}.",
+             "x" = "{.var data} contains {.and {unique(data$sol)}}"
+           ))
+    }
+  }
 
+  valid_outputs <- c("default", "details", "plot", "full")
   # validate user inputs
   if (!output %in% valid_outputs) {
     cli::cli_abort(c(
            "{.var output} must be one of {.or {.q {valid_outputs}}}",
            "x" = "You've supplied {.q {output}}"))
-  }
-
-  if (length(unique(data$sol)) > 1) {
-    cli::cli_abort(c(
-           "{.var data} must contain only one unique astronomical solution in column {.var sol}.",
-           "x" = "{.var data} contains {.and {unique(data$sol)}}"
-         ))
   }
 
   if (length(unique(agemodel$sol)) > 1) {
@@ -59,9 +66,18 @@ wrap_age_model <- function(data,
     cli::cli_inform("{.var output} = {.q plot}, setting {.var genplot} = {.q TRUE}")
     genplot <- TRUE
   }
-  # end input validation
 
+  if (!"Ma405" %in% colnames(data)) {
+    data <- data |>
+      # not sure if this is correct?
+      mutate(Ma405 = findInterval(depth, agemodel$strat_bot))
+    # should be correct, see
+    # [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*Did
+    # we number the Ma405 correctly?][Did we number the Ma405 correctly?]]
+  }
   tiepoints <- unique(data$Ma405) |> sort()
+
+  # end input validation
 
   # make sure to fully initialize the whole output dataframe
   # this will make looping less slow
@@ -101,23 +117,27 @@ wrap_age_model <- function(data,
                                      .default = strat_bot))
         }
 
+        # calculate age from age model for each uncertainty
         tmp <- data |>
-          # TODO: make this filter match the depth based on the tie-point instead?
-          # TODO: remove n, since we don't use it anyway?
-          ## mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
-          # calculate age from age model for each uncertainty
           mutate(age = map_dbl(depth,
                    ~ Hmisc::approxExtrap(
                               # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
                               am$depth,
                               am$age,
-                              xout = .x)$y))
+                              xout = .x)$y),
+                 .after = depth)
 
-        # TODO: filter 405 and 100 kyr cycles
         flt <- tmp |>
-          bandpass_filter(frequencies)
+          # TODO: make frequencies a parameter!!!
+          bandpass_filter(frequencies = my_filt_age |> filter(target != "prec"),
+                          x = age, y = value)
 
-        tmp <- tmp |>
+        ecc <- flt |>
+          # TODO: sign should be passed based on proxy, -1 for d13C and Lstar, +1 for MS
+          # TODO: pass in different weights, previously comb.
+          construct_eccentricity(x = age, y = value, f = filter, sign = 1, weights = c(1, 1))
+
+        esd <- ecc |>
           # linearly interpolate the astronomical solution eccentricity
           mutate(ecc_sln = approx(astronomical_solution$age,
                                   astronomical_solution$scl,
@@ -126,7 +146,7 @@ wrap_age_model <- function(data,
           mutate(SD = (ecc - ecc_sln)^2) #|>
 
         # summarize into RMSD
-        smy <- tmp |>
+        smy <- esd |>
           summarize(RMSD = sqrt(mean(SD)))
 
         # save the results to our tibble
