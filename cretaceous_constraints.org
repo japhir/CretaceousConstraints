@@ -12085,16 +12085,19 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 :END:
 This is quite slow, so we ran it in little batches, spanning a couple of hours of computation overall.
 
+it's swapping quite hard, so maybe I should write the intermediate outputs?
 #+begin_src R :eval never
   rolling_age_optim <-
     ## data_ecc |>
     data_ecc_age |> # I use age because it already has sol's
+    # TODO: I think it currently doesn't take 1:1 as an argument!!!
     filter(comb == "1:1") |>
+    # this gives me 100 sims!
     nest(.by = c(proxy, site,
                  detrend_type, comb, ## filt_env,
                  sol
                  )) |>
-      slice(1:2) |>
+      ## slice(1:3) |>
     ## filter(filt_env != "hilbert") |>
     ## filter(detrend_type == "lin_gam_det") |> # I already did these
     ## filter(detrend_type != "lin_gam_det") |> # I already did these
@@ -12102,6 +12105,15 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
     ## filter(!detrend_type %in% c("lin_gam_det", "lin_scl")) |> # I already did these
     ## filter(comb == "1:0.5") |>
     ## filter(comb != "1:0.5") |> # did this one, now doing lin_gam_det and lin_scl
+    ## mutate(the_best = map2(
+    ##          .x = data, .y = sol,
+    ##          .f = ~ .x |> wrap_age_model(
+    ##                         agemodel = agem_sol |> filter(sol == .y),
+    ##                         astronomical_solution = slns |> filter(sln == .y),
+    ##                         ## tiepoint_uncertainty = ,
+    ##                         # default -4, 4, .5
+    ##                         ## output = "details"
+    ##                         )))
     mutate(the_best = furrr::future_map2(
                                .x = data, .y = sol,
                                .f = ~ .x |> wrap_age_model(
@@ -12109,10 +12121,11 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
                                      astronomical_solution = slns |> filter(sln == .y),
                                      ## tiepoint_uncertainty = ,
                                      # default -4, 4, .5
-                                     ## output = "details"
+                                     output = "details"
                                      ),
                                .progress = TRUE
                              )) |>
+    select(-data) |>
     ## write_rds("out/2023-12-08_rolling_age_optim.rds") # only lin_gam_det (hilbert, 1:0.5), 20 rows
     ## write_rds("out/2023-12-08_rolling_age_optim_nld.rds") # remainder of detrend_type (no lin_gam_det, only hilbert, 1:0.5), 80 additional rows
     ## write_rds("out/2023-12-08_rolling_age_optim_combs.rds") # some additional combs
@@ -12255,10 +12268,11 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
 :CREATED:  [2023-12-13 Wed 15:15]
 :END:
 #+begin_src R :results output graphics file :file imgs/best_age_details_tiepoint_uncertainty.png :width 2400 :height 2600 :res 300
-  best_age_details <- read_rds("out/2023-12-13_best_age_details.rds")
-  best_age_details |>
+  ## best_age_details <- read_rds("out/2023-12-13_best_age_details.rds")
+  ## best_age_details |>
+  rolling_age_optim |>
     select(-sol) |>
-    unnest(deets) |>
+    unnest(the_best) |>
     ggplot(aes(x = strat_bot + error,
                y = RMSD_tie, col = detrend_type, linetype = comb,
                group = paste(proxy,detrend_type,site,comb,sol,n))) +
@@ -12272,7 +12286,8 @@ This is quite slow, so we ran it in little batches, spanning a couple of hours o
     geom_point(colour = "red",
                data = \(x) x |>
                            filter(RMSD_tie == min(RMSD_tie),
-                                  .by = c(sol, proxy, site, detrend_type, comb, filt_env, n))) +
+                                  .by = c(sol, proxy, site, detrend_type, comb, ## filt_env,
+                                          n))) +
     scale_x_reverse()
 #+end_src
 
