@@ -8968,13 +8968,14 @@ We have several ways of subtracting the long-term trends prior to doing spectral
 
 #+name: tab:detrend_types
 #+caption: The different detrend methods to remove long-term trends prior to spectral analysis.
-| name        | method                                                                              |
-|-------------+-------------------------------------------------------------------------------------|
+| name        | method                                                                         |
+|-------------+--------------------------------------------------------------------------------|
 | ~value~       | The raw value. Often I still remove a linear trend from the spectral analysis call. |
-| ~scl~         | The scaled (or normalized = mean subtracted, divided by standard deviation) value.  |
-| ~lin_scl~     | Remove linear trends from red/white intervals separately, then scale the result.    |
-| ~gam_det~     | Subtract a gam from the value, then scale the result.                               |
-| ~lin_gam_det~ | First do ~lin_scl~ from above, then do ~gam_det~.                                       |
+| ~scl~         | The scaled (or normalized = mean subtracted, divided by standard deviation) value. |
+| ~lin_scl~     | Remove linear trends from red/white intervals separately, then scale the result. |
+| ~gam_det~     | Subtract a gam from the value, then scale the result.                          |
+| ~lin_gam_det~ | First do ~lin_scl~ from above, then do ~gam_det~.                                  |
+| ~lowpass_det~  | Subtract a lowpass filter from the value, then scale the result.               |
 
 **** this just subtracts a gam from the raw data
 :PROPERTIES:
@@ -8986,11 +8987,11 @@ We have several ways of subtracting the long-term trends prior to doing spectral
     nest(.by = c(proxy, site)) |> # nest_by is different!!
     mutate(
       gam = map(data,
-                     ~ mgcv::gam(value ~ s(depth, bs = "cs"),
-                                 method = "REML",
-                                 data = .))) |>
+                # gam doesn't need equally-spaced values
+                ~ mgcv::gam(value ~ s(depth, bs = "cs"),
+                            method = "REML",
+                            data = .))) |>
     mutate(
-      ## gam_pred = map(gam, predict),
       gam_pred = map(gam, \(x) x |> predict() |> as.vector()),
     ) |>
     select(-gam) |>
@@ -9000,28 +9001,55 @@ We have several ways of subtracting the long-term trends prior to doing spectral
 
 #+RESULTS:
 
-**** SOME COMMENT Do `notch' filtering of everything >2 Myr
+**** highpass filtering
 :PROPERTIES:
 :CREATED:  [2023-11-21 Tue 11:14]
 :END:
 :LOGBOOK:
 - State "SOME"       from              [2023-11-21 Tue 11:20]
 :END:
-Like they do in [cite:@Batenburg2012]
-#+begin_src R :eval never
-  comp |>
+They do `notch' filtering of everything >2 Myr in [cite:@Batenburg2012].
+
+Except I don't know what's 2 Myr yet, so we'll do it based on the lower bracket of the 405 kyr filter.
+
+We'll filter at a frequency of 0.035 cycles / m, or a period of 28.57 m
+
+This while the 405 kyr target filter range (\pm40 %) ranges from 0.0375 to 0.0875 cycles/m.
+
+#+begin_src R
+  smooth_hp <- comp |>
     nest(.by = c(proxy, site)) |>
     mutate(
-      notch = map(data,
+      linterp = map(data,
+                    ~ . |>
+                      select(depth, value) |>
+                      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                      rename(depth_linterp = depth, value_linterp = value)) ,
+      notch = map(linterp,
                   ~ . |>
-                    select(depth, value) |>
-                    astrochron::linterp(genplot = FALSE) |>
-                    astrochron::lowpass())) |>
-    mutate(
-      gam_pred = map(gam, predict),
-    )
+                    astrochron::lowpass(fcut = 0.035, xmax = 0.1, verbose = FALSE, genplot = FALSE) |>
+                    select(lowpass = value_linterp))) |>
+    select(-data) |>
+    unnest(c(linterp, notch)) |>
+    mutate(highpass = scale(value_linterp - lowpass)[, 1])
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_highpass.png :width 2400 :height 1700 :res 300
+  smooth_hp |>
+    ggplot(aes(x = depth_linterp, y = value_linterp)) +
+    facet_grid(cols = vars(site), rows = vars(proxy), scales = "free") +
+    scale_x_reverse() +
+    geom_line() +
+    geom_line(aes(y = lowpass), colour = "red") #+
+  ## geom_line(aes(y = highpass), colour = "purple")
 
 #+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_highpass.png]]
+
 **** subtract red/white interval means and then do a gam for the whole record
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 15:35]
@@ -9033,6 +9061,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+begin_src R :exports none
   smooth <- comp |>
+    # cut the depth into groups, be sure to make the names unique!
     mutate(colour = case_when(
              depth < 0 ~ "white1",
              depth > 0 & depth <= 58.59 ~ "red1",
@@ -9043,24 +9072,30 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
              depth > 108.5 & depth <= 109.8 ~ "pink3",
              depth > 109.8 ~ "white3",
              TRUE ~ NA_character_)) |>
+    # just subtract a mean value for each colour? = a flat line
     ## mutate(mean_colour = mean(value), .by = c(site, proxy, colour)) |>
     ## mutate(dec = value - mean_colour) |>
-    ## pivot_wider() |>
     # first calculate a lm for each slice of colour interval
-    nest(.by = c(proxy, site, colour)) |> # nest_by is different!!
+    nest(.by = c(proxy, site, colour)) |>
+    # fit a line through each white/red interval
     mutate(
       lim = map(data, ~ lm(value ~ depth, data = .x)),
+      # predict the value for each depth
       lin_pred = map(lim, predict)) |>
     select(-lim) |>
     unnest(c(data, lin_pred)) |>
     mutate(lin = value - lin_pred) |>
-    nest(.by = c(proxy, site)) |> # nest_by is different!!
+    nest(.by = c(proxy, site)) |>
+    # fit a generalized additive models with integrated smoothness estimation
     mutate(
       gamm = map(data,
-                ## ~ loess(dec ~ depth, data = ., span = .9)
-                ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
-                            method = "REML",
-                            data = .)),
+                 # could also do local polynomial regression fit?
+                 ## ~ loess(dec ~ depth, data = ., span = .9)
+                 # but gam is more robust, less parameters to choose.
+                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
+                             method = "REML",
+                             data = .)),
+      # make predictions for the gam model for each depth
       gam_pred = map(gamm, \(x) x |> predict() |> as.vector()),
     ) |>
     select(-gamm) |>
@@ -9087,6 +9122,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                rename(lin_gam_pred = gam_pred,
                       lin_gam = gam,
                       lin_gam_det = det)) |>
+    ## bind_rows(smooth_hp) |>
     pivot_longer(c(value, scl, lin_scl, gam_pred, gam_det, lin_pred, lin_gam_pred, lin_gam_det),
                  names_to = "detrend_type", values_to = "value") #|>
     ## ggplot(aes(x = depth, y = value, colour = preprocess_type, group = paste(proxy, site, preprocess_type))) + geom_line() +
@@ -9105,6 +9141,114 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :                 =======
 : rows total       4,372
 
+**** show how the linear/gam detrending works
+:PROPERTIES:
+:CREATED:  [2023-09-25 Mon 16:19]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :height 1200 :width 2600 :res 300
+  xnot <- 144
+  prx <- "MS"
+  ## prx <- "d13C"
+  ## prx <- "Lstar"
+
+  smooth |>
+    filter(
+      site == "Zumaia",
+      proxy == prx
+    ) |>
+    ggplot(aes(x = depth, y = value,
+               group = paste(site, proxy))) +
+    facet_grid(rows = vars(proxy),
+               scales = "free_y") +
+    # r/w intervals
+    scale_fill_manual(values = c("red" = "indianred", "pink" = "pink", "white" = "gray"),
+                      guide = "none") +
+    geom_rect(aes(fill = str_sub(colour, 1, -2),
+                  xmin = depth - .1, xmax = depth + .1,
+                  ymin = max(value) + 2, ymax = max(value) + 4)) +
+    # "raw" data
+    geom_line(colour = "gray") +
+    annotate("text", x = xnot, y = mean(value),
+             label = "value", size = 2, hjust = 1) +
+    # raw value scaled
+    geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
+    annotate("text", x = xnot, y = 0, label = "scl = scale(value)",
+             size = 2, hjust = 1) +
+
+    # raw data after subtracting lines for red/white intervals
+    geom_line(aes(y = lin_scl - 5), colour = "gray") +
+    annotate("text", x = xnot, y = -5, label = "lin_scl = scale(value-lin)",
+             size = 2, hjust = 1) +
+
+    # scale(value - gam_pred) = det
+    geom_line(aes(y = scale(value - gam_pred)[, 1] - 10), colour = "gray") +
+    annotate("text", x = xnot, y = -10, label = "gam_det = scale(value-gam)",
+             size = 2, hjust = 1) +
+    # scale(value - gam_pred - lin_gam) = det
+    geom_line(aes(y = det - 15), colour = "gray") +
+    annotate("text", x = xnot, y = -15, label = "lin_gam_det = scale(value-gam-lin_gam)",
+             size = 2, hjust = 1) +
+    # scale(value - lowpass) = highpass
+    geom_line(aes(x = depth_linterp, y = scale(highpass)[,1] - 20), colour = "gray",
+              data = smooth_hp |>
+                filter(site == "Zumaia", proxy == prx)) +
+    annotate("text", x = xnot, y = -20, label = "highpass = scale(value-lowpass)",
+             size = 2, hjust = 1) +
+
+    # gam and other trends
+    geom_line(aes(y = gam_pred, colour = "gam"),
+              linewidth = 1.2,
+              data = smooth_basic |>
+                filter(site == "Zumaia", proxy == prx)) +
+    geom_line(aes(x = depth_linterp, y = lowpass,
+                  colour = detrend_type),
+                linewidth = 1.2,
+              data = smooth_hp |>
+                mutate(detrend_type = "lowpass") |>
+                filter(site == "Zumaia", proxy == prx)) +
+    geom_line(aes(y = gam_pred - 5, colour = "lin_gam"),
+              linewidth = 1.2,
+              data = smooth |>
+                filter(site == "Zumaia", proxy == prx)) +
+    geom_line(aes(y = lin_pred, colour = "lin", group = colour),
+              linewidth = 1.2,
+              data = smooth |>
+                filter(site == "Zumaia", proxy == prx)) +
+    # filters
+    ## geom_line(aes(y = filt, colour = detrend_type, group = target),
+    ##           data = filts |>
+    ##             filter(site == "Zumaia", proxy == "MS")) +
+
+    # age model from the log
+    geom_point(aes(x = strat_bot, y = -2,
+                   size = !is.na(comment)),
+               inherit.aes = FALSE,
+               data = agem |>
+                 filter(minmax == "minimum")) +
+    scale_size_manual(values = c("FALSE" = 1, "TRUE" = 1.3)) +
+    annotate("text", x = xnot, y = -2, label = "405 kyr minima (field)", hjust = 1, size = 2.5) +
+    annotate("text", x = xnot, y = 2, label = "405 kyr maxima (field)", hjust = 1, size = 2.5) +
+    geom_segment(aes(x = strat_bot, xend = strat_top,
+                     y = 2, yend = 2),
+                 inherit.aes = FALSE,
+                 data = agem |>
+                   filter(minmax == "maximum"),
+                 linewidth = 1) +
+    ## try to make it into little sine waves
+    ## geom_segment(aes(x = strat_bot, xend = strat_top,
+    ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
+    ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
+    ##              data = agem) +
+
+    coord_cartesian(xlim = c(178, 0)) +
+    labs(x = "Depth (m)", y = "Proxy value", colour = "", size = "Well-defined") #+
+  ## theme(legend.position = "none")
+#+end_src
+
+#+name: fig:detrend
+#+caption: Zumaia and Sopelana trend removal using various strategies (coloured lines). See cref:tab:detrend_types for an overview. Bottom gray lines show results of these long-term detrending strategies with offsets incremented by -5. The highpass was constructed by subtracting a lowpass filter of everything below a frequency of 0.035 cycles / m (period of 28.57 m).
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_records_complicated.png]]
 *** COMMENT figures to inspect if it worked
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 13:26]
@@ -9900,87 +10044,6 @@ Richard says that the Hilbert transform is useful for visual inspection, but num
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters_depth.png]]
 
-***** show how the linear/gam detrending works
-:PROPERTIES:
-:CREATED:  [2023-09-25 Mon 16:19]
-:END:
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :height 1200 :width 2600 :res 300
-  smooth |>
-    filter(site == "Zumaia", proxy == "MS") |>
-    ggplot(aes(x = depth, y = value, group = paste(site, proxy))) +
-    facet_grid(rows = vars(proxy), scales = "free_y") +
-    # r/w intervals
-    scale_fill_manual(values = c("red" = "indianred", "pink" = "pink", "white" = "gray"),
-                      guide = FALSE) +
-    geom_rect(aes(fill = str_sub(colour, 1, -2),
-                  xmin = depth - .1, xmax = depth + .1, ymin = 40, ymax = 45)) +
-    ## annotate("rect",
-    ##          xmin = c(-5, 0, 59, 85, 109),
-    ##          xmax = c(0, 59, 85, 109, 145),
-    ##          ymin = 45, ymax = 50,
-    ##          fill = c("gray", "red", "gray", "red", "gray"),
-    ##          alpha = .2
-    ##          ) +
-    ## ggnewscale::new_scale_colour() +
-
-    # "raw" data
-    geom_line(aes(colour = "value")) +
-    annotate("text", x = 145, y = 10, label = "raw", colour = "gray", hjust = 1) +
-
-    geom_line(aes(y = lin + 30), colour = "gray") +
-    annotate("text", x = 145, y = 33, label = "raw - r/w", colour = "gray", hjust = 1) +
-
-    geom_line(aes(y = scale(value)[, 1], colour = "scl")) + # scaled
-    annotate("text", x = 145, y = 0, label = "scaled", colour = "gray", hjust = 1) +
-
-    ## geom_line(aes(y = gam - 5), colour = "gray") +
-    ## annotate("text", x = 145, y = -5, label = "gam", colour = "gray", hjust = 0) +
-
-    ## geom_line(aes(y = det - 10), colour = "gray") +
-    ## annotate("text", x = 145, y = -10, label = "gam r/w", colour = "gray", hjust = 0) +
-
-    # gam and other trends
-    geom_line(aes(y = gam_pred, colour = "gam"), data = smooth_basic |>
-                              filter(site == "Zumaia", proxy == "MS")) +
-    geom_line(aes(y = lin_pred, colour = "lin", group = colour), data = smooth |>
-                              filter(site == "Zumaia", proxy == "MS")) +
-    geom_line(aes(y = gam_pred + 30, colour = "lin_gam"), data = smooth |>
-                              filter(site == "Zumaia", proxy == "MS")) +
-
-    # filters
-    ## geom_line(aes(y = filt, colour = detrend_type, group = target),
-    ##           data = filts |>
-    ##             filter(site == "Zumaia", proxy == "MS")) +
-
-    ## # age model from the log
-    geom_point(aes(x = strat_bot, y = -2,
-                   size = !is.na(comment)),
-               inherit.aes = FALSE,
-               data = agem |>
-                 filter(minmax == "minimum")) +
-    annotate("text", x = 145, y = -2, label = "minima", hjust = 1) +
-    annotate("text", x = 145, y = 2, label = "maxima", hjust = 1) +
-    geom_segment(aes(x = strat_bot, xend = strat_top,
-                     y = 2, yend = 2),
-                 inherit.aes = FALSE,
-                 data = agem |>
-                   filter(minmax == "maximum"),
-                 linewidth = 2) +
-    # try to make it into little sine waves
-    ## geom_segment(aes(x = strat_bot, xend = strat_top,
-    ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
-    ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
-    ##              data = agem) +
-
-    coord_cartesian(xlim = c(154, 0)) +
-    labs(x = "Depth (m)", y = "Proxy value", colour = "Filter type", size = "Well-defined") #+
-    ## theme(legend.position = "none")
-#+end_src
-
-#+name: fig:detrend
-#+caption: Zumaia and Sopelana trend removal using various strategies. See cref:tab:detrend_types for an overview.
-#+RESULTS:
-[[file:imgs/Zumaia-Sopelana_records_complicated.png]]
 **** construct an eccentricity curve from the filters in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:50]
