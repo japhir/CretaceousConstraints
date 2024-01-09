@@ -9249,6 +9249,10 @@ So instead of fitting a simple gam through the whole record, we fit +one for+ a 
 
 This is still a bit iffy, not sure if it is the best approach for detrending\dots
 
+***** the main one that I started with
+:PROPERTIES:
+:CREATED:  [2024-01-09 Tue 14:12]
+:END:
 #+begin_src R :exports none
   smooth <- comp |>
     # cut the depth into groups, be sure to make the names unique!
@@ -9299,6 +9303,96 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+RESULTS:
 
+***** [#B] the second one, small chunks?
+:PROPERTIES:
+:CREATED:  [2024-01-09 Tue 14:12]
+:END:
+#+begin_src R :exports none
+  smooth_2 <- comp |>
+    # just cut the record into 10 meter slices
+    mutate(colour = findInterval(depth, c(-50, 0, 15.2, 32.8, 42.75, 58.8, 80, 91.3, 109.26, 123.2, 131.8, 160))) |>
+    # just subtract a mean value for each colour? = a flat line
+    ## mutate(mean_colour = mean(value), .by = c(site, proxy, colour)) |>
+    ## mutate(dec = value - mean_colour) |>
+    # first calculate a lm for each slice of colour interval
+    nest(.by = c(proxy, site, colour)) |>
+    # fit a line through each white/red interval
+    mutate(
+      lim = map(data, ~ lm(value ~ depth, data = .x)),
+      # predict the value for each depth
+      lin_pred = map(lim, predict)) |>
+    select(-lim) |>
+    unnest(c(data, lin_pred)) |>
+    mutate(lin = value - lin_pred) |>
+    nest(.by = c(proxy, site)) |>
+    # fit a generalized additive models with integrated smoothness estimation
+    mutate(
+      gamm = map(data,
+                 # could also do local polynomial regression fit?
+                 ## ~ loess(dec ~ depth, data = ., span = .9)
+                 # but gam is more robust, less parameters to choose.
+                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
+                             method = "REML",
+                             data = .)),
+      # make predictions for the gam model for each depth
+      gam_pred = map(gamm, \(x) x |> predict() |> as.vector()),
+    ) |>
+    select(-gamm) |>
+    unnest(cols = c(data, gam_pred)) |>
+    mutate(
+      lin_scl = scale(lin)[, 1],
+      gam = lin - gam_pred,
+      det = scale(gam)[, 1],
+      .by = c(proxy, site))
+#+end_src
+
+#+RESULTS:
+
+***** the third one, large chunks?
+:PROPERTIES:
+:CREATED:  [2024-01-09 Tue 14:12]
+:END:
+#+begin_src R :exports none
+  smooth_3 <- comp |>
+    # just cut the record into 10 meter slices
+    mutate(colour = findInterval(depth, c(-50, 0, 58.8, 109.26, 142))) |>
+    # just subtract a mean value for each colour? = a flat line
+    ## mutate(mean_colour = mean(value), .by = c(site, proxy, colour)) |>
+    ## mutate(dec = value - mean_colour) |>
+    # first calculate a lm for each slice of colour interval
+    nest(.by = c(proxy, site, colour)) |>
+    # fit a line through each white/red interval
+    mutate(
+      lim = map(data, ~ lm(value ~ depth, data = .x)),
+      # predict the value for each depth
+      lin_pred = map(lim, predict)) |>
+    select(-lim) |>
+    unnest(c(data, lin_pred)) |>
+    mutate(lin = value - lin_pred) |>
+    nest(.by = c(proxy, site)) |>
+    # fit a generalized additive models with integrated smoothness estimation
+    mutate(
+      gamm = map(data,
+                 # could also do local polynomial regression fit?
+                 ## ~ loess(dec ~ depth, data = ., span = .9)
+                 # but gam is more robust, less parameters to choose.
+                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
+                             method = "REML",
+                             data = .)),
+      # make predictions for the gam model for each depth
+      gam_pred = map(gamm, \(x) x |> predict() |> as.vector()),
+    ) |>
+    select(-gamm) |>
+    unnest(cols = c(data, gam_pred)) |>
+    mutate(
+      lin_scl = scale(lin)[, 1],
+      gam = lin - gam_pred,
+      det = scale(gam)[, 1],
+      .by = c(proxy, site))
+#+end_src
+
+#+RESULTS:
+
 **** combine the trend removal dataframes into smooth_pred
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
@@ -9308,7 +9402,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     mutate(scl = scale(value)[, 1], .before = gam_pred, .by = c(proxy, site)) |>
     rename(gam_det = det) |>
     tidylog::left_join(
-               smooth |>
+               smooth_2 |> # just changed to new linear detrend!
                rename(lin_gam_pred = gam_pred,
                       lin_gam = gam,
                       lin_gam_det = det)) |>
@@ -9319,13 +9413,25 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     ## facet_grid(rows = vars(proxy), scales = "free_y")
 
   smooth_pred <- smooth_all |>
-    filter(detrend_type %in% c("value", "scl", "lin_scl", "gam_det", "lin_gam_det"))
+    filter(detrend_type %in% c("value", "scl", "lin_scl", "gam_det"#, ## "lin_gam_det"
+                               ))
 #+end_src
+
+#+RESULTS:
+: Joining with `by = join_by(proxy, site, depth, value, comment)`
+: left_join: added 7 columns (colour, lin_pred, lin, lin_gam_pred, lin_scl, …)
+: rows only in x       0
+: rows only in y  (    0)
+: matched rows     4,372
+:                 =======
+: rows total       4,372
 
 **** show how the linear/gam detrending works
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:19]
 :END:
+we make this plot with the raw results because it gives us more control but more code.
+
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :height 1200 :width 2600 :res 300
   xnot <- 144
   prx <- "MS"
@@ -9341,12 +9447,17 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                group = paste(site, proxy))) +
     facet_grid(rows = vars(proxy),
                scales = "free_y") +
+    coord_cartesian(xlim = c(178, 0)) +
+    labs(x = "Depth (m)", y = "Proxy value", colour = "", size = "Well-defined") +
+    scale_x_continuous(minor_breaks = seq(0, 200, 10)) +
+
     # r/w intervals
     scale_fill_manual(values = c("red" = "indianred", "pink" = "pink", "white" = "gray"),
                       guide = "none") +
     geom_rect(aes(fill = str_sub(colour, 1, -2),
                   xmin = depth - .1, xmax = depth + .1,
                   ymin = max(value) + 2, ymax = max(value) + 4)) +
+
     # "raw" data
     geom_line(colour = "gray") +
     annotate("text", x = xnot, y = mean(value),
@@ -9357,18 +9468,31 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
              size = 2, hjust = 1) +
 
     # raw data after subtracting lines for red/white intervals
-    geom_line(aes(y = lin_scl - 5), colour = "gray") +
-    annotate("text", x = xnot, y = -5, label = "lin_scl = scale(value-lin)",
+    ## geom_line(aes(y = lin_scl - 5), colour = "gray") +
+    ## annotate("text", x = xnot, y = -5, label = "lin_scl = scale(value-lin)",
+    ##          size = 2, hjust = 1) +
+    # TEMP other linear detrend approaches: results
+    geom_line(aes(y = lin_scl - 30), colour = "gray") +
+    annotate("text", x = xnot, y = -30, label = "lin_scl",
              size = 2, hjust = 1) +
+    geom_line(aes(y = lin_scl - 35), colour = "gray",
+              data = smooth_2 |> filter(site == "Zumaia", proxy == prx)) +
+    annotate("text", x = xnot, y = -35, label = "lin_scl_2",
+             size = 2, hjust = 1) +
+    geom_line(aes(y = lin_scl - 40), colour = "gray",
+              data = smooth_3 |> filter(site == "Zumaia", proxy == prx)) +
+    annotate("text", x = xnot, y = -40, label = "lin_scl_3",
+             size = 2, hjust = 1) +
+    # TEMP
 
     # scale(value - gam_pred) = det
     geom_line(aes(y = scale(value - gam_pred)[, 1] - 10), colour = "gray") +
     annotate("text", x = xnot, y = -10, label = "gam_det = scale(value-gam)",
              size = 2, hjust = 1) +
     # scale(value - gam_pred - lin_gam) = det
-    geom_line(aes(y = det - 15), colour = "gray") +
-    annotate("text", x = xnot, y = -15, label = "lin_gam_det = scale(value-gam-lin_gam)",
-             size = 2, hjust = 1) +
+    ## geom_line(aes(y = det - 15), colour = "gray") +
+    ## annotate("text", x = xnot, y = -15, label = "lin_gam_det = scale(value-gam-lin_gam)",
+    ##          size = 2, hjust = 1) +
     # scale(value - lowpass) = highpass
     geom_line(aes(x = depth_linterp, y = scale(highpass)[,1] - 20), colour = "gray",
               data = smooth_hp |>
@@ -9376,25 +9500,36 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     annotate("text", x = xnot, y = -20, label = "highpass = scale(value-lowpass)",
              size = 2, hjust = 1) +
 
-    # gam and other trends
+    # trends: lin, gam, lowpass
     geom_line(aes(y = gam_pred, colour = "gam"),
-              linewidth = 1.2,
+              linewidth = 1.2,alpha = .6,
               data = smooth_basic |>
                 filter(site == "Zumaia", proxy == prx)) +
     geom_line(aes(x = depth_linterp, y = lowpass,
                   colour = detrend_type),
-                linewidth = 1.2,
+                linewidth = 1.2,alpha = .6,
               data = smooth_hp |>
                 mutate(detrend_type = "lowpass") |>
                 filter(site == "Zumaia", proxy == prx)) +
-    geom_line(aes(y = gam_pred - 5, colour = "lin_gam"),
-              linewidth = 1.2,
-              data = smooth |>
-                filter(site == "Zumaia", proxy == prx)) +
+    ## geom_line(aes(y = gam_pred - 5, colour = "lin_gam"),
+    ##           linewidth = 1.2,
+    ##           data = smooth |>
+    ##             filter(site == "Zumaia", proxy == prx)) +
+
     geom_line(aes(y = lin_pred, colour = "lin", group = colour),
-              linewidth = 1.2,
+              linewidth = 1.2, alpha = .6,
               data = smooth |>
                 filter(site == "Zumaia", proxy == prx)) +
+    geom_line(aes(y = lin_pred, colour = "lin_2", group = colour),
+              linewidth = 1.2,alpha = .6,
+              data = smooth_2 |>
+                filter(site == "Zumaia", proxy == prx)) +
+    geom_line(aes(y = lin_pred, colour = "lin_3", group = colour),
+              linewidth = 1.2,alpha = .6,
+              data = smooth_3 |>
+                filter(site == "Zumaia", proxy == prx)) +
+
+
     # filters
     ## geom_line(aes(y = filt, colour = detrend_type, group = target),
     ##           data = filts |>
@@ -9414,16 +9549,13 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                  inherit.aes = FALSE,
                  data = agem |>
                    filter(minmax == "maximum"),
-                 linewidth = 1) +
+                 linewidth = 1)
     ## try to make it into little sine waves
     ## geom_segment(aes(x = strat_bot, xend = strat_top,
     ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
     ##                  yend = if_else(minmax == "minimum", -1.5, 1.5)),
     ##              data = agem) +
-
-    coord_cartesian(xlim = c(178, 0)) +
-    labs(x = "Depth (m)", y = "Proxy value", colour = "", size = "Well-defined") #+
-  ## theme(legend.position = "none")
+    ## theme(legend.position = "none")
 #+end_src
 
 #+name: fig:detrend
@@ -9758,8 +9890,8 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
     coord_cartesian(
       ## xlim = c(1e-4, 0.0625) * 100 # log axis
       ## xlim = c(0, 2.6), # linear axis
-      ## xlim = c(0, .4),  # linear axis zoomed on 405 and 100 kyr
-      xlim = c(0, .1),  # linear axis zoomed on 405 and lower to find lowpass/highpass cutoff
+      xlim = c(0, .4),  # linear axis zoomed on 405 and 100 kyr
+      ## xlim = c(0, .1),  # linear axis zoomed on 405 and lower to find lowpass/highpass cutoff
       ## xlim = c(0, 1.5),  # linear axis zoomed on 405 and 100 kyr
       ## ylim = c(0, 3)
       ylim = c(0, .05) # linear axis
@@ -9771,8 +9903,7 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
                                            breaks = c(50, 10, 5, 3))) +
     labs(x = "Frequency (cycles/m)", y = "Spectral power",
          linetype = "Spectral analysis type") +
-    scale_linetype_manual(values = c("MTM" = "solid","FFT" = "dotdash", "MTLS" = "longdash")) +
-    geom_vline(xintercept = c(0.01, 0.02, 0.025, 0.035))
+    scale_linetype_manual(values = c("MTM" = "solid","FFT" = "dotdash", "MTLS" = "longdash"))
 #+end_src
 
 #+attr_latex: :width \textwidth
