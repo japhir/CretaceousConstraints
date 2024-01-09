@@ -9434,9 +9434,9 @@ we make this plot with the raw results because it gives us more control but more
 
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :height 1200 :width 2600 :res 300
   xnot <- 144
-  prx <- "MS"
+  ## prx <- "MS"
   ## prx <- "d13C"
-  ## prx <- "Lstar"
+  prx <- "Lstar"
 
   smooth |>
     filter(
@@ -11668,200 +11668,11 @@ Ahhh after clarification from Richard, what he recommends in stead is:
 3. pick the best tiepoint error and move on
 4. use the previous results and repeat from step 2
 
-**** wrap age model
-:PROPERTIES:
-:CREATED:  [2023-12-08 Fri 10:08]
-:END:
-
-This code finds the optimal age model. The function compares the ~data~ with the astronomical solution (~astronomical_solution~, can only contain one, e.g. ~ZB18a~) based on the 405 kyr minima as identified in the field (~agemodel~), and applies an input uncertainty (~tiepoint_uncertainty~, a vector of adjustments to make to each tiepoint). After tweaking the tiepoint, the RMSD is calculated and the best score is stored. It then loops through all tiepoints and all tiepoint uncertainties to find the overall best fit to the astronomical solution.
-
-# it's useful to write to separate file, because then the debugger will jump from line to line :)
-# so we can tangle it to there and then source
-#+begin_src R
-  wrap_age_model <- function(data,
-                             agemodel,
-                             astronomical_solution = sln,
-                             tiepoint_uncertainty = seq(-4, 4, .5),
-                             genplot = FALSE,
-                             output = "default") {
-
-    valid_outputs <- c("default", "details", "plot", "full")
-
-    # validate user inputs
-    if (!output %in% valid_outputs) {
-      cli::cli_abort(c(
-             "{.var output} must be one of {.or {.q {valid_outputs}}}",
-             "x" = "You've supplied {.q {output}}"))
-    }
-
-    if (length(unique(data$sol)) > 1) {
-      cli::cli_abort(c(
-             "{.var data} must contain only one unique astronomical solution in column {.var sol}.",
-             "x" = "{.var data} contains {.and {unique(data$sol)}}"
-           ))
-    }
-
-    if (length(unique(agemodel$sol)) > 1) {
-      cli::cli_abort(c(
-             "{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
-             "x" = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"
-       ))
-    }
-
-    if (length(unique(astronomical_solution$sln)) > 1) {
-      cli::cli_abort(c(
-             "{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
-             "x" = "{.var astronomical_solution} contains {.and {unique(astronomical_solution$sln)}}"
-       ))
-    }
-
-    # can't check this in data, sometimes not passed
-    if (!(astronomical_solution$sln[[1]] == agemodel$sol[[1]])) {
-      cli::cli_abort(c(
-             "{.var sol} must be the same in {.var astronomical_solution} and {.var agemodel}",
-             "i" = "{.var sol} in {.var agemodel} = {agemodel$sol[[1]]}",
-             "i" = "{.var sln} in {.var astronomical_solution} = {astronomical_solution$sln[[1]]}"
-       ))
-    }
-
-    if (output == "plot" & !genplot) {
-      cli::cli_inform("{.var output} = {.q plot}, setting {.var genplot} = {.q TRUE}")
-      genplot <- TRUE
-    }
-    # end input validation
-
-    tiepoints <- unique(data$Ma405) |> sort()
-
-    # make sure to fully initialize the whole output dataframe
-    # this will make looping less slow
-    the_best_summary <- agemodel |>
-      filter(n %in% tiepoints) |>
-      select(all_of(c("sol", "n", "strat_bot", "age"))) |>
-      mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
-             RMSD_cum = NA_real_) # best RMSD score for full record
-
-    the_best <- the_best_summary |>
-      select(-tie_err, -RMSD_cum) |>
-      mutate(
-        optimal = list(tibble(error = tiepoint_uncertainty,
-                              RMSD_tie = NA_real_))
-      ) |>
-      unnest(cols = c(optimal))
-
-    for (tiepoint in tiepoints) {
-      if (!tiepoint %in% agemodel$n) {
-        next
-      } else {
-        for (error in tiepoint_uncertainty) {
-
-          if (!(tiepoint - 1) %in% the_best_summary$n) {
-            am <- the_best_summary |>
-              mutate(tie = case_when(n == tiepoint ~ error,
-                                     .default = NA_real_)) |>
-              mutate(depth = case_when(!is.na(tie) ~ strat_bot + tie,
-                                       .default = strat_bot))
-
-          } else {
-            am <- the_best_summary |>
-              mutate(tie = case_when(n == tiepoint ~ error,
-                                     n < tiepoint ~ tie_err,
-                                     .default = NA_real_)) |>
-              mutate(depth = case_when(!is.na(tie) ~ strat_bot + tie,
-                                       .default = strat_bot))
-          }
-
-          tmp <- data |>
-            # TODO: make this filter match the depth based on the tie-point instead?
-            mutate(n = findInterval(depth, am$depth)) |> # not sure if this is correct?
-            # calculate age from age model for each uncertainty
-            mutate(age = map_dbl(depth,
-                     ~ Hmisc::approxExtrap(
-                                # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
-                                am$depth,
-                                am$age,
-                                xout = .x)$y)) |>
-            # linearly interpolate the astronomical solution eccentricity
-            mutate(ecc_sln = approx(astronomical_solution$age,
-                                    astronomical_solution$scl,
-                                    xout = age)$y) |>
-            # calculate SD between ecc and ecc_sol
-            mutate(SD = (ecc - ecc_sln)^2) #|>
-
-          # summarize into RMSD
-          smy <- tmp |>
-            summarize(RMSD = sqrt(mean(SD)))
-
-          # save the results to our tibble
-          the_best$RMSD_tie[the_best$n == tiepoint & the_best$error == error] <- smy$RMSD
-
-        } # end error loop
-
-        tb <- the_best[the_best$n == tiepoint, ]
-        bst <- min(tb$RMSD_tie)
-        tb <- tb[tb$RMSD_tie == bst, ]
-
-        # append the best result
-        the_best_summary$tie_err[the_best_summary$n == tiepoint] <- tb$error
-          # this clocks in at 81.6 µs, while dplyr alternatives below at 830 µs
-  #& the_best$RMSD_tie == min(the_best$RMSD_tie), "error"]##  |>
-          ## filter(n == tiepoint) |>
-          ## filter(RMSD_tie == min(RMSD_tie)) |>
-          ## pull(error)
-
-        the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <- tb$RMSD_tie
-          ## the_best[the_best$n == tiepoint & RMSD_tie == min(RMSD_tie), "RMSD_tie"]##  |>
-          ## filter(n == tiepoint) |>
-          ## filter(RMSD_tie == min(RMSD_tie)) |>
-          ## pull(RMSD_tie)
-
-      } # end if
-    } # end tiepoint loop
-
-    if (genplot) {
-      # faceted plot
-      ## pl <- the_best |>
-      ##   ggplot(aes(x = error, y = RMSD_tie, group = n)) +
-      ##   facet_wrap(facets = vars(n)) +
-      ##   geom_line() +
-      ##   geom_point(aes(x = tie_err, y = RMSD_cum), colour = "red", size = 3,
-      ##              data = the_best_summary)
-      # new plot against depth
-      pl <- the_best |>
-        ggplot(aes(x = strat_bot + error, y = RMSD_tie)) +
-        labs(x = "Depth (m)", y = "RMSD") +
-        scale_x_reverse() +
-        geom_vline(aes(xintercept = strat_bot), colour = "gray",
-                 data = the_best_summary) +
-        geom_line(aes(group = n)) +
-        geom_point(aes(x = strat_bot + tie_err, y = RMSD_cum),
-                   colour = "red",
-                   data = the_best_summary)
-      print(pl)
-    }
-
-    if (output == "default") {
-      return(the_best_summary)
-    }
-    if (output == "details") {
-      return(the_best)
-    }
-    if (output == "plot") {
-      return(pl)
-    }
-    if (output == "full") {
-      return(list(summary = the_best_summary, details = the_best, plot = pl))
-    }
-  } # end function definition
-#+end_src
-
-#+RESULTS:
-
 **** [#A] wrap age model
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 10:08]
 :END:
-This is the latest attempt at doing things correctly.
-
+***** This is the latest attempt at doing things correctly.
 1. apply the agemodel from the field to the detrended record
 2. for the youngest 405 kyr tiepoint
    1. for each tiepoint depth error
@@ -11879,9 +11690,27 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 # it's useful to write to separate file, because then the debugger will jump from line to line :)
 # so we can tangle it to there and then source
 
-#+transclude: [[file:R/wrap_age_model.R]]  :src R
+***** new approach after talking to Luc
+:PROPERTIES:
+:CREATED:  [2024-01-09 Tue 16:28]
+:END:
 
-#+RESULTS:
+1. apply the agemodel from the field to the detrended record
+2. for the youngest 405 kyr tiepoint
+   1. for each tiepoint depth error
+      1. apply the new age model to the record
+      2. apply a 405 and 100 kyr filter (based on general depth filter ranges determined before)
+      3. interpolate orbital solution to the record's timesteps
+      4. compute "eccentricity" construct by combining the normalized filters
+      5. calculate SD for each timestep compared to the 405 kyr
+      6. calculate SD for each timestep compared to the 100 kyr
+      6. calculate SD for each timestep compared to the "eccentricity" construct
+      7. calculate RMSD
+   2. filter out the lowest RMSD score, get the best tie_error for this 405 kyr minimum
+3. move on to next youngest 405 kyr minimum and repeat from step 2.
+
+***** the transcluded file
+#+transclude: [[file:R/wrap_age_model.R]]  :src R
 
 **** call it and debug wrap_age_model
 :PROPERTIES:
