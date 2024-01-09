@@ -10,22 +10,28 @@
 \usepackage{soul}
 
 % IJK added packages
+% for units, type \qty{x}{\unit}
 \usepackage{siunitx}
+% for chemical equations or, in my case, d13C
 \usepackage[version=4]{mhchem}
-%\usepackage{chemformula}
-\usepackage[utf8]{luainputenc}
-% \usepackage{hyperref}
+%\usepackage{chemformula} % alternative for above
+\usepackage[utf8]{luainputenc} % allow UTF-8 input? δ13C?
+% \usepackage{hyperref} % links between references etc % doesn't seem to work
+% with this template?
 \usepackage[capitalise,nameinlink,noabbrev]{cleveref}
+% use same macro for acronym, this writes out the first use and then
+% abbreviates after (use \gls{key}).
 \usepackage{glossaries}
 %\makeglossaries % not needed if we don't want to print them at the end
 
 \newcommand{\rez}{\textcolor{magenta}}
+% I'll use this to highlight sections that I want to focus your attention on!
+\newcommand{\ijk}{\textcolor{violet}}
 
-% normally I strongly prefer biblatex:
+% normally I strongly prefer biblatex, but the AGU template uses only \cite,
+% \citeA, and \nocite from apacite :(
 % \usepackage[giveninits=true,uniquename=false,uniquelist=false,date=year,hyperref=true,mincitenames=1,maxcitenames=2,backend=biber,backref,doi=true,url=false,isbn=false]{biblatex}
 % \addbibresource{references.bib}
-% but the AGU template uses only \cite, \citeA, and \nocite from apacite :(
-
 
 % IJK package config
 \sisetup{%
@@ -41,7 +47,7 @@ range-units=single,% single: Print unit only once, at end
 per-mode=symbol,
 }%
 \DeclareSIUnit\annum{a} % a year, used in years before present
-\DeclareSIUnit\year{yr} % a duration
+\DeclareSIUnit\year{yr} % a year as a duration
 \DeclareSIUnit\millionyearago{\mega\annum} % a time, e.g. 34 million years before present
 \DeclareSIUnit\millionyear{\mega\year} % a duration, e.g. the event lasted for 2 million years
 \DeclareSIUnit\kiloyearago{\kilo\annum} % a time, e.g. 14 thousand years ago (before present)
@@ -54,7 +60,6 @@ per-mode=symbol,
 \newacronym{RMSD}{RMSD}{root mean square deviation}
 \newacronym{KT}{K/T}{Cretaceous--Tertiary}
 \newacronym{petm}{PETM}{Paleocene--Eocene thermal maximum}
-
 
 \linenumbers
 %%%%%%%
@@ -159,7 +164,8 @@ per-mode=symbol,
 % \end{keypoints}
 
 \begin{keypoints}
-%\item The best available records from the late Maastrichtian do not help constrain Astronomical Solutions. ??
+%\item The best available records from the late Maastrichtian do not help
+%constrain Astronomical Solutions. ?? Too long, can do better.
 \item enter point 1 here
 \item enter point 2 here
 \item enter point 3 here
@@ -241,29 +247,36 @@ per-mode=symbol,
 Hi Richard, here are some links to the most relevant figures.
 
 \begin{itemize}
-\item See \cref{fig:rolling-rmsd} for the most recent figure of filtered Zumaia/Sopelana records compared to La10b, La10c, ZB18a, and ZB20a solutions. This uses the rolling overall best \gls{RMSD} scores as they improve by tweaking each tiepoint uncertainty. There is still an issue with the \acrshort{d13C} tiepoints.
-\item See \cref{fig:rolling-depth} and \cref{fig:rolling-age} for what those record matches look like in the depth and time domain.
+\item See \cref{fig:rolling-rmsd} for the most recent figure of filtered
+  Zumaia/Sopelana records compared to La10b, La10c, ZB18a, and ZB20a solutions.
+  This uses the rolling overall best \gls{RMSD} scores as they improve by
+  tweaking each tiepoint uncertainty. There is still an issue with the
+  \acrshort{d13C} tiepoints.
+\item See \cref{fig:rolling-depth} and \cref{fig:rolling-age} for what those
+  record matches look like in the depth and time domain.
 \end{itemize}
 
 
-
 \section{Introduction}\label{sec:intro}
-``Cool quote that addresses how crucial good dating is.'' (I like how some of RZ's paper's start with an ancient quote).
-Maybe something from \citeA{Berger1980} review?
+``Cool quote that addresses how crucial good dating is''. (I like how some of
+RZ's paper's start with an ancient quote). Maybe something from
+\citeA{Berger1980} review?
 
-As we move to older and older time-periods, the available records will get further distorted and
+As we move to older and older time-periods, the available records will get
+further distorted and
 
-\rez{
-In this work, we use geological data to constrain astronomical solution in order to most accurately reflect the orbit of the Earth;
-for previous work on the Paleocene and Eocene, see \citeA{ZeebeLourens2019,ZeebeLourens2022EPSL}.
-The Walvis Ridge record is exceptional in its quality, so finding comparable records that capture precession-scale alternations
-and patterns of amplitude modulation for older time periods is difficult at this time.
-}
+In this work, we use geological data to constrain astronomical solution in
+order to most accurately reflect the orbit of the Earth; for previous work on
+the Paleocene and Eocene, see \citeA{ZeebeLourens2019,ZeebeLourens2022EPSL}.
+The Walvis Ridge record is exceptional in its quality, so finding comparable
+records that capture precession-scale alternations and patterns of amplitude
+modulation for older time periods is difficult at this time.
 
-Zumaia/Sopelana terrestrial composite records, as generated by \citeA{Batenburg2012,Batenburg2014}.
+Zumaia/Sopelana terrestrial composite records, as generated by
+\citeA{Batenburg2012,Batenburg2014}.
 
-Here we aim to use the best available records older than the K/T boundary to constrain which astronomical solution best reflects this time period.
-
+Here we aim to use the best available records older than the K/T boundary to
+constrain which astronomical solution best reflects this time period.
 
 
 \section{Material and Methods}\label{sec:mm}
@@ -279,37 +292,88 @@ We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements.
 
 \subsection{Removing Long-Term Trends}\label{sec:detrend}
 
-We have used various ways of getting rid of long-term trends in the record. This is important because there are some significant shifts in the lithology that could potentially hamper spectral analysis. The effect of these long-term shifts on bandpass-filtering are limited.
+We have used various ways of getting rid of long-term trends in the record.
+This is important because there are some significant shifts in the lithology
+that could potentially hamper spectral analysis. The effect of these long-term
+shifts on bandpass-filtering are limited.
 
 \begin{table}[htbp]
-\caption{\label{tab:detrend_types}The different detrend methods to remove long-term trends prior to spectral analysis.}
+  \caption{\label{tab:detrend_types}The different detrend methods to remove
+    long-term trends prior to spectral analysis.}
 \centering
 \begin{tabular}{ll}
-name & method\\
-\hline
-\texttt{value} & The raw value. Often I still remove a linear trend from the spectral analysis call.\\
-\texttt{scl} & The scaled (or normalized = mean subtracted, divided by standard deviation) value.\\
-\texttt{lin\_scl} & Remove linear trends from red/white intervals separately, then scale the result.\\
-\texttt{gam\_det} & Subtract a gam from the value, then scale the result.\\
-\texttt{lin\_gam\_det} & First do \texttt{lin\_scl} from above, then do \texttt{gam\_det}.\\
+  name & method\\
+  \hline
+  \texttt{value} & The raw value. Often I still remove a linear trend from the spectral analysis call.\\
+  \texttt{scl} & The scaled (or normalized = mean subtracted, divided by standard deviation) value.\\
+  \texttt{lin\_scl} & Remove linear trends from red/white intervals separately, then scale the result.\\
+  \texttt{gam\_det} & Subtract a gam from the value, then scale the result.\\
+  \texttt{lin\_gam\_det} & First do \texttt{lin\_scl} from above, then do \texttt{gam\_det}.\\
 \end{tabular}
 \end{table}
 
 \begin{figure}[htbp]
-\centering
-\includegraphics[width=.9\linewidth]{Zumaia-Sopelana_records_complicated.png}
-\caption{\label{fig:detrend}Zumaia and Sopelana trend removal using various strategies. See \cref{tab:detrend_types} for an overview.}
+  \centering
+  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_records_complicated.png}
+  \caption{\label{fig:detrend}Zumaia and Sopelana trend removal using various
+    strategies (coloured lines). See \cref{tab:detrend_types} for an overview.
+    Bottom gray lines show results of these long-term detrending strategies
+    with offsets incremented by \num{-5}. The highpass was constructed by
+    subtracting a lowpass filter with a frequency of
+    \qty{0.035}{cycles\per\metre} (period of \qty{28.57}{\metre}) from the raw
+    data, and then scaling the result.}
 \end{figure}
 
-% \texttt{value} Use the proxy value as reported in the original study. This does not exclude linear interpolation, demeaning (subtracting the mean) and detrending (subtracting a linear fit for the whole record) for certain spectral analysis tools.
+\ijk{
 
-% \texttt{scl} Subtracting the mean and dividing by the standard deviation results in a normalized or scaled value.
+  I've just added \cref{fig:highpass,fig:highpass-spec}.
 
-% \texttt{gam\_det}
-% A gam is a generalized additive model with integrated smoothness estimation. We fit this smooth curve and then subtract it from the original proxy value.
+  Ok, perhaps the \texttt{gam} did eat up some of the spectral power of the 405
+  kyr range. Visually, it looks similar to the highpass-filter where the filter
+  frequency is identical to or very close to the lower bound of the 405 kyr
+  bandpass filter. But in the spectrum we see some of the power in the 405 kyr
+  range going down more in the gam than in any of the highpass filters.
 
-% \texttt{lin\_scl}
-% We fit a linear model for each of the red, white, and orange intervals separately. Then we subtract these models from the raw proxy value to get a detrended result.
+  I'll continue the analysis with the 0.025 = 40 m highpass filter.
+
+  What do you think?
+
+}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_highpass.png}
+  \caption{\label{fig:highpass}Zumaia and Sopelana lowpass filters compared to
+    the gam and the 405 kyr bandpass filter (coloured lines) plotted on top of
+    the raw data (gray lines). The goal here is to see if the gam slices off
+    too much of the 405 kyr signal. We can also use this to figure out which
+    lowpass filter we like best.
+  }
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{Zumaia-Sopelana_lowpass_spectra.png}
+  \caption{\label{fig:highpass-spec}Frequency of records after highpass
+    filtering (subtracting a lowpass filter with the target frequency in the
+    legend, then scaling). Vertical colored lines indicate the frequency at
+    which the lowpass filter was set. }
+\end{figure}
+% \texttt{value} Use the proxy value as reported in the original study. This
+% does not exclude linear interpolation, demeaning (subtracting the mean) and
+% detrending (subtracting a linear fit for the whole record) for certain
+% spectral analysis tools.
+
+% \texttt{scl} Subtracting the mean and dividing by the standard deviation
+% results in a normalized or scaled value.
+
+% \texttt{gam\_det} A gam is a generalized additive model with integrated
+% smoothness estimation. We fit this smooth curve and then subtract it from the
+% original proxy value.
+
+% \texttt{lin\_scl} We fit a linear model for each of the red, white, and
+% orange intervals separately. Then we subtract these models from the raw proxy
+% value to get a detrended result.
 
 % \texttt{lin\_gam\_det}
 % First remove linear trends, then fit a gam to results and subtract that.
@@ -323,34 +387,48 @@ Bandpass filters targetting the \qtylist{405;100}{\kiloyear} cycles.
 
 \subsection{Finding the Best Fit}
 
-The function the function \texttt{wrap\_age\_model} finds the optimal age model.
-It compares the \texttt{data} with the astronomical solution (\texttt{astronomical\_solution}, can only contain one, e.g. \texttt{ZB18a}) based on the \qty{405}{\kiloyear} minima as identified in the field (\texttt{agemodel}), and applies an input uncertainty (\texttt{tiepoint\_uncertainty}, a vector of adjustments to make to each tiepoint).
-After tweaking the tiepoint, the altered agemodel is applied, the record is filtered for the \qtylist{405;100}{\kiloyear} cycles and an artificial ``eccentricity'' curve is created.
-The astronomical solution is interpolated to the same timesteps as the data, and the \gls{RMSD} is calculated.
-It then loops through all tiepoints and all tiepoint uncertainties to find the overall best fit to the astronomical solution.
+\textbf{TODO:} Rewrite this in words without function or argument names.
+
+The function the function \texttt{wrap\_age\_model} finds the optimal age
+model. It compares the \texttt{data} with the astronomical solution
+(\texttt{astronomical\_solution}, can only contain one, e.g. \texttt{ZB18a})
+based on the \qty{405}{\kiloyear} minima as identified in the field
+(\texttt{agemodel}), and applies an input uncertainty
+(\texttt{tiepoint\_uncertainty}, a vector of adjustments to make to each
+tiepoint). After tweaking the tiepoint, the altered agemodel is applied, the
+record is filtered for the \qtylist{405;100}{\kiloyear} cycles and an
+artificial ``eccentricity'' curve is created. The astronomical solution is
+interpolated to the same timesteps as the data, and the \gls{RMSD} is
+calculated. It then loops through all tiepoints and all tiepoint uncertainties
+to find the overall best fit to the astronomical solution.
 
 
 \begin{enumerate}
 \item apply the agemodel from the field to the detrended record
 \item for the youngest 405 kyr tiepoint
-\begin{enumerate}
-\item for each tiepoint depth error
-\begin{enumerate}
-\item apply the new age model to the record
-\item apply a 405 and 100 kyr filter (based on general depth filter ranges determined before)
-\item compute ``eccentricity'' construct by combining the normalized filters
-\item interpolate orbital solution to the record's timesteps
-\item calculate SD for each timestep
-\item calculate RMSD
-\end{enumerate}
-\item filter out the lowest RMSD score, get the best tie\_error for this 405 kyr minimum
-\end{enumerate}
+  \begin{enumerate}
+  \item for each tiepoint depth error
+    \begin{enumerate}
+    \item apply the new age model to the record
+    \item apply a 405 and 100 kyr filter (based on general depth filter ranges
+      determined before)
+    \item compute ``eccentricity'' construct by combining the normalized
+      filters
+    \item interpolate orbital solution to the record's timesteps
+    \item calculate SD for each timestep
+    \item calculate RMSD
+    \end{enumerate}
+  \item filter out the lowest RMSD score, get the best tie\_error for this 405
+    kyr minimum
+  \end{enumerate}
 \item move on to next youngest 405 kyr minimum and repeat from step 2.
 \end{enumerate}
 
-This function now takes about \qty{30.6}{\second} to run when I compare a single Zumaia MS record against a single astronomical solution. That's fast enough for now.
+This function now takes about \qty{30.6}{\second} to run when I compare a
+single Zumaia MS record against a single astronomical solution. That's fast
+enough for now.
 
-\textbf{TODO:} Mathify this explanation
+\textbf{TODO:} Mathify this explanation?
 
 
 
@@ -359,48 +437,53 @@ This function now takes about \qty{30.6}{\second} to run when I compare a single
 \section{Results}\label{sec:results}
 
 \begin{figure}[htb]
-\centering
-\includegraphics[width=1.2\textwidth]{rolling_improvement.png}
-\caption{\label{fig:rolling-improvement}
-    Improvement of the RMSD scores after applying the rolling agemodel tiepoint uncertainty.
-    See \cref{fig:rolling-rmsd} for a simplified version showing only the improved values.
-}
+  \centering \includegraphics[width=1.2\textwidth]{rolling_improvement.png}
+  \caption{\label{fig:rolling-improvement} Improvement of the RMSD scores after
+    applying the rolling agemodel tiepoint uncertainty. See
+    \cref{fig:rolling-rmsd} for a simplified version showing only the improved
+    values. Note that the different detrend types have been offset on the
+    x-axis so as to not overlap. \textbf{TODO:} investigate why we still see
+    differences? }
 \end{figure}
 
 \begin{figure}[htb]
-\centering
-\includegraphics[width=1.2\textwidth]{rolling_age_overview_new.png}
-\caption{\label{fig:rolling-rmsd}
-    Best \gls{RMSD} scores for different astronomical solutions (x-axis), sites (column panels), detrend types (colours), and proxies (row panels) in different \texttt{comb}'s (shape, linetype).
-    This analysis relies on iteratively shifting the tiepoints by small increments up to \textpm{}4 m and calculating the \gls{RMSD} for the whole record at each iteration to decide which tiepoint error gives the best fit.
-    \textbf{NOTE:} Zumaia \gls{d13C} records are not correct, they miss a 405 kyr cycle!
-}
-\end{figure}
-
-
-\begin{figure}[htb]
-\centering
-\includegraphics[width=1.2\textwidth]{rolling_age_best_records_depth.png}
-\caption{\label{fig:rolling-depth}
-    \textbf{Best rolling tiepoint uncertainty fits in the depth domain.}
-    Vertical gray lines show 405 kyr minima as identified in the field, with well-defined ones highlighted with a black triangle.
-    Gray dots show all tiepoint uncertainties looked at (\textpm{}4 m), with the optimal (lowest overal \gls{RMSD} score) tiepoint marked in purple.
-    Numbers indicate \gls{RMSD} score for the adjacent fit.
-    \textbf{NOTE}: mistake in the \gls{d13C} record, where the uncertainties were so large that they allow the fitting function to skip a 405 kyr cycle.
-    \textbf{NOTE}: Sopelana top is not linked to Zumaia base best tiepoint uncertainty.
-}
+  \centering
+  \includegraphics[width=1.2\textwidth]{rolling_age_overview_new.png}
+  \caption{\label{fig:rolling-rmsd} Best \gls{RMSD} scores for different
+    astronomical solutions (x-axis), sites (column panels), detrend types
+    (colours), and proxies (row panels) in different \texttt{comb}'s (shape,
+    linetype). This analysis relies on iteratively shifting the tiepoints by
+    small increments up to \textpm{}4 m and calculating the \gls{RMSD} for the whole
+    record at each iteration to decide which tiepoint error gives the best fit.
+    \textbf{NOTE:} Zumaia \gls{d13C} records are not correct, they miss a 405
+    kyr cycle! }
 \end{figure}
 
 
 \begin{figure}[htb]
-\centering
-\includegraphics[width=1.2\textwidth]{rolling_age_best_records.png}
-\caption{\label{fig:rolling-age}
-    \textbf{The best filtered Zumaia/Sopelana matches using the rolling tweaked tiepoint uncertainty.}
-    Numbers indicate \gls{RMSD} score for the adjacent fit.
-    \textbf{NOTE:} skipped cycle in the \gls{d13C}, which is a result of the large input \textpm{}4 m uncertainty on the 405 kyr minima as identified in the field.
-    Will need fixing!
-}
+  \centering
+  \includegraphics[width=1.2\textwidth]{rolling_age_best_records_depth.png}
+  \caption{\label{fig:rolling-depth} \textbf{Best rolling tiepoint uncertainty
+      fits in the depth domain.} Vertical gray lines show 405 kyr minima as
+    identified in the field, with well-defined ones highlighted with a black
+    triangle. Gray dots show all tiepoint uncertainties looked at (\textpm{}4 m),
+    with the optimal (lowest overal \gls{RMSD} score) tiepoint marked in
+    purple. Numbers indicate \gls{RMSD} score for the adjacent fit.
+    \textbf{NOTE}: mistake in the \gls{d13C} record, where the uncertainties
+    were so large that they allow the fitting function to skip a 405 kyr cycle.
+    \textbf{NOTE}: Sopelana top is not linked to Zumaia base best tiepoint
+    uncertainty. }
+\end{figure}
+
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=1.2\textwidth]{rolling_age_best_records.png}
+  \caption{\label{fig:rolling-age} \textbf{The best filtered Zumaia/Sopelana
+      matches using the rolling tweaked tiepoint uncertainty.} Numbers indicate
+    \gls{RMSD} score for the adjacent fit. \textbf{NOTE:} skipped cycle in the
+    \gls{d13C}, which is a result of the large input \textpm{}4 m uncertainty on the
+    405 kyr minima as identified in the field. Will need fixing! }
 \end{figure}
 
 
@@ -572,11 +655,16 @@ This function now takes about \qty{30.6}{\second} to run when I compare a single
 
 
 \section{Open Research}
-Magnetic susceptibility, color reflectance, and \gls{d13C} data used in this study are from \citeA{Batenburg2012} and \citeA{Batenburg2012}.
+Magnetic susceptibility, color reflectance, and \gls{d13C} data used in this
+study are from \citeA{Batenburg2012} and \citeA{Batenburg2012}.
 
-Analysis was performed using the R programming language \cite{RCoreTeam2020} and made use of \texttt{astrochron} \citeA{Meyers2014} and the \texttt{tidyverse} \citeA{Wickham2019}.
-The new R package \texttt{AstronomicalSolutions} will be made available on publication on \url{https://github.com/japhir/AstronomicalSolutions} \citeA{Kocken2024}.
-\textbf{TODO: come up with nice package name and host on github/ archive on zenodo}.
+Analysis was performed using the R programming language \cite{RCoreTeam2020}
+and made use of \texttt{astrochron} \citeA{Meyers2014} and the
+\texttt{tidyverse} \citeA{Wickham2019}. The new R package
+\texttt{AstronomicalSolutions} will be made available on publication on
+\url{https://github.com/japhir/AstronomicalSolutions} \citeA{Kocken2024}.
+\textbf{TODO:} come up with nice package name and host on github/ archive on
+Zenodo.
 
 % AGU requires an Availability Statement for the underlying data needed to understand, evaluate, and build upon the reported research at the time of peer review and publication.
 
@@ -609,7 +697,9 @@ The new R package \texttt{AstronomicalSolutions} will be made available on publi
 % Any real or perceived financial conflicts of interests for any author\\
 % Other affiliations for any author that may be perceived as having a conflict of interest with respect to the results of this paper.\\
 % It is also the appropriate place to thank colleagues and other contributors. AGU does not normally allow dedications.
-This work was supported by the Heising-Simons Foundation, under the CycloAstro Cohort project 3.
+
+This work was supported by the Heising-Simons Foundation, under the CycloAstro
+Cohort project 3.
 
 %% ------------------------------------------------------------------------ %%
 %% References and Citations
@@ -654,7 +744,7 @@ This work was supported by the Heising-Simons Foundation, under the CycloAstro C
 
 
 
-More Information and Advice:
+% More Information and Advice:
 
 %% ------------------------------------------------------------------------ %%
 %
@@ -722,26 +812,26 @@ More Information and Advice:
 % Single-line equations are centered.
 % Equation arrays will appear left-aligned.
 
-Math coded inside display math mode \[ ...\]
- will not be numbered, e.g.,:
- \[ x^2=y^2 + z^2\]
+% Math coded inside display math mode \[ ...\]
+%  will not be numbered, e.g.,:
+%  \[ x^2=y^2 + z^2\]
 
- Math coded inside \begin{equation} and \end{equation} will
- be automatically numbered, e.g.,:
- \begin{equation}
- x^2=y^2 + z^2
- \end{equation}
+%  Math coded inside \begin{equation} and \end{equation} will
+%  be automatically numbered, e.g.,:
+%  \begin{equation}
+%  x^2=y^2 + z^2
+%  \end{equation}
 
 
-% To create multiline equations, use the
-% \begin{eqnarray} and \end{eqnarray} environment
-% as demonstrated below.
-\begin{eqnarray}
-  x_{1} & = & (x - x_{0}) \cos \Theta \nonumber \\
-        && + (y - y_{0}) \sin \Theta  \nonumber \\
-  y_{1} & = & -(x - x_{0}) \sin \Theta \nonumber \\
-        && + (y - y_{0}) \cos \Theta.
-\end{eqnarray}
+% % To create multiline equations, use the
+% % \begin{eqnarray} and \end{eqnarray} environment
+% % as demonstrated below.
+% \begin{eqnarray}
+%   x_{1} & = & (x - x_{0}) \cos \Theta \nonumber \\
+%         && + (y - y_{0}) \sin \Theta  \nonumber \\
+%   y_{1} & = & -(x - x_{0}) \sin \Theta \nonumber \\
+%         && + (y - y_{0}) \cos \Theta.
+% \end{eqnarray}
 
 %If you don't want an equation number, use the star form:
 %\begin{eqnarray*}...\end{eqnarray*}
