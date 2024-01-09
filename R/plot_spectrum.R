@@ -21,7 +21,7 @@ plot_spectrum <- function(spec, group = "none", logx = FALSE, logy = FALSE, ar1 
   }
 
   periods <- c(405, 132.5, 124, 99.7, 95)
-  if (logx & logy) {
+  if (logx && logy) {
     pl <- pl + annotation_logticks() +
       scale_y_log10() +
       scale_x_log10(sec.axis = sec_axis(breaks = periods,
