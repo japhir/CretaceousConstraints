@@ -18,13 +18,7 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
 - I list all the sites I found data for and create some quick figures, but the Zumaia and Sopelana [[cref:sec:Zumaia-Sopelana]] is the most promising and has the most advanced analysis.
 - See cref:fig:rolling-rmsd for the most recent figure of filtered Zumaia/Sopelana records compared to La10b, La10c, ZB18a, and ZB20a solutions. This uses the rolling overall best RMSD scores as they improve by tweaking each tiepoint uncertainty. There is still an issue with the d13C tiepoints.
 - See cref:fig:rolling-depth and cref:fig:rolling-age for what those record matches look like in the depth and time domain.
-* some shared code                                     :noexport:
-:PROPERTIES:
-:CREATED:  [2023-11-14 Tue 14:57]
-:header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
-:CUSTOM_ID: sec:shared-code
-:END:
-** libraries
+* libraries
 #+begin_src R :results none
   library(tidyverse) # data wrangling + plotting
   library(patchwork) # multipane plots
@@ -39,6 +33,12 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
   devtools::load_all()
 #+end_src
 
+* some shared code                                     :noexport:
+:PROPERTIES:
+:CREATED:  [2023-11-14 Tue 14:57]
+:header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
+:CUSTOM_ID: sec:shared-code
+:END:
 ** functions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
@@ -8732,7 +8732,6 @@ Very low sedimentation rate however, about 1 cm/kyr.
 
 #+RESULTS:
 [[file:imgs/IODP342_U1403_logFeCa_spec.png]]
-
 
 ** [#A] Zumaia and Sopelana
 :PROPERTIES:
