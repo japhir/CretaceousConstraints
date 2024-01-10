@@ -131,6 +131,8 @@ This function calculates the (r)mcd from a dataset with mbsf and a splice table.
 
 #+transclude: [[file:R/get_rmcd.R]]  :src R
 
+#+RESULTS:
+
 ** Astronomical Solutions
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:50]
@@ -9041,7 +9043,6 @@ That's a bit too close to the 405 kyr. Now changed to 0.025.
 Ok I've now added vertical lines to the spectra plot below to indicate all of these ranges. Testing out 0.01, 0.02, and 0.025.
 Let's see how each of them changes the spectrum of the 405 kyr cycle.
 
-
 ***** calculate the highpass filter with fcut = 0.025
 :PROPERTIES:
 :CREATED:  [2024-01-09 Tue 13:46]
@@ -9143,7 +9144,6 @@ lower edge of the 405 kyr filter
 #+end_src
 
 #+RESULTS:
-
 
 ***** plot the highpass filters
 :PROPERTIES:
@@ -9945,7 +9945,6 @@ Evolutive harmonics analysis from Astrochron.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_eha.png]]
 
-
 ***** COMMENT Zumaia MS lin_gam_det
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 09:57]
@@ -10095,7 +10094,6 @@ The filter intervals are perhaps not so good for Sopelana?
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_MS_wavelet.png]]
 
-
 ***** Zumaia Lstar lin_gam_det
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 11:12]
@@ -10218,7 +10216,6 @@ The filter intervals are perhaps not so good for Sopelana?
 
 #+RESULTS:
 [[file:imgs/Sopelana_MS_wavelet.png]]
-
 
 ***** Sopelana Lstar lin_gam_det
 :PROPERTIES:
@@ -11200,7 +11197,6 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
                            add_depth = TRUE)
 #+end_src
 
-
 **** COMMENT calculate hilbert transform of precession data in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
@@ -11711,7 +11707,6 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 
 ***** the transcluded file
 #+transclude: [[file:R/wrap_age_model.R]]  :src R
-
 **** call it and debug wrap_age_model
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 10:09]
@@ -11721,27 +11716,70 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 :CREATED:  [2023-12-22 Fri 20:45]
 :END:
 #+begin_src R
-  source("R/wrap_age_model.R")
-  ## debug(wrap_age_model)
+  ## source("R/wrap_age_model.R")
+  devtools::load_all()
+  debug(wrap_age_model)
+  undebug(wrap_age_model)
 #+end_src
 
 #+RESULTS:
 
-***** COMMENT Zumaia MS
+***** NEXT Zumaia MS
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 16:17]
 :END:
+:LOGBOOK:
+- Note taken on [2024-01-09 Tue 17:42] \\
+  adapted to Lstar and MS for new linear detrend + very wide ranges + wrap_age_model now matches solution 405 kyr filter first
+:END:
 #+begin_src R
   tst1 <- data_ecc_age |>
-    filter(proxy == "d13C", detrend_type == "value", comb == "1:1", sol == "ZB18a") |>
+    filter(proxy == "Lstar",
+           detrend_type == "lin_scl",
+           comb == "1:1", sol == "ZB18a") |>
     wrap_age_model(
       agem_sol |> filter(sol == "ZB18a"),
       astronomical_solution = slns |> filter(sln == "ZB18a"),
-      ## tiepoint_uncertainty = seq(-2.5, 2.5, 0.5),
+      tiepoint_uncertainty = seq(-15, 15, 0.5),
+      ## tiepoint_uncertainty = seq(-15, 15, 1),
       genplot = TRUE, output = "full")
+
+  ## tst1 |>
+    ## write_rds("out/tst1_lin-scl_MS_ZB18a.rds")
+    ## write_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
+
+  tst1_MS <-
+    read_rds("out/tst1_lin-scl_MS_ZB18a.rds")
+  tst1_Lstar <-
+    read_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
+
+
+  tst1_MS$plot +
+    aes(colour = factor(n)) +
+    scale_colour_viridis_d() +
+    geom_text(aes(label = n),
+              nudge_y = -0.005,
+              data = \(x) x |>
+                          filter(RMSD_tie == min(RMSD_tie), .by = n))
+
+  data_ecc_age |>
+    filter(proxy == "Lstar",
+           detrend_type == "lin_scl", comb == "1:1", sol == "ZB18a") |>
+    ggplot(aes(x = age, y = scale(value)[, 1])) +
+    geom_line(colour = "purple", alpha = .6) +
+    geom_line(aes(y = scale(ecc)[, 1]), data = slns |> filter(sln == "ZB18a"))
+    geom_line(aes(y = scale(filter)[, 1], colour = target),
+              data = sln_filters |> filter(sln == "ZB18a", target != "23 kyr")) +
+      coord_cartesian(xlim = c(69.8e3, 65.5e3)) +
+      labs(x = "Age (Ma)")
 #+end_src
 
 #+RESULTS:
+: Warning messages:
+: 1: In the_best_summary$tie_err[the_best_summary$n == tiepoint] <- tb$error :
+:   number of items to replace is not a multiple of replacement length
+: 2: In the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <- tb$RMSD_tie :
+:   number of items to replace is not a multiple of replacement length
 
 #+begin_src R
   # looking for better ways to find the "optimal" error
@@ -11859,7 +11897,6 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 #+caption: Zumaia MS lin_gam_det 1:1 vs. La10b using the old squishy approach.
 
 [[file:imgs/Zumaia_fixed_MS_La10b_lgd_overall.png]]
-
 
 ***** COMMENT Zumaia d13C
 #+begin_src R
@@ -11999,7 +12036,6 @@ ah so ~23 minutes total!
 
 current time: 2024-01-02 15:28:17.623498
  Progress: ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 100%> current time: 2024-01-02 15:59:42.869229
-
 
 **** load cached results
 :PROPERTIES:
