@@ -141,6 +141,7 @@ bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
     mutate(
       lt = map(data, \(d) d |>
                           select({{x}}, {{y}}) |>
+                          arrange({{x}}) |>
                           astrochron::linterp(genplot = FALSE, verbose = FALSE)),
       bp = pmap(list(lt, flow, fhigh), \(d, l, h)
                 d |>
