@@ -11723,8 +11723,14 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 #+end_src
 
 #+RESULTS:
+***** figure of the heart of the matching algorithm
+:PROPERTIES:
+:CREATED:  [2024-01-10 Wed 16:01]
+:END:
+[[file:imgs/Zumaia_Lstar_filter_matching.png]]
 
-***** NEXT Zumaia MS
+[[file:imgs/Zumaia_MS_filter_matching.png]]
+***** NEXT Zumaia tests
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 16:17]
 :END:
@@ -11733,34 +11739,54 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
   adapted to Lstar and MS for new linear detrend + very wide ranges + wrap_age_model now matches solution 405 kyr filter first
 :END:
 #+begin_src R
+  devtools::load_all()
+  ## debug(wrap_age_model)
   tst1 <- data_ecc_age |>
     filter(proxy == "Lstar",
            detrend_type == "lin_scl",
+           site == "Zumaia",
+           depth <= 115, # note sedrate switch from 17 m to 12 m.
            comb == "1:1", sol == "ZB18a") |>
     wrap_age_model(
-      agem_sol |> filter(sol == "ZB18a"),
+      agemodel = agem_sol |> filter(sol == "ZB18a"),
       astronomical_solution = slns |> filter(sln == "ZB18a"),
-      tiepoint_uncertainty = seq(-15, 15, 0.5),
-      ## tiepoint_uncertainty = seq(-15, 15, 1),
+      proxy_phase = 1, # -1 for Lstar and d13C, +1 for MS
+      tiepoint_uncertainty = seq(-20, 20, 0.5),
+      ## tiepoint_uncertainty =
+      ##   c(-1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
+      ##     0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8),
+      max_error_range = 3.0,
+      RMSD_threshold = 0.005,
       genplot = TRUE, output = "full")
 
   ## tst1 |>
     ## write_rds("out/tst1_lin-scl_MS_ZB18a.rds")
     ## write_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
 
-  tst1_MS <-
+  tst1 <-
     read_rds("out/tst1_lin-scl_MS_ZB18a.rds")
-  tst1_Lstar <-
+  tst1 <-
     read_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
 
+  tst1$plot +
+    scale_linetype_manual(values = c("ecc construct" = "solid",
+                                     "405 kyr" = "dashed",
+                                     "100 kyr" = "dotted")) +
+    aes(linetype =  "ecc construct") +
+    geom_line(aes(y = RMSD_tie_405, group = n, linetype = "405 kyr")) +
+    geom_line(aes(y = RMSD_tie_100, group = n, linetype = "100 kyr"))
 
-  tst1_MS$plot +
-    aes(colour = factor(n)) +
-    scale_colour_viridis_d() +
-    geom_text(aes(label = n),
-              nudge_y = -0.005,
-              data = \(x) x |>
-                          filter(RMSD_tie == min(RMSD_tie), .by = n))
+  tst1$full |>
+    select(-SD, -SD_405, -SD_100) |>
+    pivot_longer(c(value, ecc_sln,
+                   `405 kyr`, ecc_sln_405,
+                   `100 kyr`, ecc_sln_100,
+                   ecc)) |>
+    ggplot(aes(x = age, y = value, colour = name)) +
+    facet_grid(rows = vars(name)) +
+    scale_x_reverse() +
+    geom_line()
+
 
   data_ecc_age |>
     filter(proxy == "Lstar",
