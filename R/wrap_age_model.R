@@ -77,19 +77,15 @@ wrap_age_model <- function(data,
   if (!"Ma405" %in% colnames(data)) {
     data <- data |>
       mutate(Ma405 = findInterval(depth, agemodel$strat_bot))
-    # should be correct, see
-    # [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*Did
-    # we number the Ma405 correctly?][Did we number the Ma405 correctly?]]
   }
   # this is kind of hard
   # while the above was correct, I want to /interpolate/, so should always
   # include one tiepoint lower and one higher.
   # if the tiepoint isn't in the agemodel (i.e. for d13C)
   # it'll skip it anyway.
-  tiepoints <- c(min(data$Ma405) - 1,
-                 unique(data$Ma405)#,
-                 ## max(data$Ma405) + 1
-                 ) |> sort()
+  # Note that we should NOT include the +1, I checked.
+  tiepoints <- c(min(data$Ma405) - 1, unique(data$Ma405)) |>
+    sort()
 
   if (!0. %in% tiepoint_uncertainty) {
     cli::cli_abort(c(
@@ -105,20 +101,13 @@ wrap_age_model <- function(data,
     filter(n %in% tiepoints) |>
     select(all_of(c("sol", "n", "strat_bot", "age"))) |>
     mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
-           RMSD_cum = NA_real_,
-           ## RMSD_cum_405 = NA_real_,
-           ## RMSD_cum_100 = NA_real_
-           ) # best RMSD score for full record
+           RMSD_cum = NA_real_) # best RMSD score for full record
 
   the_best <- the_best_summary |>
-    select(-tie_err, -RMSD_cum, ## -RMSD_cum_405, -RMSD_cum_100
-           ) |>
+    select(-tie_err, -RMSD_cum) |>
     mutate(
       optimal = list(tibble(error = tiepoint_uncertainty,
-                            RMSD_tie = NA_real_,
-                            ## RMSD_tie_405 = NA_real_,
-                            ## RMSD_tie_100 = NA_real_
-                            ))
+                            RMSD_tie = NA_real_))
     ) |>
     unnest(cols = c(optimal))
 
@@ -186,11 +175,7 @@ wrap_age_model <- function(data,
 
         # summarize into RMSD
         smy <- esd |>
-          summarize(
-            RMSD_405 = sqrt(mean(SD_405)),
-            RMSD_100 = sqrt(mean(SD_100)),
-            RMSD = sqrt(mean(SD))
-          )
+          summarize(RMSD = sqrt(mean(SD)))
 
         # save the results to our tibble
         # NOTE: not using tidyverse syntax here because this is way faster than
@@ -199,7 +184,7 @@ wrap_age_model <- function(data,
                             the_best$error == error] <- smy$RMSD
 
         # before esd goes out scop!
-        if (c("full", "matched") %in% output) {
+        if (output %in% c("full", "matched")) {
           if (tiepoint == last(tiepoints) &&
                 error == last(tiepoint_uncertainty))
             full_record <- esd
