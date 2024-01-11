@@ -10085,27 +10085,34 @@ Though it's using base graphics, seems like Michiel figured out exactly what I w
 
 The filter intervals are perhaps not so good for Sopelana?
 
-***** Zumaia MS lin_gam_det
+***** Zumaia MS lin_scl_fine
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 11:12]
+:END:
+:LOGBOOK:
+- Note taken on [2024-01-11 Thu 11:57] \\
+  checked a lot of different combinations to see if I also see the shift in sedrate they describe in [cite:@Batenburg2014]
+  I don't, really! After my linear detrending in fine chunks.
 :END:
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_MS_wavelet.png :width 2400 :height 1200 :res 300
   ## smooth_wavelet <-
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl") |>
-    ## filter(detrend_type == "gam_det") |>
-    filter(detrend_type == "lin_gam_det") |>
+    ## filter(detrend_type == "lin_scl_old") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    ## filter(detrend_type == "lin_scl_coarse") |>
+    ## filter(detrend_type == "gam_scl") |>
+    ## filter(detrend_type == "lin_gam_det") |>
     filter(proxy == "MS") |>
     ## filter(proxy == "Lstar") |>
     ## filter(proxy == "d13C") |>
     filter(site == "Zumaia") |>
     ## filter(site == "Sopelana") |>
     select(depth, value) |>
-    WaverideR::analyze_wavelet(lowerPeriod = .4,
+    WaverideR::analyze_wavelet(lowerPeriod = 2,
                                upperPeriod = 30,
-                               omega_nr = 8,
+                               omega_nr = 10,
                                ## verbose = TRUE
                                ) |>
       WaverideR::plot_wavelet(plot_dir = FALSE,
@@ -10115,8 +10122,18 @@ The filter intervals are perhaps not so good for Sopelana?
                             add_avg = TRUE,
                             add_MTM = TRUE,
                             add_MTM_peaks = TRUE,
-                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
-                            )
+                            add_abline_h =
+                              c(
+
+                                my_filters$p,
+                                1 / my_filters$flow, 1 / my_filters$fhigh
+
+                                ## bat_filters |>
+                                ## filter(site == "Zumaia", proxy == "Lstar") |>
+                                ## select(center,plow,phigh) |>
+                                ## as_vector()
+
+                            ))
   # wanted to customize this but it has already moved on to another subplot by the end
   ## abline(h = my_filters$p, colour = "white")
   ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
@@ -10126,7 +10143,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_MS_wavelet.png]]
 
-***** Zumaia Lstar lin_gam_det
+***** Zumaia Lstar lin_scl_fine
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 11:12]
 :END:
@@ -10135,18 +10152,20 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl") |>
-    ## filter(detrend_type == "gam_det") |>
-    filter(detrend_type == "lin_gam_det") |>
+    ## filter(detrend_type == "lin_scl_old") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    ## filter(detrend_type == "lin_scl_coarse") |>
+    ## filter(detrend_type == "gam_scl") |>
+    ## filter(detrend_type == "lin_gam_det") |>
     ## filter(proxy == "MS") |>
     filter(proxy == "Lstar") |>
     ## filter(proxy == "d13C") |>
     filter(site == "Zumaia") |>
     ## filter(site == "Sopelana") |>
     select(depth, value) |>
-    WaverideR::analyze_wavelet(lowerPeriod = .4,
+    WaverideR::analyze_wavelet(lowerPeriod = 2,
                                upperPeriod = 30,
-                               omega_nr = 8,
+                               omega_nr = 10,
                                ## verbose = TRUE
                                ) |>
       WaverideR::plot_wavelet(plot_dir = FALSE,
@@ -10156,8 +10175,18 @@ The filter intervals are perhaps not so good for Sopelana?
                             add_avg = TRUE,
                             add_MTM = TRUE,
                             add_MTM_peaks = TRUE,
-                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
-                            )
+                            add_abline_h =
+                              c(
+
+                                my_filters$p,
+                                1 / my_filters$flow, 1 / my_filters$fhigh
+
+                                ## bat_filters |>
+                                ## filter(site == "Zumaia", proxy == "Lstar") |>
+                                ## select(center,plow,phigh) |>
+                                ## as_vector()
+
+                            ))
   # wanted to customize this but it has already moved on to another subplot by the end
   ## abline(h = my_filters$p, colour = "white")
   ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
@@ -10167,7 +10196,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_Lstar_wavelet.png]]
 
-***** Zumaia d13C lin_gam_det
+***** Zumaia d13C lin_scl_fine
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 11:12]
 :END:
@@ -10176,18 +10205,20 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl") |>
-    ## filter(detrend_type == "gam_det") |>
-    filter(detrend_type == "lin_gam_det") |>
+    ## filter(detrend_type == "lin_scl_old") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    ## filter(detrend_type == "lin_scl_coarse") |>
+    ## filter(detrend_type == "gam_scl") |>
+    ## filter(detrend_type == "lin_gam_det") |>
     ## filter(proxy == "MS") |>
     ## filter(proxy == "Lstar") |>
     filter(proxy == "d13C") |>
     filter(site == "Zumaia") |>
     ## filter(site == "Sopelana") |>
     select(depth, value) |>
-    WaverideR::analyze_wavelet(lowerPeriod = .4,
+    WaverideR::analyze_wavelet(lowerPeriod = 2,
                                upperPeriod = 30,
-                               omega_nr = 8,
+                               omega_nr = 10,
                                ## verbose = TRUE
                                ) |>
       WaverideR::plot_wavelet(plot_dir = FALSE,
@@ -10197,8 +10228,18 @@ The filter intervals are perhaps not so good for Sopelana?
                             add_avg = TRUE,
                             add_MTM = TRUE,
                             add_MTM_peaks = TRUE,
-                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
-                            )
+                            add_abline_h =
+                              c(
+
+                                my_filters$p,
+                                1 / my_filters$flow, 1 / my_filters$fhigh
+
+                                ## bat_filters |>
+                                ## filter(site == "Zumaia", proxy == "Lstar") |>
+                                ## select(center,plow,phigh) |>
+                                ## as_vector()
+
+                            ))
   # wanted to customize this but it has already moved on to another subplot by the end
   ## abline(h = my_filters$p, colour = "white")
   ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
@@ -10208,7 +10249,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_d13C_wavelet.png]]
 
-***** Sopelana MS lin_gam_det
+***** Sopelana MS lin_scl_fine
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 11:12]
 :END:
@@ -10217,18 +10258,20 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl") |>
-    ## filter(detrend_type == "gam_det") |>
-    filter(detrend_type == "lin_gam_det") |>
+    ## filter(detrend_type == "lin_scl_old") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    ## filter(detrend_type == "lin_scl_coarse") |>
+    ## filter(detrend_type == "gam_scl") |>
+    ## filter(detrend_type == "lin_gam_det") |>
     filter(proxy == "MS") |>
     ## filter(proxy == "Lstar") |>
     ## filter(proxy == "d13C") |>
     ## filter(site == "Zumaia") |>
     filter(site == "Sopelana") |>
     select(depth, value) |>
-    WaverideR::analyze_wavelet(lowerPeriod = .4,
+    WaverideR::analyze_wavelet(lowerPeriod = 2,
                                upperPeriod = 30,
-                               omega_nr = 8,
+                               omega_nr = 10,
                                ## verbose = TRUE
                                ) |>
       WaverideR::plot_wavelet(plot_dir = FALSE,
@@ -10238,18 +10281,29 @@ The filter intervals are perhaps not so good for Sopelana?
                             add_avg = TRUE,
                             add_MTM = TRUE,
                             add_MTM_peaks = TRUE,
-                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
-                            )
+                            add_abline_h =
+                              c(
+
+                                my_filters$p,
+                                1 / my_filters$flow, 1 / my_filters$fhigh
+
+                                ## bat_filters |>
+                                ## filter(site == "Zumaia", proxy == "Lstar") |>
+                                ## select(center,plow,phigh) |>
+                                ## as_vector()
+
+                            ))
   # wanted to customize this but it has already moved on to another subplot by the end
   ## abline(h = my_filters$p, colour = "white")
   ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
+
 
 #+end_src
 
 #+RESULTS:
 [[file:imgs/Sopelana_MS_wavelet.png]]
 
-***** Sopelana Lstar lin_gam_det
+***** Sopelana Lstar lin_scl_fine
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 11:12]
 :END:
@@ -10258,18 +10312,20 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl") |>
-    ## filter(detrend_type == "gam_det") |>
-    filter(detrend_type == "lin_gam_det") |>
+    ## filter(detrend_type == "lin_scl_old") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    ## filter(detrend_type == "lin_scl_coarse") |>
+    ## filter(detrend_type == "gam_scl") |>
+    ## filter(detrend_type == "lin_gam_det") |>
     ## filter(proxy == "MS") |>
     filter(proxy == "Lstar") |>
     ## filter(proxy == "d13C") |>
     ## filter(site == "Zumaia") |>
     filter(site == "Sopelana") |>
     select(depth, value) |>
-    WaverideR::analyze_wavelet(lowerPeriod = .4,
+    WaverideR::analyze_wavelet(lowerPeriod = 2,
                                upperPeriod = 30,
-                               omega_nr = 8,
+                               omega_nr = 10,
                                ## verbose = TRUE
                                ) |>
       WaverideR::plot_wavelet(plot_dir = FALSE,
@@ -10279,12 +10335,21 @@ The filter intervals are perhaps not so good for Sopelana?
                             add_avg = TRUE,
                             add_MTM = TRUE,
                             add_MTM_peaks = TRUE,
-                            add_abline_h = c(my_filters$p, 1 / my_filters$flow, 1 / my_filters$fhigh)
-                            )
+                            add_abline_h =
+                              c(
+
+                                my_filters$p,
+                                1 / my_filters$flow, 1 / my_filters$fhigh
+
+                                ## bat_filters |>
+                                ## filter(site == "Zumaia", proxy == "Lstar") |>
+                                ## select(center,plow,phigh) |>
+                                ## as_vector()
+
+                            ))
   # wanted to customize this but it has already moved on to another subplot by the end
   ## abline(h = my_filters$p, colour = "white")
   ## abline(h = c(1 / my_filters$flow, 1 / my_filters$fhigh), colour = "gray")
-
 #+end_src
 
 #+RESULTS:
