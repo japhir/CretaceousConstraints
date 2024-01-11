@@ -17,6 +17,7 @@ wrap_age_model <- function(data,
                            astronomical_solution = sln,
                            tiepoint_uncertainty = seq(-4, 4, .5),
                            proxy_phase = 1,
+                           eccentricity_weights = c(1, 1),
                            max_error_range = 2.5,
                            RMSD_threshold = 0.005,
                            genplot = FALSE,
@@ -37,7 +38,7 @@ wrap_age_model <- function(data,
     }
   }
 
-  valid_outputs <- c("default", "details", "plot", "full")
+  valid_outputs <- c("default", "details", "matched", "plot", "full")
   # validate user inputs
   if (!output %in% valid_outputs) {
     cli::cli_abort(c(
@@ -98,16 +99,6 @@ wrap_age_model <- function(data,
   }
   # end input validation
 
-  # filter the astronomical solution
-  astronomical_solution_filters <- astronomical_solution |>
-    bandpass_filter(frequencies = my_filt_age |>
-                      filter(target != "23 kyr"),
-                    x = age, y = ecc) |>
-    mutate(filter = scale(filter)[, 1], .by = target) |>
-    pivot_wider(id_cols = age,
-                values_from = filter,
-                names_from = target)
-
   # make sure to fully initialize the whole output dataframe
   # this will make looping less slow
   the_best_summary <- agemodel |>
@@ -115,16 +106,19 @@ wrap_age_model <- function(data,
     select(all_of(c("sol", "n", "strat_bot", "age"))) |>
     mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
            RMSD_cum = NA_real_,
-           RMSD_cum_405 = NA_real_,
-           RMSD_cum_100 = NA_real_) # best RMSD score for full record
+           ## RMSD_cum_405 = NA_real_,
+           ## RMSD_cum_100 = NA_real_
+           ) # best RMSD score for full record
 
   the_best <- the_best_summary |>
-    select(-tie_err, -RMSD_cum, -RMSD_cum_405, -RMSD_cum_100) |>
+    select(-tie_err, -RMSD_cum, ## -RMSD_cum_405, -RMSD_cum_100
+           ) |>
     mutate(
       optimal = list(tibble(error = tiepoint_uncertainty,
                             RMSD_tie = NA_real_,
-                            RMSD_tie_405 = NA_real_,
-                            RMSD_tie_100 = NA_real_))
+                            ## RMSD_tie_405 = NA_real_,
+                            ## RMSD_tie_100 = NA_real_
+                            ))
     ) |>
     unnest(cols = c(optimal))
 
@@ -170,111 +164,25 @@ wrap_age_model <- function(data,
                           x = age, y = value, add_depth = TRUE)
 
         ecc <- flt |>
-          # TODO: pass in different weights, previously comb.
           construct_eccentricity(id_cols = c(depth, age, value),
                                  f = filter,
                                  # I'm now forcing sign = 1 here!
-                                 sign = 1, weights = c(1, 1)) |>
-          # note that scaling occurs after
-          mutate(`405 kyr` = scale(`405 kyr`)[, 1],
-                 `100 kyr` = scale(`100 kyr`)[, 1])
+                                 sign = 1,
+                                 weights = eccentricity_weights)
 
         esd <- ecc |>
           # linearly interpolate the astronomical solution eccentricity
           mutate(
-            ecc_sln_405 = approx(astronomical_solution_filters$age,
-                                 astronomical_solution_filters$`405 kyr`,
-                                 xout = age)$y,
-            ecc_sln_100 = approx(astronomical_solution_filters$age,
-                                 astronomical_solution_filters$`100 kyr`,
-                                 xout = age)$y,
             ecc_sln = approx(astronomical_solution$age,
                              astronomical_solution$scl,
                              xout = age)$y) |>
           # calculate SD between ecc and ecc_sol
-          mutate(
-            SD_405 = (proxy_phase * `405 kyr` - ecc_sln_405)^2,
-            SD_100 = (proxy_phase * `100 kyr` - ecc_sln_100)^2,
-            SD = (proxy_phase * ecc - ecc_sln)^2)
+          mutate(SD = (proxy_phase * ecc - ecc_sln)^2)
 
         # DEBUG
         ## if (8 == tiepoint) {
         ##   browser()
         ## }
-
-        ## # DEBUG FIGS
-        ## (
-        ##   esd |>
-        ##   ggplot(aes(x = age * 1e-3,
-        ##              y = value)) +
-        ##   scale_x_reverse() +
-        ##   geom_vline(xintercept = am$age * 1e-3) +
-        ##     geom_line(colour = "skyblue") +
-        ##     labs(title = "MS")
-        ##   ## geom_line(aes(y = ecc_sln), colour = "purple")
-        ## ) / (
-        ##   esd |>
-        ##   ggplot(aes(x = age * 1e-3,
-        ##              y = proxy_phase * ecc)) +
-        ##   scale_x_reverse() +
-        ##   geom_vline(xintercept = am$age * 1e-3) +
-        ##   geom_line(aes(y = ecc_sln), colour = "purple") +
-        ##   geom_line(colour = "cyan", linewidth = 1.4)
-        ## ) / (
-        ## # DEBUG plot 405 kyr filters
-        ##   esd |>
-        ##   ggplot(aes(x = age * 1e-3,
-        ##              y = proxy_phase * `405 kyr`)) +
-        ##   scale_x_reverse() +
-        ##   geom_vline(xintercept = am$age * 1e-3) +
-        ##   geom_line(aes(y = ecc_sln_405), colour = "purple") +
-        ##   geom_line(colour = "cyan", linewidth = 1.4)
-        ## ) / (
-        ## # DEBUG plot 100 kyr filters
-        ## esd |>
-        ##   ggplot(aes(x = age * 1e-3,
-        ##              y = proxy_phase * `100 kyr`)) +
-        ##   scale_x_reverse() +
-        ##   geom_vline(xintercept = am$age * 1e-3) +
-        ##   geom_line(aes(y = ecc_sln_100), colour = "purple") +
-        ##   geom_line(colour = "cyan", linewidth = 1.4)
-        ## ) +
-        ##   plot_layout(axes = "collect") & labs(x = "Age (Ma)", y = "Filtered proxy")
-
-        # annotate which depth tiepoints were originally closest to the am.
-        ## geom_point(data = \(x)
-        ##            x |>
-        ##              filter(
-        ##                near(depth, am$depth[[1]],
-        ##                     tol = 3) |
-        ##                  near(depth, am$depth[[2]],
-        ##                       tol = 1) |
-        ##                  near(depth, am$depth[[3]],
-        ##                       tol = 0.5) |
-        ##                  near(depth, am$depth[[4]],
-        ##                       tol = 1) |
-        ##                  near(depth, am$depth[[5]],
-        ##                       tol = 1) |
-        ##                  near(depth, am$depth[[6]],
-        ##                       tol = 1) |
-        ##                  near(depth, am$depth[[7]],
-        ##                       tol = 1) |
-        ##                  near(depth, am$depth[[8]],
-        ##                       tol = 1) |
-        ##                  near(depth, am$depth[[9]],
-        ##                       tol = 0.5) |
-        ##                  near(depth, am$depth[[10]],
-        ##                       tol = .2) |
-        ##                  near(depth, am$depth[[11]],
-        ##                       tol = .2) |
-        ##                  near(depth, am$depth[[12]],
-        ##                       tol = .2) |
-        ##                  near(depth, am$depth[[13]],
-        ##                       tol = .2) |
-        ##                  near(depth, am$depth[[14]],
-        ##                       tol = .2) #|
-        ##                     ),
-        ##            colour = "red")
 
         # summarize into RMSD
         smy <- esd |>
@@ -289,13 +197,9 @@ wrap_age_model <- function(data,
         # e.g. pull.
         the_best$RMSD_tie[the_best$n == tiepoint &
                             the_best$error == error] <- smy$RMSD
-        the_best$RMSD_tie_405[the_best$n == tiepoint &
-                                the_best$error == error] <- smy$RMSD_405
-        the_best$RMSD_tie_100[the_best$n == tiepoint &
-                                the_best$error == error] <- smy$RMSD_100
 
         # before esd goes out scop!
-        if (output == "full") {
+        if (c("full", "matched") %in% output) {
           if (tiepoint == last(tiepoints) &&
                 error == last(tiepoint_uncertainty))
             full_record <- esd
@@ -315,17 +219,17 @@ wrap_age_model <- function(data,
       bst <- min(tb$RMSD_tie)
 
       # if the difference between the best and 0 error is small
-      if (bst > tb$RMSD_tie[tb$error == 0] - RMSD_threshold) {
-        # just use the tiepoint from the field.
-        bst <- tb$RMSD_tie[tb$error == 0]
+      if (RMSD_threshold != 0) {
+        if (bst > tb$RMSD_tie[tb$error == 0] - RMSD_threshold) {
+          # just use the tiepoint from the field.
+          bst <- tb$RMSD_tie[tb$error == 0]
+        }
       }
       tb <- tb[tb$RMSD_tie == bst, ]
 
       # append the best result
       the_best_summary$tie_err[the_best_summary$n == tiepoint] <- tb$error
       the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <- tb$RMSD_tie
-      the_best_summary$RMSD_cum_405[the_best_summary$n == tiepoint] <- tb$RMSD_tie_405
-      the_best_summary$RMSD_cum_100[the_best_summary$n == tiepoint] <- tb$RMSD_tie_100
 
       # DEBUG
       ## if (8 == tiepoint) {
@@ -364,11 +268,16 @@ wrap_age_model <- function(data,
   if (output == "details") {
     return(the_best)
   }
+  if (output == "matched") {
+    return(full_record)
+  }
   if (output == "plot") {
     return(pl)
   }
   if (output == "full") {
-    return(list(summary = the_best_summary, details = the_best,
-                full = full_record, plot = pl))
+    return(list(summary = the_best_summary,
+                details = the_best,
+                matched = full_record,
+                plot = pl))
   }
 } # end function definition
