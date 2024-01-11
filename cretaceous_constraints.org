@@ -11221,16 +11221,19 @@ I don't like this and it also doesn't preserve depth anymore.
   ## smooth_ages |>
   filts_age |>
     filter(detrend_type != "value") |>
+    filter(proxy == "MS", sol == "ZB18a") |>
+    filter(detrend_type == "lin_scl") |>
     filter(target != "prec") |>
     ## mutate(det = scale(value)[, 1], .by = c(site, proxy)) |>
     ggplot(aes(x = age / 1e3, y = value, colour = detrend_type)) +
+    scale_x_reverse() +
     facet_grid(rows = vars(proxy, sol),
                scales = "free", space = "free_x") +
     # agemodel tie-points
     geom_vline(aes(xintercept = age / 1e3), alpha = .3, data = agem_sol) +
 
     # record
-    geom_line(aes(group = paste(detrend_type, site)), alpha = .2) +
+    geom_line(aes(group = paste(detrend_type, site)), alpha = 1) +
     # filters
     geom_line(aes(y = filter + as.integer(as.factor(target)),
                   group = paste(detrend_type, site, target))) +
