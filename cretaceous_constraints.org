@@ -9355,16 +9355,18 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
 :END:
-#+begin_src R :exports none :results none
+#+begin_src R :results none
   smooth_all <- smooth_basic |>
     mutate(scl = scale(value)[, 1], .before = gam_pred, .by = c(proxy, site)) |>
     rename(gam_scl = det) |>
     # add old linear detrend
     tidylog::left_join(
                smooth |> # just changed to new linear detrend!
-               rename(lin_gam_pred = gam_pred,
-                      lin_gam = gam,
-                      lin_gam_det = det)) |>
+               rename(
+                 lin_scl_old = lin_scl,
+                 lin_gam_pred = gam_pred,
+                 lin_gam = gam,
+                 lin_gam_scl = det)) |>
     # add new linear detrend
     tidylog::left_join(
                smooth_2 |>
@@ -9380,18 +9382,71 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                       lin_coarse = lin,
                       lin_scl_coarse = lin_scl)) |>
     ## bind_rows(smooth_hp) |>
-    pivot_longer(c(value, scl, lin, lin_gam, lin_fine, lin_coarse, lin_scl, lin_scl_fine, lin_scl_coarse, gam_scl, lin_pred, lin_pred_fine, lin_pred_coarse, lin_gam_pred, lin_gam_det),
-                 names_to = "detrend_type", values_to = "value") #|>
-    ## ggplot(aes(x = depth, y = value, colour = preprocess_type, group = paste(proxy, site, preprocess_type))) + geom_line() +
-    ## facet_grid(rows = vars(proxy), scales = "free_y")
+    pivot_longer(c(value, scl, lin, lin_gam, lin_fine, lin_coarse, lin_scl_old, lin_scl_fine, lin_scl_coarse, gam_scl, gam_pred, lin_pred, lin_pred_fine, lin_pred_coarse, lin_gam_pred, lin_gam_scl),
+                 names_to = "detrend_type", values_to = "value") |>
+    # append the lowpass filter
+    bind_rows(
+      smooth_hp |>
+      select(proxy, site, depth = depth_linterp, value = lowpass) |>
+      mutate(detrend_type = "lowpass")
+    ) |>
+    # which is subtracted to calculate the highpass
+    bind_rows(
+      smooth_hp |>
+      select(proxy, site, depth = depth_linterp, value = highpass) |>
+      mutate(detrend_type = "highpass")
+    )
+#+end_src
+**** create a quick plot of all the detrend types
+:PROPERTIES:
+:CREATED:  [2024-01-11 Thu 10:47]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300
+  smooth_all |>
+    arrange(detrend_type) |>
+    filter(!detrend_type %in%
+           c("lin", "lin_coarse", "lin_fine", "lin_gam",
+             "lin_gam_scl", "lin_gam_pred", "lin_gam_scl")) |>
+    ggplot(aes(x = depth, y = value, colour = detrend_type,
+               group = paste(proxy, site, detrend_type))) +
+    facet_grid(rows = vars(proxy), cols = vars(site),
+               scales = "free", space = "free_x") +
+    scale_x_reverse(breaks = seq(0, 200, 10), minor_breaks = seq(0, 200, 2)) +
+    geom_vline(aes(xintercept = strat_bot), data = agem_simple) +
+    geom_line()
+#+end_src
 
+#+RESULTS:
+[[file:imgs/Zumaia-Sopelana_detrend_types_all.png]]
+
+**** create smooth_pred, a subset with only detrend types we care about
+:PROPERTIES:
+:CREATED:  [2024-01-11 Thu 10:48]
+:END:
+#+begin_src R
   smooth_pred <- smooth_all |>
-    tidylog::filter(detrend_type %in% c("value", "scl",
-                               "lin_scl", "lin_scl_fine", "lin_scl_coarse",
-                               "gam_scl"#, ## "lin_gam_det"
-                               ))
+
+    tidylog::filter(detrend_type %in%
+                    c("value", "scl",
+                      "lin_scl_old", "lin_scl_fine", "lin_scl_coarse",
+                      "gam_scl"#, ## "lin_gam_det"
+                      ))
   smooth_pred |> distinct(detrend_type)
 #+end_src
+
+#+RESULTS:
+#+begin_example
+filter: removed 52,378 rows (67%), 26,232 rows remaining
+# A tibble: 6 × 1
+  detrend_type
+  <chr>
+1 value
+2 scl
+3 lin_scl_old
+4 lin_scl_fine
+5 lin_scl_coarse
+6 gam_scl
+#+end_example
 
 **** show how the linear/gam detrending works
 :PROPERTIES:
@@ -9444,17 +9499,17 @@ we make this plot with the raw results because it gives us more control but more
              size = 2, hjust = 1) +
     geom_line(aes(y = lin_scl - 35), colour = "gray",
               data = smooth_2 |> filter(site == "Zumaia", proxy == prx)) +
-    annotate("text", x = xnot, y = -35, label = "lin_scl_2",
+    annotate("text", x = xnot, y = -35, label = "lin_scl_fine",
              size = 2, hjust = 1) +
     geom_line(aes(y = lin_scl - 40), colour = "gray",
               data = smooth_3 |> filter(site == "Zumaia", proxy == prx)) +
-    annotate("text", x = xnot, y = -40, label = "lin_scl_3",
+    annotate("text", x = xnot, y = -40, label = "lin_scl_coarse",
              size = 2, hjust = 1) +
     # TEMP
 
     # scale(value - gam_pred) = det
     geom_line(aes(y = scale(value - gam_pred)[, 1] - 10), colour = "gray") +
-    annotate("text", x = xnot, y = -10, label = "gam_det = scale(value-gam)",
+    annotate("text", x = xnot, y = -10, label = "gam_scl = scale(value-gam)",
              size = 2, hjust = 1) +
     # scale(value - gam_pred - lin_gam) = det
     ## geom_line(aes(y = det - 15), colour = "gray") +
@@ -9487,11 +9542,11 @@ we make this plot with the raw results because it gives us more control but more
               linewidth = 1.2, alpha = .6,
               data = smooth |>
                 filter(site == "Zumaia", proxy == prx)) +
-    geom_line(aes(y = lin_pred, colour = "lin_2", group = colour),
+    geom_line(aes(y = lin_pred, colour = "lin_fine", group = colour),
               linewidth = 1.2,alpha = .6,
               data = smooth_2 |>
                 filter(site == "Zumaia", proxy == prx)) +
-    geom_line(aes(y = lin_pred, colour = "lin_3", group = colour),
+    geom_line(aes(y = lin_pred, colour = "lin_coarse", group = colour),
               linewidth = 1.2,alpha = .6,
               data = smooth_3 |>
                 filter(site == "Zumaia", proxy == prx)) +
