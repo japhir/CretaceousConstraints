@@ -11400,10 +11400,15 @@ I don't like this and it also doesn't preserve depth anymore.
   data_ecc_age <- filts_age |>
     mutate(
       fracs = list(tribble( ~ comb, ~ s405, ~ s100,
-                          "1:1", 1, 1,
-                          "0.5:1", 0.5, 1,
-                          "1:0.5", 1, 0.5## ,
-                          ## "1:0.2", 1, 0.2 # this outperforms the others but is silly
+                           "1:0", 1, 0,
+                           "1:0.25", 1, 0.25,
+                           "1:0.5", 1, 0.5,
+                           "1:0.75", 1, 0.75,
+                           "1:1", 1, 1,
+                           "0.25:1", 0.25, 1,
+                           "0.5:1", 0.5, 1,
+                           "0.75:1", 0.75, 1,
+                           "0:1", 0, 1
                           )),
       # the phase relationships for the different proxies
       sign_405 = case_when(proxy == "d13C" ~ -1,
@@ -11591,26 +11596,30 @@ For which time periods is the construction doing well and where is it failing?
 # ℹ Use `print(n = ...)` to see more rows
 #+end_example
 
-#+begin_src R :results output graphics file :file imgs/Zumaia-RMSD-scores.png :width 2400 :height 1200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia-RMSD-scores.png :width 2600 :height 1900 :res 300
   msd_age |>
-    # richard doesn't like Hilbert transform, too sensitive numerically!
-    ## filter(filt_env != "hilbert") |>
+    filter(site == "Zumaia") |>
+    ## filter(proxy == "Lstar") |>
+    mutate(comb = factor(comb, levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                                          "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
     ggplot(aes(x = sol, y = RMSD,
                colour = detrend_type,
-               shape = comb, linetype = comb)) +
-    facet_grid(cols = vars(site, #filt_env
-                           ), rows = vars(proxy)) +
-    scale_linetype_manual(values = c("1:1" = "solid",
-                                     "1:0.5" = "dashed",
-                                     "0.5:1" = "dotted")) +
+               ## shape = comb,
+               ## linetype = comb
+               # TODO: visualize new combs I made
+               )) +
+    labs(x = "Astronomical solution", title = "Only 405 vs. Only 100") +
+    facet_grid(cols = vars(comb), rows = vars(proxy)) +
+    theme(axis.text.x = element_text(angle = 90, size = 7)) +
+    ## scale_linetype_manual(values = c("1:1" = "solid",
+    ##                                  "1:0.5" = "dashed",
+    ##                                  "0.5:1" = "dotted")) +
     geom_point(size = 2) +
-    geom_line(aes(group = paste(comb, detrend_type## , filt_env
-                                ))) +
-    labs(x = "Astronomical solution")
+    geom_line(aes(group = paste(comb, detrend_type)))
 #+end_src
 
 #+attr_latex: :width \textwidth
-#+caption: Overview plot of RMSD scores by applying the 405 kyr minima age model from the field (no tie-point uncertainty). Colours represent ~detrend_type~ (see cref:tab:detrend_types for explanation), point shapes/lines represent different proportions of the 405 kyr component and the 100 kyr component. Horizontal groups consist of sites Sopelana (older) and Zumaia (younger). Vertical groups are proxy.
+#+caption: Overview plot of RMSD scores by applying the 405 kyr minima age model from the field (no tie-point uncertainty). Colours represent ~detrend_type~ (see cref:tab:detrend_types for explanation), columns represent different proportions of the 405 kyr component and the 100 kyr component. Rows are proxy types.
 #+RESULTS:
 [[file:imgs/Zumaia-RMSD-scores.png]]
 
@@ -12900,6 +12909,8 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 :CREATED:  [2023-11-22 Wed 13:42]
 :END:
 :LOGBOOK:
+- Note taken on [2024-01-11 Thu 17:35] \\
+  new ways of linear detrending. Ran up to variable tie-points.
 - Note taken on [2024-01-02 Tue 14:19] \\
   added ZB20b--d solutions
 - Note taken on [2023-12-19 Tue 16:28] \\
