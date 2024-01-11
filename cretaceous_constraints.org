@@ -9311,39 +9311,18 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
   smooth_2 <- comp |>
     # just cut the record into 10 meter slices
     mutate(colour = findInterval(depth, c(-50, 0, 15.2, 32.8, 42.75, 58.8, 80, 91.3, 109.26, 123.2, 131.8, 160))) |>
-    # just subtract a mean value for each colour? = a flat line
-    ## mutate(mean_colour = mean(value), .by = c(site, proxy, colour)) |>
-    ## mutate(dec = value - mean_colour) |>
-    # first calculate a lm for each slice of colour interval
+    # first calculate a lm for each slice
     nest(.by = c(proxy, site, colour)) |>
-    # fit a line through each white/red interval
+    # fit a line through each interval
     mutate(
       lim = map(data, ~ lm(value ~ depth, data = .x)),
       # predict the value for each depth
       lin_pred = map(lim, predict)) |>
     select(-lim) |>
     unnest(c(data, lin_pred)) |>
-    mutate(lin = value - lin_pred) |>
-    nest(.by = c(proxy, site)) |>
-    # fit a generalized additive models with integrated smoothness estimation
-    mutate(
-      gamm = map(data,
-                 # could also do local polynomial regression fit?
-                 ## ~ loess(dec ~ depth, data = ., span = .9)
-                 # but gam is more robust, less parameters to choose.
-                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
-                             method = "REML",
-                             data = .)),
-      # make predictions for the gam model for each depth
-      gam_pred = map(gamm, \(x) x |> predict() |> as.vector()),
-    ) |>
-    select(-gamm) |>
-    unnest(cols = c(data, gam_pred)) |>
-    mutate(
-      lin_scl = scale(lin)[, 1],
-      gam = lin - gam_pred,
-      det = scale(gam)[, 1],
-      .by = c(proxy, site))
+    mutate(lin = value - lin_pred,
+           lin_scl = scale(lin)[, 1],
+           .by = c(proxy, site))
 #+end_src
 
 #+RESULTS:
@@ -9354,11 +9333,8 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :END:
 #+begin_src R :exports none
   smooth_3 <- comp |>
-    # just cut the record into 10 meter slices
+    # just cut the record into slices
     mutate(colour = findInterval(depth, c(-50, 0, 58.8, 109.26, 142))) |>
-    # just subtract a mean value for each colour? = a flat line
-    ## mutate(mean_colour = mean(value), .by = c(site, proxy, colour)) |>
-    ## mutate(dec = value - mean_colour) |>
     # first calculate a lm for each slice of colour interval
     nest(.by = c(proxy, site, colour)) |>
     # fit a line through each white/red interval
@@ -9368,27 +9344,9 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
       lin_pred = map(lim, predict)) |>
     select(-lim) |>
     unnest(c(data, lin_pred)) |>
-    mutate(lin = value - lin_pred) |>
-    nest(.by = c(proxy, site)) |>
-    # fit a generalized additive models with integrated smoothness estimation
-    mutate(
-      gamm = map(data,
-                 # could also do local polynomial regression fit?
-                 ## ~ loess(dec ~ depth, data = ., span = .9)
-                 # but gam is more robust, less parameters to choose.
-                 ~ mgcv::gam(lin ~ s(depth, bs = "cs"),
-                             method = "REML",
-                             data = .)),
-      # make predictions for the gam model for each depth
-      gam_pred = map(gamm, \(x) x |> predict() |> as.vector()),
-    ) |>
-    select(-gamm) |>
-    unnest(cols = c(data, gam_pred)) |>
-    mutate(
-      lin_scl = scale(lin)[, 1],
-      gam = lin - gam_pred,
-      det = scale(gam)[, 1],
-      .by = c(proxy, site))
+    mutate(lin = value - lin_pred,
+           lin_scl = scale(lin)[, 1],
+           .by = c(proxy, site))
 #+end_src
 
 #+RESULTS:
@@ -9397,34 +9355,43 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
 :END:
-#+begin_src R :exports none
+#+begin_src R :exports none :results none
   smooth_all <- smooth_basic |>
     mutate(scl = scale(value)[, 1], .before = gam_pred, .by = c(proxy, site)) |>
-    rename(gam_det = det) |>
+    rename(gam_scl = det) |>
+    # add old linear detrend
     tidylog::left_join(
-               smooth_2 |> # just changed to new linear detrend!
+               smooth |> # just changed to new linear detrend!
                rename(lin_gam_pred = gam_pred,
                       lin_gam = gam,
                       lin_gam_det = det)) |>
+    # add new linear detrend
+    tidylog::left_join(
+               smooth_2 |>
+               select(-colour) |>
+               rename(lin_pred_fine = lin_pred,
+                      lin_fine = lin,
+                      lin_scl_fine = lin_scl)) |>
+    # add another linear detrend
+    tidylog::left_join(
+               smooth_3 |>
+               select(-colour) |>
+               rename(lin_pred_coarse = lin_pred,
+                      lin_coarse = lin,
+                      lin_scl_coarse = lin_scl)) |>
     ## bind_rows(smooth_hp) |>
-    pivot_longer(c(value, scl, lin_scl, gam_pred, gam_det, lin_pred, lin_gam_pred, lin_gam_det),
+    pivot_longer(c(value, scl, lin, lin_gam, lin_fine, lin_coarse, lin_scl, lin_scl_fine, lin_scl_coarse, gam_scl, lin_pred, lin_pred_fine, lin_pred_coarse, lin_gam_pred, lin_gam_det),
                  names_to = "detrend_type", values_to = "value") #|>
     ## ggplot(aes(x = depth, y = value, colour = preprocess_type, group = paste(proxy, site, preprocess_type))) + geom_line() +
     ## facet_grid(rows = vars(proxy), scales = "free_y")
 
   smooth_pred <- smooth_all |>
-    filter(detrend_type %in% c("value", "scl", "lin_scl", "gam_det"#, ## "lin_gam_det"
+    tidylog::filter(detrend_type %in% c("value", "scl",
+                               "lin_scl", "lin_scl_fine", "lin_scl_coarse",
+                               "gam_scl"#, ## "lin_gam_det"
                                ))
+  smooth_pred |> distinct(detrend_type)
 #+end_src
-
-#+RESULTS:
-: Joining with `by = join_by(proxy, site, depth, value, comment)`
-: left_join: added 7 columns (colour, lin_pred, lin, lin_gam_pred, lin_scl, …)
-: rows only in x       0
-: rows only in y  (    0)
-: matched rows     4,372
-:                 =======
-: rows total       4,372
 
 **** show how the linear/gam detrending works
 :PROPERTIES:
