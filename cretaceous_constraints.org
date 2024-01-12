@@ -12269,7 +12269,13 @@ whew, total of 1:26 hours! :O
 #+begin_src R
   rolling_age_optim <-
     #read_rds("out/2023-12-22_rolling_age_optim_1-1_details.rds")
-    read_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
+    ## read_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
+    bind_rows(
+      # new algorithm, all of lin_scl_fine
+      read_rds("out/2024-01-12_rolling_age_optim_full.rds"),
+      # some alternative detrend_types for a subset of runs
+      read_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds"),
+    )
 #+end_src
 
 #+RESULTS:
@@ -12281,40 +12287,35 @@ whew, total of 1:26 hours! :O
 #+begin_src R
   best_age_optim <- rolling_age_optim |>
     # calculate depth, probably need this later?
-    mutate(
-      the_best = map(the_best,
-                     \(b) b |>
-                          mutate(depth = strat_bot + error))) |>
-    ## for each n, filter out the best.
-    ## this is what I could further optimize
-    mutate(bst = map(the_best,
-                     \(x) x |>
-                          filter(RMSD_tie == min(RMSD_tie),
-                                 .by = c(n, sol)))) |>
     ## pull out the best RMSD score for each
-    mutate(RMSD_start = map_dbl(bst,
-                          \(x) x |>
-                               arrange(rev(RMSD_tie)) |>
+    mutate(RMSD_start = map_dbl(the_best,
+                          \(x) x$summary |>
+                               arrange(rev(RMSD_cum)) |>
                                slice(1) |>
-                               pull(RMSD_tie))) |>
-    mutate(RMSD = map_dbl(bst,
-                          \(x) x |>
-                               arrange(RMSD_tie) |>
+                               pull(RMSD_cum))) |>
+    mutate(RMSD = map_dbl(the_best,
+                          \(x) x$summary |>
+                               arrange(RMSD_cum) |>
                                slice(1) |>
-                               pull(RMSD_tie)))
+                               pull(RMSD_cum)))
 #+end_src
 
 #+RESULTS:
 
-improvement after optimization
-#+begin_src R :results output graphics file :file imgs/rolling_improvement.png :width 2400 :height 1700 :res 300
+improvement after optimization after algorithm revision
+#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 1700 :res 300
   my_dodge <- position_dodge(width = .7)
 
   best_age_optim |>
-    ggplot(aes(x = sol, y = RMSD, colour = detrend_type)) +
-    facet_grid(rows = vars(proxy), cols = vars(site)) +
+    filter(site == "Zumaia") |>
+    mutate(comb = factor(comb, levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                                          "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+    ggplot(aes(x = sol, y = RMSD)) +
+    labs(x = "Astronomical solution") +
+    facet_grid(rows = vars(proxy), cols = vars(site, comb)) +
+    theme(axis.text.x = element_text(angle = 90, size = 7)) +
     geom_point(aes(y = RMSD_start), position = my_dodge) +
-    geom_point(aes(fill = detrend_type), shape = 25, #size = 2,
+    geom_point(fill = "black", shape = 25, #size = 2,
                position = my_dodge) +
     geom_line(aes(y = RMSD_start, group = paste(site, detrend_type)),
               position = my_dodge) +
@@ -12327,7 +12328,7 @@ improvement after optimization
 #+end_src
 
 #+RESULTS:
-[[file:imgs/rolling_improvement.png]]
+[[file:imgs/new_rolling_improvement.png]]
 
 **** compare overall RMSD scores
 :PROPERTIES:
