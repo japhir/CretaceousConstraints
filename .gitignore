@@ -30,3 +30,7 @@ out/*.rds
 asreview/*
 .Rhistory
 /man/*.Rd
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto

@@ -2,11 +2,10 @@ Package: AstronomicalSolutions
 Title: Find best astronomical solution.
 Version: 0.0.0.9000
 Authors@R:
-    person("Ilja", "Kocken", , "i.j.kocken@uu.nl", role = c("aut", "cre"),
+    person("Ilja", "Kocken", , "ikocken@hawaii.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-2196-8718"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Description: TODO.
+License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
