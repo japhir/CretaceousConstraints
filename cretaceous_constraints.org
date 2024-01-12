@@ -11860,13 +11860,6 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 #+end_src
 
 #+RESULTS:
-***** figure of the heart of the matching algorithm
-:PROPERTIES:
-:CREATED:  [2024-01-10 Wed 16:01]
-:END:
-[[file:imgs/Zumaia_Lstar_filter_matching.png]]
-
-[[file:imgs/Zumaia_MS_filter_matching.png]]
 ***** NEXT Zumaia tests
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 16:17]
@@ -12192,8 +12185,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 #+begin_src R :eval never
   ## devtools::build()
   ## devtools::install() # MUST install locally for furrr to work
-  ## devtools::load_all() # ok that still didn't work, doing it the dumb way
-  source("R/wrap_age_model.R")
+  devtools::load_all() # ok that still didn't work, doing it the dumb way
+  ## source("R/wrap_age_model.R")
   plan(multisession, workers = 4) # set up 4 cores
   message("current time: ", lubridate::now())
   mw <- function(d, s, s405, s100, sign) {
@@ -12307,7 +12300,7 @@ about 16 minutes.
 
 #+RESULTS:
 
-improvement after optimization after algorithm revision
+**** plot improvement after optimization after algorithm revision
 #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 3400 :height 1700 :res 300
 
   best_age_optim |>
@@ -12332,7 +12325,7 @@ improvement after optimization after algorithm revision
 #+RESULTS:
 [[file:imgs/new_rolling_improvement.png]]
 
-**** compare overall RMSD scores
+**** COMMENT compare overall RMSD scores
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 15:39]
 :END:
@@ -12423,7 +12416,7 @@ improvement after optimization after algorithm revision
 #+RESULTS:
 [[file:imgs/rolling_age_vs_strat_bot.png]]
 
-**** plot best fits RMSD evolution vs depth
+**** COMMENT plot best fits RMSD evolution vs depth
 :PROPERTIES:
 :CREATED:  [2023-12-13 Wed 15:15]
 :END:
@@ -12460,7 +12453,7 @@ improvement after optimization after algorithm revision
 #+RESULTS:
 [[file:imgs/best_age_details_tiepoint_uncertainty.png]]
 
-**** make a figure of the best records vs depth
+**** COMMENT make a figure of the best records vs depth
 :PROPERTIES:
 :CREATED:  [2023-12-09 Sat 00:02]
 :END:
@@ -12527,7 +12520,7 @@ improvement after optimization after algorithm revision
 #+RESULTS:
 [[file:imgs/rolling_age_best_records_depth.png]]
 
-**** get the data vs time
+**** COMMENT get the data vs time
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 14:16]
 :END:
@@ -12552,7 +12545,7 @@ improvement after optimization after algorithm revision
 
 #+RESULTS:
 
-**** best records against age
+**** COMMENT best records against age
 #+begin_src R :results output graphics file :file imgs/rolling_age_best_records.png :width 2400 :height 2200 :res 300
   smooth_optim_age |>
     tidylog::filter(RMSD == min(RMSD), .by = c(proxy, site, sol)) |>
@@ -12825,7 +12818,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 #+RESULTS:
 [[file:imgs/Zumaia_MS_eha.png]]
 
-**** calculate bandpass filters in the time domain
+**** COMMENT calculate bandpass filters in the time domain
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:16]
 :END:
@@ -12835,7 +12828,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
                     nest = c("proxy", "site", "detrend_type", "sol"))
 #+end_src
 
-**** plot the filtered records with the data
+**** COMMENT plot the filtered records with the data
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:18]
 :END:
@@ -12889,6 +12882,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions.png :width 2400 :height 2000 :res 300
   best_age_optim |>
     filter(site == "Zumaia", proxy == "Lstar", comb == "1:1") |>
+    ## filter(detrend_type == "lin_scl_fine") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
     ggplot(aes(x = age * 1e-3, y = -ecc, colour = detrend_type)) +
@@ -12992,6 +12986,8 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 :CREATED:  [2023-11-22 Wed 13:42]
 :END:
 :LOGBOOK:
+- Note taken on [2024-01-12 Fri 17:08] \\
+  run the full variable tiepoints analysis with the new detrended record
 - Note taken on [2024-01-11 Thu 17:35] \\
   new ways of linear detrending. Ran up to variable tie-points.
 - Note taken on [2024-01-02 Tue 14:19] \\
