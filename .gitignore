@@ -34,3 +34,4 @@ asreview/*
 .httr-oauth
 .DS_Store
 .quarto
+/backup-of-RData-before-refactor
