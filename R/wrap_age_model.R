@@ -1,15 +1,27 @@
 #' Wrap Age Model
 #'
-#' @param data data.frame(). The data must contain columns `depth`, `ecc`, and `Ma405`.
-#' @param agemodel data.frame() The agemodel must contain columns `sol`, `n`, `strat_bot`, and `age`.
-#' @param astronomical_solution data.frame() The astronomical solution to calculate RMSD scores against. Must have column `sln`, `age`, and `scl`.
-#' @param tiepoint_uncertainty Numeric vector of tiepoint uncertainty variations to try out in same units as data$depth.
-#' @param proxy_phase Factor by which to multiply the scaled and filtered signal to make it in-phase with the orbital forcing.
-#' @param max_error_range In case the tiepoint_uncertainty is large, this limits which values are used to find the best value.
-#' @param RMSD_threshold If the difference in RMSD is less than this value, just use the error = 0 value.
-#' @param genplot logical(1) Whether or not to generate a plot of the RMSD scores for each tiepoint uncertainty.
-#' @param output character(1) Which output do you want the function to return? See details.
-#'
+#' @param data data.frame(). The data must contain columns `depth`, `ecc`, and
+#'   `Ma405`.
+#' @param agemodel data.frame() The agemodel must contain columns `sol`, `n`,
+#'   `strat_bot`, and `age`.
+#' @param astronomical_solution data.frame() The astronomical solution to
+#'   calculate RMSD scores against. Must have column `sln`, `age`, and `scl`.
+#' @param tiepoint_uncertainty Numeric vector of tiepoint uncertainty
+#'   variations to try out in same units as data$depth.
+#' @param proxy_phase Factor by which to multiply the scaled and filtered
+#'   signal to make it in-phase with the orbital forcing.
+#' @param eccentricity_weights Weights for the 405 kyr and 100 kyr filter when
+#'   creating the 'eccentricity' curve.
+#' @param max_error_range In case the tiepoint_uncertainty is large, this
+#'   limits which values are used to find the best value.
+#' @param RMSD_threshold If the difference in RMSD is less than this value,
+#'   just use the error = 0 value.
+#' @param genplot logical(1) Whether or not to generate a plot of the RMSD
+#'   scores for each tiepoint uncertainty.
+#' @param output character(1) Which output do you want the function to return?
+#'   See details.
+#' @return Depends on the output parameter. Either a dataframe, a ggplot
+#'   object, or a list of dataframes.
 #' @details Output must be one of `"default"`, `"details"`, `"plot"`,
 #'   `"matched"`, or `"full"`.
 #' @export

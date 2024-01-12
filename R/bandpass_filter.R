@@ -1,10 +1,12 @@
 #' Bandpass filter
 #'
-#' @param data data.frame()
-#' @param frequencies data.frame() with columns `target`, `flow`, and `fhigh`.
-#'   Can contain multiple rows for multiple frequency filtering.
-#' @param x Column name in `data` that holds the depth/age information.
-#' @param y Column name in `data` that holds the proxy variable name.
+##' @param data data.frame()
+##' @param frequencies data.frame() with columns `target`, `flow`, and `fhigh`.
+##'   Can contain multiple rows for multiple frequency filtering.
+##' @param x Column name in `data` that holds the depth/age information.
+##' @param y Column name in `data` that holds the proxy variable name.
+##' @param add_depth Logical(1) Add depth back in if x is age?
+##' @export
 bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
