@@ -10,8 +10,9 @@
 #' @param genplot logical(1) Whether or not to generate a plot of the RMSD scores for each tiepoint uncertainty.
 #' @param output character(1) Which output do you want the function to return? See details.
 #'
-#' @details
-#' Output must be one of `"default"`, `"details"`, `"plot"`, or `"full"`.
+#' @details Output must be one of `"default"`, `"details"`, `"plot"`,
+#'   `"matched"`, or `"full"`.
+#' @export
 wrap_age_model <- function(data,
                            agemodel,
                            astronomical_solution = sln,
@@ -75,8 +76,8 @@ wrap_age_model <- function(data,
     ))
   }
 
-  if (output == "plot" & !genplot) {
-    cli::cli_inform("{.var output} = {.q plot}, setting {.var genplot} = {.q TRUE}")
+  if (output %in% c("plot", "full") && !genplot) {
+    cli::cli_inform("{.var output} is either {.q plot} or {.q full}, setting {.var genplot} = {.q TRUE}")
     genplot <- TRUE
   }
 
@@ -250,7 +251,9 @@ wrap_age_model <- function(data,
       geom_point(aes(x = strat_bot + tie_err, y = RMSD_cum),
                  colour = "red", size = 3,
                  data = the_best_summary)
-    print(pl)
+    if (output != "full") {
+      print(pl)
+    }
   }
 
   if (output == "default") {
