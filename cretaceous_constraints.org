@@ -11906,34 +11906,15 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
   ## tst1 <-
   ##   read_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
 
-  # create a plot of the tiepoint shifts
-  (
-  tst1$plot +
-    coord_cartesian(xlim = c(150, 0)) +
-    geom_vline(xintercept = agem_sol[agem_sol$sol == "ZB18a" & agem_sol$site == "Zumaia", ]$strat_bot)
-  ) / (
-  tst1$matched |>
-    ggplot(aes(depth, -ecc)) +
-    scale_x_reverse("Depth (m)") +
-    coord_cartesian(xlim = c(150, 0)) +
-    geom_vline(xintercept = agem_sol[agem_sol$sol == "ZB18a" & agem_sol$site == "Zumaia", ]$strat_bot) +
-    geom_line() +
-    geom_line(aes(y = ecc_sln), colour = "gold")
-  ) / (
-  tst1$matched |>
-    ggplot(aes(age * 1e-3, -ecc)) +
-    coord_cartesian(xlim = c(69.9, 65.9)) +
-    scale_x_reverse("Age (Ma)") +
-    geom_vline(xintercept = agem_sol[agem_sol$sol == "ZB18a" & agem_sol$site == "Zumaia", ]$age * 1e-3) +
-    geom_line(aes(y = scale(filter)[, 1], colour = sln),
-             data = sln_filters |>
-               filter(age > 66e3 & age <= 70e3) |>
-               filter(target == "405 kyr")) +
-    geom_line(aes(y = ecc_sln), linewidth = 2, colour = "gold") +
-    geom_line(linewidth = 2)
-  ) + plot_layout(axes = "collect")
+  ## tst1 <- rolling_age_optim$the_best[[1]]
+  ## tst1 <- rolling_age_optim$the_best[[2]]
+  ## tst1 <- rolling_age_optim$the_best[[3]]
+#+end_src
 
 
+#+RESULTS:
+
+#+begin_src R
   tst1$full |>
     select(-SD, -SD_405, -SD_100) |>
     pivot_longer(c(value, ecc_sln,
@@ -12155,71 +12136,119 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 
 #+RESULTS:
 
+**** [#B] plot_wrap_output
+:PROPERTIES:
+:CREATED:  [2024-01-12 Fri 13:56]
+:END:
+#+begin_src R
+  #' Plot the full output of wrap_age_model
+  #'
+  #' @param data List. Output of `wrap_age_model(output = "full")`.
+  #' @param sol Character(1) Name of the Astronomical solution.
+  #' @param site Character(1) Name of the site.
+  #' @param sign Real(1) Vector to multiply the 405+100 kyr filter by.
+  plot_wrap_output <- function(data, sol, site, sign) {
+  (
+    data$plot +
+    labs(colour = "Tiepoint", title = paste(sol, site)) +
+    coord_cartesian(xlim = c(150, 0)) +
+    geom_vline(xintercept = agem_sol[agem_sol$sol == sol & agem_sol$site == site, ]$strat_bot)
+  ) / (
+    data$matched |>
+    ggplot(aes(depth, ecc)) +
+    scale_x_reverse("Depth (m)") +
+    labs(y = "Normalized filter & Solution") +
+    coord_cartesian(xlim = c(150, 0)) +
+    geom_vline(xintercept = agem_sol[agem_sol$sol == sol & agem_sol$site == site, ]$strat_bot) +
+    ## geom_line(aes(y = ecc_sln), linewidth = 2, colour = "gold") +
+    geom_line(aes(y = value), colour = "gray") +
+    geom_line(linewidth = 2, alpha = .8)
+  ) / (
+    data$matched |>
+    ggplot(aes(age * 1e-3, sign * ecc)) +
+    coord_cartesian(xlim = c(69.9, 65.9)) +
+    scale_x_reverse("Age (Ma)") +
+    labs(y = "Normalized filter & Solution") +
+    geom_vline(xintercept = agem_sol[agem_sol$sol == sol & agem_sol$site == site, ]$age * 1e-3) +
+    geom_line(aes(y = ecc_sln), linewidth = 2, colour = "gold") +
+    ## geom_line(aes(y = scale(filter)[, 1]),
+    ##           colour = "gold3", linewidth = 2,
+    ##           data = sln_filters |>
+    ##             filter(sln == sol) |>
+    ##             filter(age > 65.7e3 & age <= 70e3) |>
+    ##             filter(target == "405 kyr")) +
+    geom_line(linewidth = 2, alpha = .8)
+  ) +
+    plot_layout(axes = "collect")
+  }
+#+end_src
+
+#+RESULTS:
+
 **** apply age model to selection of best results
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 14:47]
 :END:
-This is quite slow, so we ran it in little batches, spanning a couple of hours of computation overall.
-
-it's swapping quite hard, so maybe I should write the intermediate outputs?
 #+begin_src R :eval never
+  ## devtools::build()
+  ## devtools::install() # MUST install locally for furrr to work
+  ## devtools::load_all() # ok that still didn't work, doing it the dumb way
+  source("R/wrap_age_model.R")
+  plan(multisession, workers = 4) # set up 4 cores
   message("current time: ", lubridate::now())
+  mw <- function(d, s, s405, s100, sign) {
+    d |>
+      wrap_age_model(
+        agemodel = agem_sol |> filter(sol == s),
+        astronomical_solution = slns |> filter(sln == s),
+        proxy_phase = sign,
+               tiepoint_uncertainty =
+                 c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
+                   0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
+        eccentricity_weights = c(s405, s100),
+        max_error_range = 1.6, # ~ 10% of 16m cycle
+        RMSD_threshold = 0.005,
+        genplot = TRUE,
+        output = "full")
+  }
   rolling_age_optim <-
-    ## data_ecc |>
-    data_ecc_age |> # I use age because it already has sol's
-    # TODO: I think it currently doesn't take 1:1 as an argument!!!
-    filter(comb == "1:1") |>
-    ## filter(comb == "1:1") |>
-    # this gives me 100 sims!
+    data_ecc_age |> # I use age because it already has sol's and combs etc.
+    ## filter(detrend_type == "lin_scl_fine") |> # the first full run!
+    filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
+           proxy == "Lstar", site == "Zumaia", comb == "1:1") |>
+    # this gives me 300 sims!
     nest(.by = c(proxy, site,
-                 detrend_type, comb, ## filt_env,
-                 sol
-                 )) |>
-      ## slice(1:3) |>
-    ## filter(filt_env != "hilbert") |>
-    ## filter(detrend_type == "lin_gam_det") |> # I already did these
-    ## filter(detrend_type != "lin_gam_det") |> # I already did these
-    ## filter(detrend_type %in% c("lin_gam_det", "lin_scl")) |> # I already did these
-    ## filter(!detrend_type %in% c("lin_gam_det", "lin_scl")) |> # I already did these
-    ## filter(comb == "1:0.5") |>
-    ## filter(comb != "1:0.5") |> # did this one, now doing lin_gam_det and lin_scl
-    ## mutate(the_best = map2(
-    ##          .x = data, .y = sol,
-    ##          .f = ~ .x |> wrap_age_model(
-    ##                         agemodel = agem_sol |> filter(sol == .y),
-    ##                         astronomical_solution = slns |> filter(sln == .y),
-    ##                         ## tiepoint_uncertainty = ,
-    ##                         # default -4, 4, .5
-    ##                         ## output = "details"
-    ##                         )))
-    mutate(the_best = furrr::future_map2(
-                               .x = data, .y = sol,
-                               .f = ~ .x |> wrap_age_model(
-                                     agemodel = agem_sol |> filter(sol == .y),
-                                     astronomical_solution = slns |> filter(sln == .y),
-                                     ## tiepoint_uncertainty = ,
-                                     # default -4, 4, .5
-                                     output = "details"
-                                     ),
-                               .progress = TRUE
-                             )) |>
+                 detrend_type, sol, comb,
+                 s405, s100,
+                 sign_405, sign_100)) |>
+    ## slice(1:3) |>
+    mutate(the_best = furrr::future_pmap(
+             .l = list(d = data, s = sol, s405 = s405, s100 = s100, sign = sign_405),
+             .f = mw,
+             .progress = TRUE)) |>
     select(-data) |>
     ## write_rds("out/2023-12-08_rolling_age_optim.rds") # only lin_gam_det (hilbert, 1:0.5), 20 rows
     ## write_rds("out/2023-12-08_rolling_age_optim_nld.rds") # remainder of detrend_type (no lin_gam_det, only hilbert, 1:0.5), 80 additional rows
     ## write_rds("out/2023-12-08_rolling_age_optim_combs.rds") # some additional combs
     ## write_rds("out/2023-12-08_rolling_age_optim_combs2.rds") # some additional combs
     ## write_rds("out/2023-12-22_rolling_age_optim_1-1_details.rds") # after refactor
-    write_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
+    ## write_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
+    ## write_rds("out/2024-01-12_rolling_age_optim_full.rds") # after making it a package
+    write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds") # after making it a package
   message("current time: ", lubridate::now())
 #+end_src
 current time: 2023-12-22 22:26:18.565137
- Progress: ───────────────────────────────────────────────── 100%
- > current time: 2023-12-22 22:49:15.228392
+current time: 2023-12-22 22:49:15.228392
 ah so ~23 minutes total!
 
-
 current time: 2024-01-02 15:28:17.623498
- Progress: ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 100%> current time: 2024-01-02 15:59:42.869229
+current time: 2024-01-02 15:59:42.869229
+
+
+current time: 2024-01-12 11:49:01.819418
+current time: 2024-01-12 13:15:41.2829
+this is 300 rows rather than 100, and saves way more results. so might be quite a bit slower/bigger.
+whew, total of 1:26 hours! :O
 
 **** load cached results
 :PROPERTIES:
