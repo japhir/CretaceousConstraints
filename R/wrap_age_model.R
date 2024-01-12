@@ -37,6 +37,12 @@ wrap_age_model <- function(data,
       ))
     }
   }
+  if (nrow(data) == 0) {
+    cli::cli_abort(c(
+      "{.var data} must contain at least one row.",
+      "x" = "{.var data} contains 0 rows."
+    ))
+  }
 
   valid_outputs <- c("default", "details", "matched", "plot", "full")
   # validate user inputs
