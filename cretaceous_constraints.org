@@ -11822,7 +11822,8 @@ This algorithm will be a bit slower, since it has to do bandpass filtering for e
 # it's useful to write to separate file, because then the debugger will jump from line to line :)
 # so we can tangle it to there and then source
 
-***** new approach after talking to Luc
+***** CANC new approach after talking to Luc
+CLOSED: [2024-01-12 Fri 09:44]
 :PROPERTIES:
 :CREATED:  [2024-01-09 Tue 16:28]
 :END:
@@ -11879,38 +11880,59 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
   ## debug(wrap_age_model)
   tst1 <- data_ecc_age |>
     filter(
-      proxy == "MS",
-      detrend_type == "lin_scl",
+      proxy == "Lstar",
+      detrend_type == "lin_scl_fine",
       site == "Zumaia",
-      depth <= 115, # note sedrate switch from 17 m to 12 m.
-      comb == "1:1", sol == "ZB18a") |>
+      ## depth <= 115, # note sedrate switch from 17 m to 12 m.
+      comb == "1:0", # this doesn't deterimine it, I construct ecc below anyway.
+      sol == "ZB18a") |>
     wrap_age_model(
       agemodel = agem_sol |> filter(sol == "ZB18a"),
       astronomical_solution = slns |> filter(sln == "ZB18a"),
-      proxy_phase = 1, # -1 for Lstar and d13C, +1 for MS
+      proxy_phase = -1, # -1 for Lstar and d13C, +1 for MS
+      eccentricity_weights = c(1, 0.5),
       tiepoint_uncertainty = #seq(-20, 20, 0.5),
         c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
           0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
-      max_error_range = 1.6, # 10% of 16 m 405 kyr cycle
-      RMSD_threshold = 0.0, #0.005,
+      max_error_range = 4, #1.6, # 10% of 16 m 405 kyr cycle
+      RMSD_threshold = 0.005,
       genplot = TRUE, output = "full")
 
   ## tst1 |>
     ## write_rds("out/tst1_lin-scl_MS_ZB18a.rds")
     ## write_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
+  ## tst1 <-
+  ##   read_rds("out/tst1_lin-scl_MS_ZB18a.rds")
+  ## tst1 <-
+  ##   read_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
 
-  tst1 <-
-    read_rds("out/tst1_lin-scl_MS_ZB18a.rds")
-  tst1 <-
-    read_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
-
+  # create a plot of the tiepoint shifts
+  (
   tst1$plot +
-    scale_linetype_manual(values = c("ecc construct" = "solid",
-                                     "405 kyr" = "dashed",
-                                     "100 kyr" = "dotted")) +
-    aes(linetype =  "ecc construct") +
-    geom_line(aes(y = RMSD_tie_405, group = n, linetype = "405 kyr")) +
-    geom_line(aes(y = RMSD_tie_100, group = n, linetype = "100 kyr"))
+    coord_cartesian(xlim = c(150, 0)) +
+    geom_vline(xintercept = agem_sol[agem_sol$sol == "ZB18a" & agem_sol$site == "Zumaia", ]$strat_bot)
+  ) / (
+  tst1$matched |>
+    ggplot(aes(depth, -ecc)) +
+    scale_x_reverse("Depth (m)") +
+    coord_cartesian(xlim = c(150, 0)) +
+    geom_vline(xintercept = agem_sol[agem_sol$sol == "ZB18a" & agem_sol$site == "Zumaia", ]$strat_bot) +
+    geom_line() +
+    geom_line(aes(y = ecc_sln), colour = "gold")
+  ) / (
+  tst1$matched |>
+    ggplot(aes(age * 1e-3, -ecc)) +
+    coord_cartesian(xlim = c(69.9, 65.9)) +
+    scale_x_reverse("Age (Ma)") +
+    geom_vline(xintercept = agem_sol[agem_sol$sol == "ZB18a" & agem_sol$site == "Zumaia", ]$age * 1e-3) +
+    geom_line(aes(y = scale(filter)[, 1], colour = sln),
+             data = sln_filters |>
+               filter(age > 66e3 & age <= 70e3) |>
+               filter(target == "405 kyr")) +
+    geom_line(aes(y = ecc_sln), linewidth = 2, colour = "gold") +
+    geom_line(linewidth = 2)
+  ) + plot_layout(axes = "collect")
+
 
   tst1$full |>
     select(-SD, -SD_405, -SD_100) |>
