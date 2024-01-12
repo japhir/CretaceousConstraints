@@ -12880,6 +12880,29 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_ecc_after_optim.png]]
 
+**** simplified plot of matched records and solutions
+:PROPERTIES:
+:CREATED:  [2024-01-12 Fri 15:22]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions.png :width 2400 :height 2000 :res 300
+  best_age_optim |>
+    filter(site == "Zumaia", proxy == "Lstar", comb == "1:1") |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = age * 1e-3, y = -ecc)) +
+    labs(x = "Age (Ma)", y = "Norm. Filter & Solution") +
+    scale_x_reverse() +
+    scale_y_continuous(breaks = c(-4, -2, 0, 2, 4)) +
+    facet_grid(rows = vars(sol)) +
+    geom_line(aes(y = ecc_sln), colour = "gold3", linewidth = 1) +
+    geom_line() +
+    geom_text(aes(x = 65.8, y = 0, label = round(RMSD, 3)),
+              data = \(x) distinct(x, RMSD, sol))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Lstar_1-1_solutions.png]]
+
 **** [9/11] tasks
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:52]
