@@ -12185,7 +12185,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 
 #+RESULTS:
 
-**** apply age model to selection of best results
+**** [#B] wrap_age_model for all
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 14:47]
 :END:
@@ -12243,18 +12243,23 @@ ah so ~23 minutes total!
 
 current time: 2024-01-02 15:28:17.623498
 current time: 2024-01-02 15:59:42.869229
-
+~31 minutes
 
 current time: 2024-01-12 11:49:01.819418
 current time: 2024-01-12 13:15:41.2829
 this is 300 rows rather than 100, and saves way more results. so might be quite a bit slower/bigger.
 whew, total of 1:26 hours! :O
 
+new run with only 21 rows, different detrend_types for Zumaia Lstar comb 1:1 for all solutions.
+current time: 2024-01-12 15:31:47.010587
+current time: 2024-01-12 15:47:51.137767
+about 16 minutes.
+
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
 :END:
-#+begin_src R
+#+begin_src R :eval never
   # I ran this in some smaller batches in order of importance
   rolling_age_optim_old <- bind_rows(
     read_rds("out/2023-12-08_rolling_age_optim.rds"),
@@ -12303,28 +12308,25 @@ whew, total of 1:26 hours! :O
 #+RESULTS:
 
 improvement after optimization after algorithm revision
-#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 1700 :res 300
-  my_dodge <- position_dodge(width = .7)
+#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 3400 :height 1700 :res 300
 
   best_age_optim |>
     filter(site == "Zumaia") |>
+    ## filter(site == "Zumaia", comb == "1:1", proxy == "Lstar") |>
     mutate(comb = factor(comb, levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
                                           "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-    ggplot(aes(x = sol, y = RMSD)) +
-    labs(x = "Astronomical solution") +
+    ggplot(aes(x = sol, y = RMSD, colour = detrend_type)) +
+    labs(x = "Astronomical solution", shape = "Age model") +
     facet_grid(rows = vars(proxy), cols = vars(site, comb)) +
     theme(axis.text.x = element_text(angle = 90, size = 7)) +
-    geom_point(aes(y = RMSD_start), position = my_dodge) +
-    geom_point(fill = "black", shape = 25, #size = 2,
-               position = my_dodge) +
-    geom_line(aes(y = RMSD_start, group = paste(site, detrend_type)),
-              position = my_dodge) +
-    geom_line(aes(x = sol, y = RMSD, group = paste(site, detrend_type)),
-              position = my_dodge) +
+    scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
+    geom_point(aes(y = RMSD_start, shape = "Field")) +
+    geom_point(aes(fill = detrend_type, shape = "Optimized")) +
+    geom_line(aes(y = RMSD_start, group = paste(site, detrend_type))) +
+    geom_line(aes(x = sol, y = RMSD, group = paste(site, detrend_type))) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
     geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
-                   alpha = .2,
-                   position = my_dodge)
+                   alpha = .2)
 #+end_src
 
 #+RESULTS:
@@ -12889,15 +12891,21 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
     filter(site == "Zumaia", proxy == "Lstar", comb == "1:1") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
-    ggplot(aes(x = age * 1e-3, y = -ecc)) +
+    ggplot(aes(x = age * 1e-3, y = -ecc, colour = detrend_type)) +
     labs(x = "Age (Ma)", y = "Norm. Filter & Solution") +
-    scale_x_reverse() +
+    theme(legend.pos = c(.64, .864),
+          legend.direction = "horizontal") +
+    scale_x_reverse(breaks = seq(80, 50, -1),
+                    minor_breaks = seq(80, 50, -0.1)) +
     scale_y_continuous(breaks = c(-4, -2, 0, 2, 4)) +
     facet_grid(rows = vars(sol)) +
-    geom_line(aes(y = ecc_sln), colour = "gold3", linewidth = 1) +
+    geom_line(aes(y = ecc_sln), colour = "gold4", linewidth = 1) +
     geom_line() +
-    geom_text(aes(x = 65.8, y = 0, label = round(RMSD, 3)),
-              data = \(x) distinct(x, RMSD, sol))
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+    geom_text(aes(x = 66.3, y = 4, label = round(RMSD, 3)),
+              size = 2,
+              position = position_dodge(width = .7),
+              data = \(x) distinct(x, RMSD, sol, detrend_type))
 #+end_src
 
 #+RESULTS:
