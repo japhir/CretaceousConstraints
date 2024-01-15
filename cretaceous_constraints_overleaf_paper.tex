@@ -26,6 +26,7 @@
 
 \newcommand{\rez}{\textcolor{magenta}}
 % I'll use this to highlight sections that I want to focus your attention on!
+% I liked violet best, but might be hard to distinguish quickly from magenta...
 \newcommand{\ijk}{\textcolor{violet}}
 
 % normally I strongly prefer biblatex, but the AGU template uses only \cite,
@@ -292,23 +293,30 @@ We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements.
 
 \subsection{Removing Long-Term Trends}\label{sec:detrend}
 
-We have used various ways of getting rid of long-term trends in the record.
+We have used various ways of removing long-term trends in the record to allow
+for bandpass-filtering the \qtylist{405;100}{\kiloyear} cycles.
 This is important because there are some significant shifts in the lithology
-that could potentially hamper spectral analysis. The effect of these long-term
-shifts on bandpass-filtering are limited.
+that could potentially hamper spectral analysis.
+Below is an overview of several of the strategies employed to remove these
+long-term non-cyclic trends.
+We limit the effect these trends have on our results by applying bandpass
+filtering only in the time-domain, after applying the age model from the field
+(\cref{sec:algorithm}).
 
 \begin{table}[htbp]
-  \caption{\label{tab:detrend_types}The different detrend methods to remove
-    long-term trends prior to spectral analysis.}
+\caption{\label{tab:detrend_types}The different detrend methods to remove long-term trends prior to spectral analysis.}
 \centering
 \begin{tabular}{ll}
-  name & method\\
+  name & method\\[0pt]
   \hline
-  \texttt{value} & The raw value. Often I still remove a linear trend from the spectral analysis call.\\
-  \texttt{scl} & The scaled (or normalized = mean subtracted, divided by standard deviation) value.\\
-  \texttt{lin\_scl} & Remove linear trends from red/white intervals separately, then scale the result.\\
-  \texttt{gam\_det} & Subtract a gam from the value, then scale the result.\\
-  \texttt{lin\_gam\_det} & First do \texttt{lin\_scl} from above, then do \texttt{gam\_det}.\\
+  \texttt{value} & The raw value. Often I still remove a linear trend from the spectral analysis call.\\[0pt]
+  \texttt{scl} & The scaled (or normalized = mean subtracted, divided by standard deviation) value.\\[0pt]
+  \texttt{lin\_scl\_rw} & Remove linear trends from red/white intervals separately, then scale the result. I think I chose wrong intervals for this so have removed it.\\[0pt]
+  \texttt{lin\_scl\_coarse} & Chop the record into three (33--59 m) pieces based on broad scale visual trends in L*, and detrend linearly.\\[0pt]
+  \texttt{lin\_scl\_fine} & Chop the record into smaller (\textasciitilde{}9--21 m) pieces based on visual trends in L*, and detrend linearly.\\[0pt]
+  \texttt{gam\_scl} & Subtract a gam from the value, then scale the result.\\[0pt]
+  \texttt{lin\_gam\_scl} & First do \texttt{lin\_scl} from above, then do \texttt{gam\_det}. This is excessive so I removed it from the analysis.\\[0pt]
+  \texttt{hp\_scl} & Subtract a lowpass filter from the value, then scale the result.\\[0pt]
 \end{tabular}
 \end{table}
 
@@ -318,72 +326,24 @@ shifts on bandpass-filtering are limited.
   \caption{\label{fig:detrend}Zumaia and Sopelana trend removal using various
     strategies (coloured lines). See \cref{tab:detrend_types} for an overview.
     Bottom gray lines show results of these long-term detrending strategies
-    with offsets incremented by \num{-5}. The highpass was constructed by
-    subtracting a lowpass filter with a frequency of
-    \qty{0.035}{cycles\per\metre} (period of \qty{28.57}{\metre}) from the raw
-    data, and then scaling the result.}
+    with offsets incremented by \num{-5}.}
 \end{figure}
-
-\ijk{
-
-  I've just added \cref{fig:highpass,fig:highpass-spec}.
-
-  Ok, perhaps the \texttt{gam} did eat up some of the spectral power of the 405
-  kyr range. Visually, it looks similar to the highpass-filter where the filter
-  frequency is identical to or very close to the lower bound of the 405 kyr
-  bandpass filter. But in the spectrum we see some of the power in the 405 kyr
-  range going down more in the gam than in any of the highpass filters.
-
-  I'll continue the analysis with the 0.025 = 40 m highpass filter.
-
-  What do you think?
-
-}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_highpass.png}
-  \caption{\label{fig:highpass}Zumaia and Sopelana lowpass filters compared to
-    the gam and the 405 kyr bandpass filter (coloured lines) plotted on top of
-    the raw data (gray lines). The goal here is to see if the gam slices off
-    too much of the 405 kyr signal. We can also use this to figure out which
-    lowpass filter we like best.
-  }
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{Zumaia-Sopelana_lowpass_spectra.png}
-  \caption{\label{fig:highpass-spec}Frequency of records after highpass
-    filtering (subtracting a lowpass filter with the target frequency in the
-    legend, then scaling). Vertical colored lines indicate the frequency at
-    which the lowpass filter was set. }
-\end{figure}
-% \texttt{value} Use the proxy value as reported in the original study. This
-% does not exclude linear interpolation, demeaning (subtracting the mean) and
-% detrending (subtracting a linear fit for the whole record) for certain
-% spectral analysis tools.
-
-% \texttt{scl} Subtracting the mean and dividing by the standard deviation
-% results in a normalized or scaled value.
-
-% \texttt{gam\_det} A gam is a generalized additive model with integrated
-% smoothness estimation. We fit this smooth curve and then subtract it from the
-% original proxy value.
-
-% \texttt{lin\_scl} We fit a linear model for each of the red, white, and
-% orange intervals separately. Then we subtract these models from the raw proxy
-% value to get a detrended result.
-
-% \texttt{lin\_gam\_det}
-% First remove linear trends, then fit a gam to results and subtract that.
 
 \subsection{Spectral Analysis and Filtering}\label{sec:spectral}
+
 Various methods for spectral analysis were performed.
 
-FFT, Blackman-Tukey, Lomb-Scargle, MTM, MTLS.
+Here we compute and show the
+periodogram (fast Fourier transform, FFT),
+% Blackman-Tukey (BT),
+% Lomb-Scargle (LS),
+the multi-taper method (MTM),
+and
+the multi-taper averaged Lomb-Scargle periodogram of (un)evenly spaced data
+(MTLS)
+to illustrate the sensitivity of the spectral analysis to the analysis tool used.
 
-Bandpass filters targetting the \qtylist{405;100}{\kiloyear} cycles.
+We use bandpass filters targetting the \qtylist{405;100}{\kiloyear} cycles.
 
 \subsection{Finding the Best Fit}
 
@@ -402,7 +362,6 @@ interpolated to the same timesteps as the data, and the \gls{RMSD} is
 calculated. It then loops through all tiepoints and all tiepoint uncertainties
 to find the overall best fit to the astronomical solution.
 
-
 \begin{enumerate}
 \item apply the agemodel from the field to the detrended record
 \item for the youngest 405 kyr tiepoint
@@ -410,13 +369,13 @@ to find the overall best fit to the astronomical solution.
   \item for each tiepoint depth error
     \begin{enumerate}
     \item apply the new age model to the record
-    \item apply a 405 and 100 kyr filter (based on general depth filter ranges
-      determined before)
+    \item apply a 405 and 100 kyr filter in the time domain
     \item compute ``eccentricity'' construct by combining the normalized
       filters
-    \item interpolate orbital solution to the record's timesteps
-    \item calculate SD for each timestep
-    \item calculate RMSD
+    \item interpolate astronomical solution to the record's timesteps
+    \item calculate the squared difference between our construct and the
+      astronomical solution for each timestep
+    \item for the entire solution, calculate the root mean square deviation (RMSD).
     \end{enumerate}
   \item filter out the lowest RMSD score, get the best tie\_error for this 405
     kyr minimum
@@ -424,12 +383,7 @@ to find the overall best fit to the astronomical solution.
 \item move on to next youngest 405 kyr minimum and repeat from step 2.
 \end{enumerate}
 
-This function now takes about \qty{30.6}{\second} to run when I compare a
-single Zumaia MS record against a single astronomical solution. That's fast
-enough for now.
-
 \textbf{TODO:} Mathify this explanation?
-
 
 
 
@@ -437,13 +391,17 @@ enough for now.
 \section{Results}\label{sec:results}
 
 \begin{figure}[htb]
-  \centering \includegraphics[width=1.2\textwidth]{rolling_improvement.png}
-  \caption{\label{fig:rolling-improvement} Improvement of the RMSD scores after
-    applying the rolling agemodel tiepoint uncertainty. See
+  \centering \includegraphics[width=1.2\textwidth]{new_rolling_improvement.png}
+  \caption{\label{fig:rolling-improvement} \textbf{RMSD scores for the
+      different astronomical solutions and proxies for Zumaia.} Results after
+    applying the age model from the field \cite{Batenburg2012;Batenburg2014}
+    (circles) and after optimising the tie-points by adjusting them by
+    up to \qty{1.6}{\metre} and finding the optimum (see \cref{sec:algorithm}).
+    Horizontal panels show different combinations of the \qty{405}{\kiloyear}
+    filter and the \qty{100}{\kiloyear} filter (see text). Vertical panels show
+    different proxies. Detrend types are indicated with colour. See
     \cref{fig:rolling-rmsd} for a simplified version showing only the improved
-    values. Note that the different detrend types have been offset on the
-    x-axis so as to not overlap. \textbf{TODO:} investigate why we still see
-    differences? }
+    values for the base case.}
 \end{figure}
 
 \begin{figure}[htb]
