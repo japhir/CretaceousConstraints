@@ -30,6 +30,9 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
   library(future)    # this is for parallel computing
   library(furrr)     # parallel purrr::map functions
   plan(multisession, workers = 4) # set up 4 cores
+  ## devtools::install_github("https://github.com/jrevenaugh/TSAUMN2")
+  ## library(TSAUMN)    # for some special spectral analysis tools
+  # I also use these functions with TSAUMN::function
   devtools::load_all()
 #+end_src
 
@@ -39,6 +42,7 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
 :header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
 :CUSTOM_ID: sec:shared-code
 :END:
+these have mostly migrated to a development package!
 ** functions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
@@ -8979,14 +8983,16 @@ We have several ways of subtracting the long-term trends prior to doing spectral
 
 #+name: tab:detrend_types
 #+caption: The different detrend methods to remove long-term trends prior to spectral analysis.
-| name        | method                                                                         |
-|-------------+--------------------------------------------------------------------------------|
-| ~value~       | The raw value. Often I still remove a linear trend from the spectral analysis call. |
-| ~scl~         | The scaled (or normalized = mean subtracted, divided by standard deviation) value. |
-| ~lin_scl~     | Remove linear trends from red/white intervals separately, then scale the result. |
-| ~gam_det~     | Subtract a gam from the value, then scale the result.                          |
-| ~lin_gam_det~ | First do ~lin_scl~ from above, then do ~gam_det~.                                  |
-| ~lowpass_det~  | Subtract a lowpass filter from the value, then scale the result.               |
+| name           | method                                                                         |
+|----------------+--------------------------------------------------------------------------------|
+| ~value~          | The raw value. Often I still remove a linear trend from the spectral analysis call. |
+| ~scl~            | The scaled (or normalized = mean subtracted, divided by standard deviation) value. |
+| ~lin_scl_rw~     | Remove linear trends from red/white intervals separately, then scale the result. I think I chose wrong intervals for this so have removed it. |
+| ~lin_scl_coarse~ | Chop the record into three (33--59 m) pieces based on broad scale visual trends in L*, and detrend linearly. |
+| ~lin_scl_fine~   | Chop the record into smaller (~9--21 m) pieces based on visual trends in L*, and detrend linearly. |
+| ~gam_scl~        | Subtract a gam from the value, then scale the result.                          |
+| ~lin_gam_scl~    | First do ~lin_scl~ from above, then do ~gam_det~. This is excessive so I removed it from the analysis. |
+| ~hp_scl~         | Subtract a lowpass filter from the value, then scale the result.               |
 
 **** this just subtracts a gam from the raw data
 :PROPERTIES:
@@ -9369,22 +9375,24 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
   smooth_all <- smooth_basic |>
     mutate(scl = scale(value)[, 1], .before = gam_pred, .by = c(proxy, site)) |>
     rename(gam_scl = det) |>
-    # add old linear detrend
+    # add rw linear detrend
     tidylog::left_join(
                smooth |> # just changed to new linear detrend!
                rename(
-                 lin_scl_old = lin_scl,
+                 lin_scl_rw = lin_scl,
+                 lin_pred_rw = lin_pred,
+                 lin_rw = lin,
                  lin_gam_pred = gam_pred,
                  lin_gam = gam,
                  lin_gam_scl = det)) |>
-    # add new linear detrend
+    # add fine linear detrend
     tidylog::left_join(
                smooth_2 |>
                select(-colour) |>
                rename(lin_pred_fine = lin_pred,
                       lin_fine = lin,
                       lin_scl_fine = lin_scl)) |>
-    # add another linear detrend
+    # add coarse linear detrend
     tidylog::left_join(
                smooth_3 |>
                select(-colour) |>
@@ -9392,30 +9400,31 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                       lin_coarse = lin,
                       lin_scl_coarse = lin_scl)) |>
     ## bind_rows(smooth_hp) |>
-    pivot_longer(c(value, scl, lin, lin_gam, lin_fine, lin_coarse, lin_scl_old, lin_scl_fine, lin_scl_coarse, gam_scl, gam_pred, lin_pred, lin_pred_fine, lin_pred_coarse, lin_gam_pred, lin_gam_scl),
+    pivot_longer(c(value, scl, lin_rw, lin_gam, lin_fine, lin_coarse, lin_scl_rw, lin_scl_fine, lin_scl_coarse, gam_scl, gam_pred, lin_pred_rw, lin_pred_fine, lin_pred_coarse, lin_gam_pred, lin_gam_scl),
                  names_to = "detrend_type", values_to = "value") |>
     # append the lowpass filter
     bind_rows(
       smooth_hp |>
       select(proxy, site, depth = depth_linterp, value = lowpass) |>
-      mutate(detrend_type = "lowpass")
+      mutate(detrend_type = "lp_0.025")
     ) |>
     # which is subtracted to calculate the highpass
     bind_rows(
       smooth_hp |>
       select(proxy, site, depth = depth_linterp, value = highpass) |>
-      mutate(detrend_type = "highpass")
+      mutate(detrend_type = "hp_scl")
     )
 #+end_src
 **** create a quick plot of all the detrend types
 :PROPERTIES:
 :CREATED:  [2024-01-11 Thu 10:47]
 :END:
+this is not easy to customize, so we manually create it below.
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300
   smooth_all |>
     arrange(detrend_type) |>
     filter(!detrend_type %in%
-           c("lin", "lin_coarse", "lin_fine", "lin_gam",
+           c("lin_rw", "lin_coarse", "lin_fine", "lin_gam",
              "lin_gam_scl", "lin_gam_pred", "lin_gam_scl")) |>
     ggplot(aes(x = depth, y = value, colour = detrend_type,
                group = paste(proxy, site, detrend_type))) +
@@ -9435,27 +9444,28 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :END:
 #+begin_src R
   smooth_pred <- smooth_all |>
-
     tidylog::filter(detrend_type %in%
                     c("value", "scl",
-                      "lin_scl_old", "lin_scl_fine", "lin_scl_coarse",
-                      "gam_scl"#, ## "lin_gam_det"
+                      "lin_scl_rw", "lin_scl_fine", "lin_scl_coarse",
+                      "gam_scl", ## "lin_gam_scl"
+                      "hp_scl"
                       ))
   smooth_pred |> distinct(detrend_type)
 #+end_src
 
 #+RESULTS:
 #+begin_example
-filter: removed 52,378 rows (67%), 26,232 rows remaining
-# A tibble: 6 × 1
+filter: removed 48,049 rows (61%), 30,561 rows remaining
+# A tibble: 7 × 1
   detrend_type
   <chr>
 1 value
 2 scl
-3 lin_scl_old
+3 lin_scl_rw
 4 lin_scl_fine
 5 lin_scl_coarse
 6 gam_scl
+7 hp_scl
 #+end_example
 
 **** show how the linear/gam detrending works
@@ -9505,7 +9515,7 @@ we make this plot with the raw results because it gives us more control but more
     ##          size = 2, hjust = 1) +
     # TEMP other linear detrend approaches: results
     geom_line(aes(y = lin_scl - 30), colour = "gray") +
-    annotate("text", x = xnot, y = -30, label = "lin_scl",
+    annotate("text", x = xnot, y = -30, label = "lin_scl_rw",
              size = 2, hjust = 1) +
     geom_line(aes(y = lin_scl - 35), colour = "gray",
               data = smooth_2 |> filter(site == "Zumaia", proxy == prx)) +
@@ -9529,7 +9539,7 @@ we make this plot with the raw results because it gives us more control but more
     geom_line(aes(x = depth_linterp, y = scale(highpass)[,1] - 20), colour = "gray",
               data = smooth_hp |>
                 filter(site == "Zumaia", proxy == prx)) +
-    annotate("text", x = xnot, y = -20, label = "highpass = scale(value-lowpass)",
+    annotate("text", x = xnot, y = -20, label = "hp_scl = scale(value-lowpass)",
              size = 2, hjust = 1) +
 
     # trends: lin, gam, lowpass
@@ -9548,7 +9558,7 @@ we make this plot with the raw results because it gives us more control but more
     ##           data = smooth |>
     ##             filter(site == "Zumaia", proxy == prx)) +
 
-    geom_line(aes(y = lin_pred, colour = "lin", group = colour),
+    geom_line(aes(y = lin_pred, colour = "lin_rw", group = colour),
               linewidth = 1.2, alpha = .6,
               data = smooth |>
                 filter(site == "Zumaia", proxy == prx)) +
@@ -9560,7 +9570,6 @@ we make this plot with the raw results because it gives us more control but more
               linewidth = 1.2,alpha = .6,
               data = smooth_3 |>
                 filter(site == "Zumaia", proxy == prx)) +
-
 
     # filters
     ## geom_line(aes(y = filt, colour = detrend_type, group = target),
@@ -9768,8 +9777,10 @@ we make this plot with the raw results because it gives us more control but more
 - State "SOME"       from              [2023-11-16 Thu 15:01]
 :END:
 #+begin_src R
-  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.bt.R")
-  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/ttools.R")
+  # I had some issues with installing the package before, this is how I
+  # circumvented that. Now I've just installed it as TSAUMN!
+  ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.bt.R")
+  ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/ttools.R")
 
   ## spec_bt <- smooth_pred |>
   ##   filter(proxy == "MS", site == "Zumaia", detrend_type == "value") |>
@@ -9786,7 +9797,7 @@ we make this plot with the raw results because it gives us more control but more
                         select(depth, value) |>
                         astrochron::linterp(dt = .5, genplot = FALSE, verbose = FALSE) |>
                         pull(value) |>
-                        spec.bt(deltat = .5, plot = FALSE))) |>
+                        TSAUMN::spec.bt(deltat = .5, plot = FALSE))) |>
     select(-data) |>
     mutate(freq = map(bt, pluck, "freq"),
            spec = map(bt, pluck, "spec")) |>
@@ -9796,6 +9807,9 @@ we make this plot with the raw results because it gives us more control but more
 #+end_src
 
 #+RESULTS:
+: Registered S3 method overwritten by 'quantmod':
+:   method            from
+:   as.zoo.data.frame zoo
 
 ***** use MTLS on the record
 :PROPERTIES:
@@ -9804,8 +9818,10 @@ we make this plot with the raw results because it gives us more control but more
 MTLS is the Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly spaced data. Available on [[https://github.com/jrevenaugh/TSAUMN2/blob/main/R/spec.mtls.R][the author's GitHub]].
 It's pretty slow.
 #+begin_src R
-  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
-  source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
+  # I had some issues with installing the package before, this is how I
+  # circumvented that. Now I've just installed it as TSAUMN!
+  ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
+  ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
 
   specs_mtls <- smooth_pred |>
     nest(.by = c("proxy", "site", "detrend_type")) |>
@@ -9814,7 +9830,7 @@ It's pretty slow.
                         select(depth, value) |>
                         # NOTE: no need to linearly interpolate!
                         # That's the point!
-                        spec.mtls(plot = FALSE) |>
+                        TSAUMN::spec.mtls(plot = FALSE) |>
                         as_tibble())) |>
     select(-data) |>
     unnest(mtls) |>
@@ -10109,7 +10125,7 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl_old") |>
+    ## filter(detrend_type == "lin_scl_rw") |>
     filter(detrend_type == "lin_scl_fine") |>
     ## filter(detrend_type == "lin_scl_coarse") |>
     ## filter(detrend_type == "gam_scl") |>
@@ -10162,7 +10178,7 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl_old") |>
+    ## filter(detrend_type == "lin_scl_rw") |>
     filter(detrend_type == "lin_scl_fine") |>
     ## filter(detrend_type == "lin_scl_coarse") |>
     ## filter(detrend_type == "gam_scl") |>
@@ -10215,7 +10231,7 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl_old") |>
+    ## filter(detrend_type == "lin_scl_rw") |>
     filter(detrend_type == "lin_scl_fine") |>
     ## filter(detrend_type == "lin_scl_coarse") |>
     ## filter(detrend_type == "gam_scl") |>
@@ -10268,7 +10284,7 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl_old") |>
+    ## filter(detrend_type == "lin_scl_rw") |>
     filter(detrend_type == "lin_scl_fine") |>
     ## filter(detrend_type == "lin_scl_coarse") |>
     ## filter(detrend_type == "gam_scl") |>
@@ -10322,7 +10338,7 @@ The filter intervals are perhaps not so good for Sopelana?
     smooth_pred |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "scl") |>
-    ## filter(detrend_type == "lin_scl_old") |>
+    ## filter(detrend_type == "lin_scl_rw") |>
     filter(detrend_type == "lin_scl_fine") |>
     ## filter(detrend_type == "lin_scl_coarse") |>
     ## filter(detrend_type == "gam_scl") |>
@@ -10397,7 +10413,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+end_src
 
 #+RESULTS:
-: filter: removed 51,948 rows (67%), 25,974 rows remaining
+: filter: removed 60,606 rows (67%), 30,303 rows remaining
 
 **** hilbert transform of the precession bp filter
 :PROPERTIES:
@@ -10423,6 +10439,8 @@ Richard says that the Hilbert transform is useful for visual inspection, but num
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 10:57]
 :END:
+The highpass filter gets rid of a LOT of the signal in all the filters *for d13C*.
+
 #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_records_and_filters_depth.png :width 2700 :height 2400 :res 300
   smooth_pred |>
     filter(detrend_type != "value") |>
@@ -10667,7 +10685,7 @@ Which detrend_type is best?
 #+end_src
 
 #+RESULTS:
-: filter: removed 43,290 rows (67%), 21,645 rows remaining
+: filter: removed 60,606 rows (67%), 30,303 rows remaining
 
 ***** COMMENT plot RMSD directly
 :PROPERTIES:
@@ -10795,44 +10813,43 @@ We only look at Zumaia here though.
 #+name: tab:best-depth
 #+caption: Zumaia records with the lowest RMSD score by proxy and astronomical solution.
 #+RESULTS:
-| proxy | site     | detrend_type |  comb | kpg_age | inv_sedrate | sol   |  RMSD |
-|-------+----------+--------------+-------+---------+-------------+-------+-------|
-| Lstar | Sopelana | lin_gam_det  | 1:0.5 |   66000 |          30 | La10b | 0.938 |
-| Lstar | Zumaia   | lin_gam_det  | 1:0.5 |   65960 |          26 | La10b | 1.081 |
-| Lstar | Sopelana | gam_det      | 1:0.5 |   65920 |          28 | La10c | 0.876 |
-| Lstar | Zumaia   | value        | 1:0.5 |   66000 |        24.5 | La10c | 1.134 |
-| Lstar | Zumaia   | scl          | 1:0.5 |   66000 |        24.5 | La10c | 1.134 |
-| Lstar | Sopelana | gam_det      | 1:0.5 |   66020 |          27 | ZB18a | 0.884 |
-| Lstar | Zumaia   | lin_scl      | 1:0.5 |   65960 |        25.5 | ZB18a | 1.083 |
-| Lstar | Sopelana | lin_gam_det  | 1:0.5 |   66000 |          27 | ZB20a | 0.841 |
-| Lstar | Zumaia   | gam_det      | 1:0.5 |   66020 |          24 | ZB20a | 1.147 |
-| Lstar | Zumaia   | lin_scl      | 1:0.5 |   65920 |          26 | ZB20b | 1.038 |
-| Lstar | Sopelana | lin_gam_det  | 1:0.5 |   66000 |        29.5 | ZB20b | 1.055 |
-| Lstar | Sopelana | lin_gam_det  | 1:0.5 |   65980 |          30 | ZB20c | 1.048 |
-| Lstar | Zumaia   | lin_scl      | 1:0.5 |   65960 |        25.5 | ZB20c | 1.116 |
-| Lstar | Sopelana | gam_det      | 1:0.5 |   65960 |        27.5 | ZB20d | 1.067 |
-| Lstar | Zumaia   | lin_scl      | 1:0.5 |   65960 |        25.5 | ZB20d | 1.198 |
-| MS    | Zumaia   | lin_gam_det  | 1:0.5 |   65960 |          26 | La10b | 1.061 |
-| MS    | Sopelana | lin_scl      | 1:0.5 |   65920 |        30.5 | La10b | 1.145 |
-| MS    | Zumaia   | lin_gam_det  | 1:0.5 |   65960 |        26.5 | La10c | 1.082 |
-| MS    | Sopelana | gam_det      | 1:0.5 |   65940 |        30.5 | La10c | 1.094 |
-| MS    | Zumaia   | lin_scl      | 1:0.5 |   65940 |          26 | ZB18a | 1.104 |
-| MS    | Sopelana | lin_scl      | 1:0.5 |   66020 |          29 | ZB18a | 1.131 |
-| MS    | Sopelana | gam_det      | 1:0.5 |   65980 |        29.5 | ZB20a | 1.066 |
-| MS    | Zumaia   | lin_gam_det  | 1:0.5 |   65920 |          26 | ZB20a | 1.185 |
-| MS    | Zumaia   | lin_gam_det  | 1:0.5 |   65920 |          26 | ZB20b | 1.055 |
-| MS    | Sopelana | value        | 1:0.5 |   65920 |          24 | ZB20b | 1.106 |
-| MS    | Zumaia   | lin_gam_det  | 1:0.5 |   65940 |          26 | ZB20c | 1.138 |
-| MS    | Sopelana | lin_scl      | 1:0.5 |   65940 |        29.5 | ZB20c | 1.157 |
-| MS    | Zumaia   | lin_gam_det  | 1:0.5 |   65940 |          26 | ZB20d | 1.186 |
-| MS    | Sopelana | lin_scl      | 1:0.5 |   65940 |        29.5 | ZB20d | 1.247 |
-| d13C  | Zumaia   | lin_gam_det  | 1:0.5 |   65940 |        26.5 | La10b | 1.099 |
-| d13C  | Zumaia   | gam_det      | 1:0.5 |   66000 |          25 | La10c |  1.08 |
-| d13C  | Zumaia   | gam_det      | 1:0.5 |   65980 |          24 | ZB18a | 1.127 |
-| d13C  | Zumaia   | lin_gam_det  | 1:0.5 |   65920 |          26 | ZB20a | 1.079 |
-| d13C  | Zumaia   | lin_gam_det  | 1:0.5 |   65960 |        25.5 | ZB20b | 1.079 |
-| d13C  | Zumaia   | lin_gam_det  | 1:0.5 |   65920 |        26.5 | ZB20c |  1.13 |
-| d13C  | Zumaia   | gam_det      | 1:0.5 |   65960 |          24 | ZB20d | 1.145 |
+| proxy | site     | detrend_type   |  comb | kpg_age | inv_sedrate | sol   |  RMSD |
+|-------+----------+----------------+-------+---------+-------------+-------+-------|
+| Lstar | Sopelana | lin_scl_fine   | 1:0.5 |   66000 |          30 | La10b | 0.935 |
+| Lstar | Zumaia   | lin_scl_fine   | 1:0.5 |   65980 |        25.5 | La10b | 0.996 |
+| Lstar | Sopelana | gam_scl        | 1:0.5 |   65920 |          28 | La10c | 0.876 |
+| Lstar | Zumaia   | lin_scl_fine   | 1:0.5 |   65960 |        25.5 | La10c | 1.014 |
+| Lstar | Sopelana | gam_scl        | 1:0.5 |   66020 |          27 | ZB18a | 0.884 |
+| Lstar | Zumaia   | lin_scl_rw     | 1:0.5 |   65960 |        25.5 | ZB18a | 1.083 |
+| Lstar | Sopelana | lin_scl_fine   | 1:0.5 |   66000 |          27 | ZB20a | 0.822 |
+| Lstar | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        25.5 | ZB20a | 1.055 |
+| Lstar | Zumaia   | lin_scl_fine   | 1:0.5 |   65940 |        25.5 | ZB20b | 1.017 |
+| Lstar | Sopelana | gam_scl        | 1:0.5 |   66000 |        29.5 | ZB20b | 1.055 |
+| Lstar | Sopelana | lin_scl_fine   | 1:0.5 |   65980 |          30 | ZB20c | 1.012 |
+| Lstar | Zumaia   | lin_scl_fine   | 1:0.5 |   65940 |        25.5 | ZB20c | 1.111 |
+| Lstar | Sopelana | lin_scl_fine   | 1:0.5 |   65980 |          30 | ZB20d | 1.066 |
+| Lstar | Zumaia   | lin_scl_fine   | 1:0.5 |   65940 |        25.5 | ZB20d | 1.156 |
+| MS    | Zumaia   | lin_scl_fine   | 1:0.5 |   65960 |          26 | La10b | 1.024 |
+| MS    | Sopelana | lin_scl_fine   | 1:0.5 |   65920 |        30.5 | La10b | 1.112 |
+| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65960 |        26.5 | La10c | 1.084 |
+| MS    | Sopelana | gam_scl        | 1:0.5 |   65940 |        30.5 | La10c | 1.094 |
+| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65940 |          26 | ZB18a | 1.104 |
+| MS    | Sopelana | lin_scl_fine   | 1:0.5 |   66020 |          29 | ZB18a | 1.111 |
+| MS    | Sopelana | gam_scl        | 1:0.5 |   65980 |        29.5 | ZB20a | 1.066 |
+| MS    | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |          26 | ZB20a | 1.143 |
+| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65920 |          26 | ZB20b | 1.056 |
+| MS    | Sopelana | value          | 1:0.5 |   65920 |          24 | ZB20b | 1.106 |
+| MS    | Sopelana | lin_scl_fine   | 1:0.5 |   65940 |        29.5 | ZB20c | 1.137 |
+| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65940 |          26 | ZB20c |  1.14 |
+| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65940 |          26 | ZB20d | 1.187 |
+| MS    | Sopelana | lin_scl_fine   | 1:0.5 |   66020 |          29 | ZB20d | 1.221 |
+| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | La10b | 1.052 |
+| d13C  | Zumaia   | lin_scl_coarse | 1:0.5 |   66000 |          25 | La10c | 1.068 |
+| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | ZB18a | 1.113 |
+| d13C  | Zumaia   | lin_scl_coarse | 1:0.5 |   65980 |          25 | ZB20a | 1.067 |
+| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |          26 | ZB20b | 1.061 |
+| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | ZB20c | 1.113 |
+| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | ZB20d | 1.136 |
 
 Or just blindly calculate the average RMSD of all the different approaches in [[cref:tab:best-depth-global]]
 
@@ -11092,8 +11109,8 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 :PROPERTIES:
 :CREATED:  [2023-12-19 Tue 16:17]
 :END:
-Source the library
-#+begin_src R
+Source the library (now installed!)
+#+begin_src R :eval never
     source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
     source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
 #+end_src
@@ -11108,7 +11125,7 @@ Source the library
                         select(age, value) |>
                         # NOTE: no need to linearly interpolate!
                         # That's the point!
-                        spec.mtls(plot = FALSE) |>
+                        TSAUMN::spec.mtls(plot = FALSE) |>
                         as_tibble())) |>
     select(-data) |>
     unnest(mtls) |>
@@ -11556,6 +11573,8 @@ For which time periods is the construction doing well and where is it failing?
   best_age <- msd_age |>
     ## filter(filt_env != "hilbert") |>
     # then filter out the best for each site as well
+    filter(comb == "1:1") |> # while the others score better, 1:0 doesn't make sense.
+    filter(detrend_type == "lin_scl_fine") |> # this is almost always the best, let's be consistent
     tidylog::filter(
                RMSD == min(RMSD),
                .by = c(proxy,
@@ -11570,29 +11589,26 @@ For which time periods is the construction doing well and where is it failing?
 
 #+begin_src R :exports both
   msd_age |>
-    filter(comb == "1:1") |>
-    filter(detrend_type == "lin_scl_coarse") |>
-    ## filter(filt_env == "filter") |>
     arrange(site, proxy, sol) |>
     select(-detrend_type, -comb)
 #+end_src
 
 #+RESULTS:
 #+begin_example
-# A tibble: 35 × 4
+# A tibble: 2,205 × 4
    proxy site     sol    RMSD
    <chr> <chr>    <chr> <dbl>
- 1 Lstar Sopelana La10b  1.58
- 2 Lstar Sopelana La10c  1.59
- 3 Lstar Sopelana ZB18a  1.70
- 4 Lstar Sopelana ZB20a  1.33
- 5 Lstar Sopelana ZB20b  1.66
- 6 Lstar Sopelana ZB20c  1.72
- 7 Lstar Sopelana ZB20d  1.72
- 8 MS    Sopelana La10b  1.63
- 9 MS    Sopelana La10c  1.45
-10 MS    Sopelana ZB18a  1.47
-# ℹ 25 more rows
+ 1 Lstar Sopelana La10b  1.27
+ 2 Lstar Sopelana La10b  1.27
+ 3 Lstar Sopelana La10b  1.28
+ 4 Lstar Sopelana La10b  1.28
+ 5 Lstar Sopelana La10b  1.28
+ 6 Lstar Sopelana La10b  1.28
+ 7 Lstar Sopelana La10b  1.29
+ 8 Lstar Sopelana La10b  1.29
+ 9 Lstar Sopelana La10b  1.31
+10 Lstar Sopelana La10b  1.31
+# ℹ 2,195 more rows
 # ℹ Use `print(n = ...)` to see more rows
 #+end_example
 
@@ -11860,7 +11876,7 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 #+end_src
 
 #+RESULTS:
-***** NEXT Zumaia tests
+***** [#A] Zumaia tests
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 16:17]
 :END:
@@ -12185,8 +12201,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 #+begin_src R :eval never
   ## devtools::build()
   ## devtools::install() # MUST install locally for furrr to work
-  devtools::load_all() # ok that still didn't work, doing it the dumb way
-  ## source("R/wrap_age_model.R")
+  ## devtools::load_all() # ok that still didn't work, doing it the dumb way
+  source("R/wrap_age_model.R")
   plan(multisession, workers = 4) # set up 4 cores
   message("current time: ", lubridate::now())
   mw <- function(d, s, s405, s100, sign) {
@@ -12206,10 +12222,14 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   }
   rolling_age_optim <-
     data_ecc_age |> # I use age because it already has sol's and combs etc.
-    ## filter(detrend_type == "lin_scl_fine") |> # the first full run!
-    filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
-           proxy == "Lstar", site == "Zumaia", comb == "1:1") |>
-    # this gives me 300 sims!
+    # the first full run for all the best-performing detrend_type
+    ## filter(detrend_type == "lin_scl_fine") |> # 315 sims
+    # the second run, which adds some of the other detrend_types for the main case
+    ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
+    ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
+    # the third run, which adds the highpass filter
+    filter(detrend_type == "hp_scl",
+           proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 7 more
     nest(.by = c(proxy, site,
                  detrend_type, sol, comb,
                  s405, s100,
@@ -12227,8 +12247,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2023-12-22_rolling_age_optim_1-1_details.rds") # after refactor
     ## write_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
     ## write_rds("out/2024-01-12_rolling_age_optim_full.rds") # after making it a package
-    write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds") # after making it a package
+    ## write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds") # more detrend types, only for 1:1 Lstar
+    write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_hp.rds") # add highpass for 1:1 Lstar
   message("current time: ", lubridate::now())
+  rm(wrap_age_model.R) # rm so we can get back the one from the package
 #+end_src
 current time: 2023-12-22 22:26:18.565137
 current time: 2023-12-22 22:49:15.228392
@@ -12240,13 +12262,15 @@ current time: 2024-01-02 15:59:42.869229
 
 current time: 2024-01-12 11:49:01.819418
 current time: 2024-01-12 13:15:41.2829
-this is 300 rows rather than 100, and saves way more results. so might be quite a bit slower/bigger.
+this is 315 rows rather than 100, and saves way more results. so might be quite a bit slower/bigger.
 whew, total of 1:26 hours! :O
 
 new run with only 21 rows, different detrend_types for Zumaia Lstar comb 1:1 for all solutions.
 current time: 2024-01-12 15:31:47.010587
 current time: 2024-01-12 15:47:51.137767
 about 16 minutes.
+
+added another 7 sims for the highpass filter
 
 **** load cached results
 :PROPERTIES:
@@ -12269,11 +12293,15 @@ about 16 minutes.
     #read_rds("out/2023-12-22_rolling_age_optim_1-1_details.rds")
     ## read_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
     bind_rows(
-      # new algorithm, all of lin_scl_fine
+      # comments above, where I write the rds files
       read_rds("out/2024-01-12_rolling_age_optim_full.rds"),
-      # some alternative detrend_types for a subset of runs
       read_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds"),
-    )
+      read_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_hp.rds"),
+    ) |>
+    # I renamed these
+    mutate(detrend_type = ifelse(detrend_type == "lin_scl_old",
+                                 "lin_scl_rw",
+                                 detrend_type))
 #+end_src
 
 #+RESULTS:
@@ -12284,7 +12312,6 @@ about 16 minutes.
 :END:
 #+begin_src R
   best_age_optim <- rolling_age_optim |>
-    # calculate depth, probably need this later?
     ## pull out the best RMSD score for each
     mutate(RMSD_start = map_dbl(the_best,
                           \(x) x$summary |>
@@ -12597,7 +12624,7 @@ about 16 minutes.
 :CREATED:  [2023-12-20 Wed 14:15]
 :END:
 Here we use the new "optimal" age models and apply them to the raw data, then we do spectral analysis in the time domain on those new records.
-***** interpolate the original data back
+***** COMMENT interpolate the original data back
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 14:33]
 :END:
@@ -12612,31 +12639,50 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
     mutate(value = map2_dbl(depth, data, \(x, y) approx(y$depth, y$value, xout = x)$y)) |>
     select(-data)
 #+end_src
+
+#+RESULTS:
+: Error: object 'smooth_optim_age' not found
+***** extract the fitted data
+:PROPERTIES:
+:CREATED:  [2024-01-15 Mon 13:57]
+:END:
+oh no, the Sopelana results are not exporting the Matched record!
+#+begin_src R
+  smooth_optim_age_value <- best_age_optim |>
+    mutate(isdf = map_lgl(the_best, \(x) is.data.frame(x$matched))) |>
+    tidylog::filter(isdf) |>
+    tidylog::filter(RMSD == min(RMSD),
+                    .by = c(proxy, site, sol, comb)) |>
+    tidylog::filter(proxy == "Lstar", site == "Zumaia", comb == "1:1") |>
+    ## distinct(site, proxy)
+    mutate(data = map(the_best, \(x) x$matched)) |>
+    select(-the_best, -RMSD) |>
+    unnest(data)
+#+end_src
+
+#+RESULTS:
+: filter: removed 126 rows (37%), 217 rows remaining
+: filter: removed 28 rows (13%), 189 rows remaining
+: filter: removed 182 rows (96%), 7 rows remaining
+
 ***** mtm
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:06]
 :END:
 #+begin_src R
   specs_optim_age <- smooth_optim_age_value |>
-    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol", "comb"),
                       x = age, y = value)
 #+end_src
 
 #+RESULTS:
-: Warning message:
-: There were 100 warnings in `mutate()`.
-: The first warning was:
-: ℹ In argument: `mtm = map(...)`.
-: Caused by warning in `regularize.values()`:
-: ! collapsing to unique 'x' values
-: ℹ Run `dplyr::last_dplyr_warnings()` to see the 99 remaining warnings.
 ***** FFT periodogram
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:06]
 :END:
 #+begin_src R
   specs_fft_optim_age <- smooth_optim_age_value |>
-    nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "sol", "comb")) |>
     mutate(fft = map(data,
                       ~ . |>
                         select(age, value) |>
@@ -12646,38 +12692,34 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
                         )) |>
     select(-data) |>
     unnest(cols = c(fft)) |>
-    rename(freq = Frequency, amp = Amplitude, power = Power, phase = Phase)
+    rename(frequency = Frequency, amplitude = Amplitude, power = Power, phase = Phase)
 #+end_src
 
 #+RESULTS:
-: Warning message:
-: There were 100 warnings in `mutate()`.
-: The first warning was:
-: ℹ In argument: `fft = map(...)`.
-: Caused by warning in `regularize.values()`:
-: ! collapsing to unique 'x' values
-: ℹ Run `dplyr::last_dplyr_warnings()` to see the 99 remaining warnings.
 
 ***** MTLS
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:06]
 :END:
   #+begin_src R
-    source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
-    source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
+    ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/spec.mtls.R")
+    ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
 
     specs_mtls_optim_age <- smooth_optim_age_value |>
-      nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+      nest(.by = c("proxy", "site", "detrend_type", "sol", "comb")) |>
       mutate(mtls = map(data,
                         ~ . |>
                           select(age, value) |>
                           # NOTE: no need to linearly interpolate!
                           # That's the point!
-                          spec.mtls(plot = FALSE) |>
+                          TSAUMN::spec.mtls(plot = FALSE) |>
                           as_tibble())) |>
       select(-data) |>
-      unnest(mtls)
+      unnest(mtls) |>
+      rename(frequency = freq, power = spec)
   #+end_src
+
+  #+RESULTS:
 
 **** plot spectra
 :PROPERTIES:
@@ -12687,17 +12729,23 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
   my_filter <- \(x) x |>
                       ## filter(detrend_type != "value") # default to show all
                       ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
-                      filter(detrend_type == "lin_gam_det") # only one so we can see different spectral analysis
+                      filter(site == "Zumaia") |>
+                      filter(proxy == "Lstar") |>
+                      filter(comb == "1:1") |>
+                      filter(detrend_type == "lin_scl_fine") # only one so we can see different spectral analysis
 
   # plot spectra w/ Freq on x-axis
   specs_optim_age |>
     my_filter() |>
     ## filter(detrend_type != "value") |>
     ## plot_spectrum() + # only works well for a single line
-    ggplot(aes(x = freq, y = power,
+    ggplot(aes(x = frequency, y = power,
                ## linetype = site,
                ## colour = detrend_type
                )) +
+    labs(x = "Frequency (cycles/kyr)", y = "Power (-)",
+         colour = "Spectral Analysis") +
+    facet_grid(rows = vars(proxy, sol)) + # no sopelana any more :(
     ## scale_linetype_manual(values = c("Zumaia" = "solid",
     ##                                  "Sopelana" = "dashed")) +
     coord_cartesian(
@@ -12706,15 +12754,15 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
       xlim = c(0, .066), # same as new Malinverno & Meyers 2023 preprint
       ## xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
       ## ylim = c(0, .025) # previous best
-      ylim = c(0, .010) # previous best
-      ## ylim = c(.0001, 0.020) # log axis
+      ## ylim = c(0, .010) # previous best
+      ylim = c(.0001, 0.020) # log axis
     ) +
     scale_x_continuous(
     ## scale_x_log10(
       sec.axis = sec_axis("Period (m)", trans = ~ 1 / .,
                           breaks = c(405, 100, 50, 20, 10))) +
-    scale_y_continuous(breaks = c(0, .01, .02)) +
-    ## scale_y_log10() +
+    ## scale_y_continuous(breaks = c(0, .01, .02)) +
+    scale_y_log10() +
     ## annotation_logticks(sides = "l") +
     ## # plot AR1 fits/confidence levels
     ## ## geom_line(aes(y = AR1_power, group = paste(site, detrend_type, sol, .width))) +
@@ -12728,7 +12776,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
               alpha = .1,
-              data = bat_age_filters) +
+              data = bat_age_filters |> filter(proxy == "Lstar")) +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
               inherit.aes = FALSE,
               alpha = .1,
@@ -12744,13 +12792,9 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
                   group = paste(site, sol, proxy, detrend_type))) +
     # MTLS
     geom_line(aes(colour = "MTLS",
-                  y = spec,
                   group = paste(site, sol, proxy, detrend_type)),
               data = specs_mtls_optim_age |>
-                my_filter()) +
-    labs(x = "Frequency (cycles/kyr)", y = "Power (-)",
-         colour = "Spectral Analysis") +
-    facet_grid(cols = vars(site), rows = vars(proxy, sol))
+                my_filter())
 #+end_src
 
 #+attr_latex: :width \linewidth
@@ -12875,7 +12919,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_ecc_after_optim.png]]
 
-**** simplified plot of matched records and solutions
+**** plot of matched records and solutions
 :PROPERTIES:
 :CREATED:  [2024-01-12 Fri 15:22]
 :END:
@@ -12905,7 +12949,38 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions.png]]
 
-**** [9/11] tasks
+**** simplified plot of matched records and solutions
+:PROPERTIES:
+:CREATED:  [2024-01-15 Mon 15:22]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+  best_age_optim |>
+    filter(site == "Zumaia", comb == "1:1") |>
+    filter(proxy != "d13C") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = age * 1e-3, y = s405 * ecc, colour = proxy)) +
+    labs(x = "Age (Ma)", y = "Norm. Filter & Solution") +
+    theme(legend.pos = c(.64, .864),
+          legend.direction = "horizontal") +
+    scale_x_reverse(breaks = seq(80, 50, -1),
+                    minor_breaks = seq(80, 50, -0.1)) +
+    scale_y_continuous(breaks = c(-4, -2, 0, 2, 4)) +
+    facet_grid(rows = vars(sol)) +
+    geom_line(aes(y = ecc_sln), colour = "gold4", linewidth = 1) +
+    geom_line() +
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+    geom_text(aes(x = 66.1, y = 4, label = round(RMSD, 3)),
+              size = 2,
+              position = position_dodge(width = .7),
+              data = \(x) distinct(x, RMSD, site, sol, proxy, detrend_type))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Lstar_1-1_solutions_simple.png]]
+
+**** [10/11] tasks
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:52]
 :END:
@@ -12968,7 +13043,8 @@ CLOSED: [2023-12-20 Wed 15:51]
 I've got it compared to the raw filter output, but I might have to construct a new record again..
 Only did it for d13C single example now.
 
-***** NEXT make bandpass_filter also return depth/additional columns
+***** DONE make bandpass_filter also return depth/additional columns
+CLOSED: [2024-01-15 Mon 15:16]
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 14:52]
 :END:
