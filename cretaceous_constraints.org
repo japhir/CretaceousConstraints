@@ -11979,6 +11979,105 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 
 #+RESULTS:
 [[file:imgs/Zumaia_MS_overall.png]]
+***** [#A] Sopelana tests
+:PROPERTIES:
+:CREATED:  [2024-01-17 Wed 14:24]
+:END:
+#+begin_src R
+  devtools::load_all()
+  ## debug(wrap_age_model)
+  tst1 <- data_ecc_age |>
+    filter(
+      proxy == "Lstar",
+      detrend_type == "lin_scl_fine",
+      site == "Sopelana",
+      ## depth <= 115, # note sedrate switch from 17 m to 12 m.
+      comb == "1:1", # this doesn't deterimine it, I construct ecc below anyway.
+      sol == "ZB18a") |>
+    AstronomicalSolutions::wrap_age_model(
+      agemodel = agem_sol |> filter(sol == "ZB18a"),
+      astronomical_solution = slns |> filter(sln == "ZB18a"),
+      proxy_phase = -1, # -1 for Lstar and d13C, +1 for MS
+      eccentricity_weights = c(1, 1),
+      tiepoint_uncertainty = #seq(-20, 20, 0.5),
+        c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
+          0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
+      max_error_range = 1.6, # 10% of 16 m 405 kyr cycle
+      RMSD_threshold = 0.005,
+      genplot = TRUE, output = "full")
+
+  ## tst1 |>
+    ## write_rds("out/tst1_lin-scl_MS_ZB18a.rds")
+    ## write_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
+  ## tst1 <-
+  ##   read_rds("out/tst1_lin-scl_MS_ZB18a.rds")
+  ## tst1 <-
+  ##   read_rds("out/tst1_lin-scl_Lstar_ZB18a.rds")
+
+  ## tst1 <- rolling_age_optim$the_best[[1]]
+  ## tst1 <- rolling_age_optim$the_best[[2]]
+  ## tst1 <- rolling_age_optim$the_best[[3]]
+#+end_src
+
+
+#+RESULTS:
+
+#+begin_src R
+  tst1$full |>
+    select(-SD, -SD_405, -SD_100) |>
+    pivot_longer(c(value, ecc_sln,
+                   `405 kyr`, ecc_sln_405,
+                   `100 kyr`, ecc_sln_100,
+                   ecc)) |>
+    ggplot(aes(x = age, y = value, colour = name)) +
+    facet_grid(rows = vars(name)) +
+    scale_x_reverse() +
+    geom_line()
+
+
+  data_ecc_age |>
+    filter(proxy == "Lstar",
+           detrend_type == "lin_scl", comb == "1:1", sol == "ZB18a") |>
+    ggplot(aes(x = age, y = scale(value)[, 1])) +
+    geom_line(colour = "purple", alpha = .6) +
+    geom_line(aes(y = scale(ecc)[, 1]), data = slns |> filter(sln == "ZB18a"))
+    geom_line(aes(y = scale(filter)[, 1], colour = target),
+              data = sln_filters |> filter(sln == "ZB18a", target != "23 kyr")) +
+      coord_cartesian(xlim = c(69.8e3, 65.5e3)) +
+      labs(x = "Age (Ma)")
+#+end_src
+
+#+RESULTS:
+: Warning messages:
+: 1: In the_best_summary$tie_err[the_best_summary$n == tiepoint] <- tb$error :
+:   number of items to replace is not a multiple of replacement length
+: 2: In the_best_summary$RMSD_cum[the_best_summary$n == tiepoint] <- tb$RMSD_tie :
+:   number of items to replace is not a multiple of replacement length
+
+#+begin_src R
+  # looking for better ways to find the "optimal" error
+  tst1$plot +
+    geom_line(aes(y = deriv),
+              colour = "red",
+              data = \(d) d |>
+                          mutate(deriv = RMSD_tie - lag(RMSD_tie), .by = n)) +
+    geom_line(aes(y = deriv_deriv), colour = "purple",
+              data = \(d) d |>
+                          mutate(deriv = RMSD_tie - lag(RMSD_tie), .by = n) |>
+                          mutate(deriv_deriv = deriv - lag(deriv), .by = n))
+#+end_src
+
+#+RESULTS:
+: Warning messages:
+: 1: Removed 1 row containing missing values (`geom_line()`).
+: 2: Removed 2 rows containing missing values (`geom_line()`).
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_MS_overall.png :width 2200 :height 1200 :res 300
+  tst1$plot
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_MS_overall.png]]
 ***** Zumaia d13C subs
 #+begin_src R
   tst2 <- data_ecc |>
@@ -12228,8 +12327,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
     # the third run, which adds the highpass filter
-    filter(detrend_type == "hp_scl",
-           proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 7 more
+    ## filter(detrend_type == "hp_scl",
+    ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 7 more
+    filter(detrend_type == "lin_scl_fine",
+           site == "Sopelana", comb == "1:1") |> # this adds another 14
     nest(.by = c(proxy, site,
                  detrend_type, sol, comb,
                  s405, s100,
@@ -12248,9 +12349,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
     ## write_rds("out/2024-01-12_rolling_age_optim_full.rds") # after making it a package
     ## write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds") # more detrend types, only for 1:1 Lstar
-    write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_hp.rds") # add highpass for 1:1 Lstar
+    ## write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_hp.rds") # add highpass for 1:1 Lstar
+    write_rds("out/2024-01-17_rolling_age_optim_Sopelana_Lstar_lin-scl-fine.rds") # add highpass for 1:1 Lstar
   message("current time: ", lubridate::now())
-  rm(wrap_age_model.R) # rm so we can get back the one from the package
+  rm(wrap_age_model) # rm so we can get back the one from the package
 #+end_src
 current time: 2023-12-22 22:26:18.565137
 current time: 2023-12-22 22:49:15.228392
@@ -12272,10 +12374,15 @@ about 16 minutes.
 
 added another 7 sims for the highpass filter
 
+and another 10 for the Sopelana runs after fixing the ~matched~ output
+current time: 2024-01-17 15:37:52.284324
+current time: 2024-01-17 15:40:28.043286
+
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
 :END:
+old
 #+begin_src R :eval never
   # I ran this in some smaller batches in order of importance
   rolling_age_optim_old <- bind_rows(
@@ -12294,9 +12401,12 @@ added another 7 sims for the highpass filter
     ## read_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
     bind_rows(
       # comments above, where I write the rds files
-      read_rds("out/2024-01-12_rolling_age_optim_full.rds"),
+      read_rds("out/2024-01-12_rolling_age_optim_full.rds") |>
+      # filter out these runs because they have NA matched entries
+      filter(site != "Sopelana"),
       read_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_detrend_types.rds"),
       read_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_hp.rds"),
+      read_rds("out/2024-01-17_rolling_age_optim_Sopelana_Lstar_lin-scl-fine.rds"),
     ) |>
     # I renamed these
     mutate(detrend_type = ifelse(detrend_type == "lin_scl_old",
@@ -12305,7 +12415,6 @@ added another 7 sims for the highpass filter
 #+end_src
 
 #+RESULTS:
-
 **** identify the best fits
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:57]
@@ -12337,12 +12446,13 @@ added another 7 sims for the highpass filter
                                           "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
     ggplot(aes(x = sol, y = RMSD, colour = detrend_type)) +
     labs(x = "Astronomical solution", shape = "Age model") +
-    facet_grid(rows = vars(proxy), cols = vars(site, comb)) +
+    facet_grid(rows = vars(proxy), cols = vars(comb)) +
     theme(axis.text.x = element_text(angle = 90, size = 7)) +
     scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
     geom_point(aes(y = RMSD_start, shape = "Field")) +
     geom_point(aes(fill = detrend_type, shape = "Optimized")) +
-    geom_line(aes(y = RMSD_start, group = paste(site, detrend_type))) +
+    geom_line(aes(y = RMSD_start,
+                  group = paste(site, detrend_type))) +
     geom_line(aes(x = sol, y = RMSD, group = paste(site, detrend_type))) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
     geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
@@ -12352,27 +12462,28 @@ added another 7 sims for the highpass filter
 #+RESULTS:
 [[file:imgs/new_rolling_improvement.png]]
 
-**** COMMENT compare overall RMSD scores
+**** compare overall RMSD scores
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 15:39]
 :END:
+limit to comb == "1:1" and don't show the lin_scl_rw.
+
 #+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 2400 :height 1700 :res 300
   best_age_optim |>
-    ggplot(aes(x = sol, y = RMSD,
-               colour = detrend_type,
-               shape = comb, linetype = comb)) +
-    facet_grid(cols = vars(site## , detrend_type
-                           ), rows = vars(proxy)) +
-    scale_linetype_manual(values = c("1:1" = "solid",
-                                     "1:0.5" = "dashed",
-                                     "0.5:1" = "dotted")) +
-    geom_line(aes(group = paste(proxy, site, comb, ## filt_env,
-                                detrend_type, comb)),
-              linewidth = 1.2) +
-    geom_point(size = 2) +
-    geom_point(aes(y = RMSD),
-               show.legend = FALSE,
-               size = 3, data = best_age_optim)
+    filter(comb == "1:1") |>
+    filter(detrend_type != "lin_scl_rw") |>
+    ggplot(aes(x = sol, y = RMSD, colour = detrend_type)) +
+    labs(x = "Astronomical solution", shape = "Age model") +
+    facet_grid(rows = vars(proxy), cols = vars(site)) +
+    scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
+    geom_point(aes(y = RMSD_start, shape = "Field")) +
+    geom_point(aes(fill = detrend_type, shape = "Optimized")) +
+    geom_line(aes(y = RMSD_start,
+                  group = paste(site, detrend_type))) +
+    geom_line(aes(x = sol, y = RMSD, group = paste(site, detrend_type))) +
+    ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
+    geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
+                   alpha = .2)
 #+end_src
 
 #+name: fig:rolling-rmsd
@@ -12649,8 +12760,6 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 oh no, the Sopelana results are not exporting the Matched record!
 #+begin_src R
   smooth_optim_age_value <- best_age_optim |>
-    mutate(isdf = map_lgl(the_best, \(x) is.data.frame(x$matched))) |>
-    tidylog::filter(isdf) |>
     tidylog::filter(RMSD == min(RMSD),
                     .by = c(proxy, site, sol, comb)) |>
     tidylog::filter(proxy == "Lstar", site == "Zumaia", comb == "1:1") |>
@@ -12661,9 +12770,8 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+end_src
 
 #+RESULTS:
-: filter: removed 126 rows (37%), 217 rows remaining
-: filter: removed 28 rows (13%), 189 rows remaining
-: filter: removed 182 rows (96%), 7 rows remaining
+: filter: removed 28 rows (12%), 203 rows remaining
+: filter: removed 196 rows (97%), 7 rows remaining
 
 ***** mtm
 :PROPERTIES:
@@ -12919,7 +13027,7 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_ecc_after_optim.png]]
 
-**** plot of matched records and solutions
+**** plot of matched records and solutions for Zumaia Lstar 1:1
 :PROPERTIES:
 :CREATED:  [2024-01-12 Fri 15:22]
 :END:
@@ -12929,10 +13037,8 @@ oh no, the Sopelana results are not exporting the Matched record!
     ## filter(detrend_type == "lin_scl_fine") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
-    ggplot(aes(x = age * 1e-3, y = -ecc, colour = detrend_type)) +
+    ggplot(aes(x = age * 1e-3, y = sign_405 * ecc, colour = detrend_type)) +
     labs(x = "Age (Ma)", y = "Norm. Filter & Solution") +
-    theme(legend.pos = c(.64, .864),
-          legend.direction = "horizontal") +
     scale_x_reverse(breaks = seq(80, 50, -1),
                     minor_breaks = seq(80, 50, -0.1)) +
     scale_y_continuous(breaks = c(-4, -2, 0, 2, 4)) +
@@ -12949,21 +13055,18 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions.png]]
 
-**** simplified plot of matched records and solutions
+**** plot of matched records and solutions for Zumaia MS 1:1
 :PROPERTIES:
-:CREATED:  [2024-01-15 Mon 15:22]
+:CREATED:  [2024-01-12 Fri 15:22]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions.png :width 2400 :height 2000 :res 300
   best_age_optim |>
-    filter(site == "Zumaia", comb == "1:1") |>
-    filter(proxy != "d13C") |>
-    filter(detrend_type == "lin_scl_fine") |>
+    filter(site == "Zumaia", proxy == "MS", comb == "1:1") |>
+    ## filter(detrend_type == "lin_scl_fine") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
-    ggplot(aes(x = age * 1e-3, y = s405 * ecc, colour = proxy)) +
+    ggplot(aes(x = age * 1e-3, y = sign_405 * ecc, colour = detrend_type)) +
     labs(x = "Age (Ma)", y = "Norm. Filter & Solution") +
-    theme(legend.pos = c(.64, .864),
-          legend.direction = "horizontal") +
     scale_x_reverse(breaks = seq(80, 50, -1),
                     minor_breaks = seq(80, 50, -0.1)) +
     scale_y_continuous(breaks = c(-4, -2, 0, 2, 4)) +
@@ -12971,10 +13074,89 @@ oh no, the Sopelana results are not exporting the Matched record!
     geom_line(aes(y = ecc_sln), colour = "gold4", linewidth = 1) +
     geom_line() +
     ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
-    geom_text(aes(x = 66.1, y = 4, label = round(RMSD, 3)),
+    geom_text(aes(x = 66.3, y = 4, label = round(RMSD, 3)),
               size = 2,
               position = position_dodge(width = .7),
-              data = \(x) distinct(x, RMSD, site, sol, proxy, detrend_type))
+              data = \(x) distinct(x, RMSD, sol, detrend_type))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_MS_1-1_solutions.png]]
+
+**** plot of matched records and solutions for Zumaia d13C 1:1
+:PROPERTIES:
+:CREATED:  [2024-01-16 Tue 16:43]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions.png :width 2400 :height 2000 :res 300
+  best_age_optim |>
+    filter(site == "Zumaia", proxy == "d13C", comb == "1:1") |>
+    ## filter(detrend_type == "lin_scl_fine") |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = age * 1e-3, y = -ecc, colour = detrend_type)) +
+    labs(x = "Age (Ma)", y = "Norm. Filter & Solution") +
+    scale_x_reverse(breaks = seq(80, 50, -1),
+                    minor_breaks = seq(80, 50, -0.1)) +
+    scale_y_continuous(breaks = c(-4, -2, 0, 2, 4)) +
+    facet_grid(rows = vars(sol)) +
+    geom_line(aes(y = ecc_sln), colour = "gold4", linewidth = 1) +
+    geom_line() +
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+    geom_text(aes(x = 66.3, y = 4, label = round(RMSD, 3)),
+              size = 2,
+              position = position_dodge(width = .7),
+              data = \(x) distinct(x, RMSD, sol, detrend_type))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_d13C_1-1_solutions.png]]
+
+**** simplified plot of matched records and solutions
+:PROPERTIES:
+:CREATED:  [2024-01-15 Mon 15:22]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+  best_age_optim |>
+    filter(comb == "1:1") |>
+    ## filter(proxy != "d13C") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = age * 1e-3,
+               y = sign_405 * ecc,
+               colour = proxy,
+               group = paste(site, sol, proxy, detrend_type))) +
+    facet_grid(rows = vars(sol)) +
+    labs(x = "Age (Ma)", y = "Norm. Filter & Solution",
+         colour = "") +
+    ## theme(legend.pos = c(.64, .864),
+    ##       legend.direction = "horizontal") +
+    scale_x_reverse(breaks = seq(80, 50, -1),
+                    minor_breaks = seq(80, 50, -0.1)) +
+    scale_y_continuous(breaks = c(-4, 0, 4)) +
+    scale_linewidth_continuous(range = c(1.2, 0.3)) +
+    scale_alpha_continuous(range = c(1, 0.2)) +
+    scale_colour_manual(values = c("Astronomical Solution" = "black",
+                                   "Lstar" = "purple",
+                                   "MS" = "skyblue",
+                                   "d13C" = "darkgreen")) +
+    geom_vline(aes(xintercept = age1),
+               colour = "darkgray",
+               data = kpg_ages |>
+                 filter(sln != "La11") |>
+                 rename(sol = sln)) +
+    geom_line(aes(linewidth = RMSD, alpha = RMSD)) +
+    geom_line(aes(y = ecc_sln, colour = "Astronomical Solution")) +
+    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+    geom_text(aes(x = age * 1e-3 + 0.2, y = 4,
+                  label = round(RMSD, 3)),
+              size = 2, show.legend = FALSE,
+              nudge_y = 1:3 * 1.2,
+              ## position = position_dodge(width = 1.2),
+              data = \(x) x |>
+                          filter(age == min(age),
+                                 .by = c(RMSD, site, sol, proxy, detrend_type)))
 #+end_src
 
 #+RESULTS:
