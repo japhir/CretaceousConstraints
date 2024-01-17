@@ -111,6 +111,8 @@ wrap_age_model <- function(data,
   # Note that we should NOT include the +1, I checked.
   tiepoints <- c(min(data$Ma405) - 1, unique(data$Ma405)) |>
     sort()
+  # for Sopelana, the 14the tiepoint is NOT in the agemodel
+  tiepoints <- tiepoints[tiepoints %in% agemodel$n]
 
   if (!0. %in% tiepoint_uncertainty) {
     cli::cli_abort(c(
@@ -152,7 +154,16 @@ wrap_age_model <- function(data,
     ) |>
     unnest(cols = c(optimal))
 
-  full_record <- NA_real_
+  full_record <- tibble(
+    depth = numeric(),
+    age = numeric(),
+    value = numeric(),
+    `405 kyr` = numeric(),
+    `100 kyr` = numeric(),
+    ecc = numeric(),
+    ecc_sln = numeric(),
+    SD = numeric()
+  )
 
   for (tiepoint in tiepoints) {
     if (!tiepoint %in% agemodel$n) {
@@ -225,7 +236,7 @@ wrap_age_model <- function(data,
         the_best$RMSD_tie[the_best$n == tiepoint &
                             the_best$error == error] <- smy$RMSD
 
-        # before esd goes out scop!
+        # before esd goes out scope!
         if (output %in% c("full", "matched")) {
           if (tiepoint == last(tiepoints) &&
                 error == last(tiepoint_uncertainty))
