@@ -10,6 +10,10 @@
 #'   variations to try out in same units as data$depth.
 #' @param proxy_phase Factor by which to multiply the scaled and filtered
 #'   signal to make it in-phase with the orbital forcing.
+#' @param target_periods Vector of periods to target. Defaults to 405 and 110
+#'   kyr.
+#' @param frequency_fraction Fraction of frequency to adjust upper and lower
+#'   filter limits by.
 #' @param eccentricity_weights Weights for the 405 kyr and 100 kyr filter when
 #'   creating the 'eccentricity' curve.
 #' @param max_error_range In case the tiepoint_uncertainty is large, this
@@ -30,6 +34,8 @@ wrap_age_model <- function(data,
                            astronomical_solution = sln,
                            tiepoint_uncertainty = seq(-4, 4, .5),
                            proxy_phase = 1,
+                           target_periods = c("405 kyr" = 405, "100 kyr" = 110),
+                           frequency_fraction = 0.3,
                            eccentricity_weights = c(1, 1),
                            max_error_range = 2.5,
                            RMSD_threshold = 0.005,
@@ -112,7 +118,23 @@ wrap_age_model <- function(data,
       "i" = "You have provided {.var tiepoint_uncertainty} = {tiepoint_uncertainty}."
     ))
   }
+
+  if (length(target_periods) != 2) {
+    cli::cli_abort(c(
+      "Length of {.var target_periods} must be 2.",
+      "i" = "You have provided {.var target_periods} = {target_periods}."
+    ))
+  }
   # end input validation
+
+  # convert input frequency to tibble with desired frequency ranges
+  my_filt_age <- tibble(target = c("405 kyr", "100 kyr"),
+                        p = target_periods) |>
+    mutate(f = 1 / p,
+           range = frequency_fraction * f,
+           flow = f - range,
+           fhigh = f + range,
+           ref = "This study")
 
   # make sure to fully initialize the whole output dataframe
   # this will make looping less slow
@@ -167,11 +189,12 @@ wrap_age_model <- function(data,
         flt <- tmp |>
           # TODO: make frequencies a parameter!!! For now, inheriting
           # my_filt_age from global namespace
-          bandpass_filter(frequencies = my_filt_age |>
-                            filter(target != "23 kyr"),
+          bandpass_filter(frequencies = my_filt_age,
                           x = age, y = value, add_depth = TRUE)
 
         ecc <- flt |>
+          # NOTE: this assumes that the frequencies tibble had column target
+          # with names `405 kyr` and `100 kyr`!
           construct_eccentricity(id_cols = c(depth, age, value),
                                  f = filter,
                                  # I'm now forcing sign = 1 here!
