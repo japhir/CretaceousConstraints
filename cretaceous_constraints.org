@@ -8629,9 +8629,13 @@ Too young!
 : Downloading 1 datasets from 10.1594/PANGAEA.763155
 : Processing 1 files
 
-** IODP Exp 342 Site U1403A,B
+** [#B] IODP Exp 342 Site U1403A,B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:29]
+:END:
+:LOGBOOK:
+- Note taken on [2024-01-18 Thu 16:32] \\
+  just found this again, seems pretty nice actually?
 :END:
 [cite:@Batenburg2018]
 - d18O data between 66 Ma and 68.8 Ma
@@ -8755,6 +8759,11 @@ Has some turbidites according to [[id:107d5e85-9f0d-4193-941d-7b8887fa4d28][Frit
 
 *** Read the data
 From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
+**** MS, L*, d13C: Batenburg 2012, 2014
+:PROPERTIES:
+:CREATED:  [2024-01-18 Thu 16:47]
+:END:
+[cite:@Batenburg2012;@Batenburg2014].
 
 #+begin_src R :exports code
   # Batenburg et al., 2012
