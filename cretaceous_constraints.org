@@ -435,7 +435,7 @@ I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those 
            range = 0.3 * f,
            flow = f - range,
            fhigh = f + range,
-           ref = "This study")
+          ref = "This study")
 #+end_src
 
 #+RESULTS:
@@ -9018,7 +9018,7 @@ We have several ways of subtracting the long-term trends prior to doing spectral
 
 #+RESULTS:
 
-**** highpass filtering
+**** subtracting lowpass filters
 :PROPERTIES:
 :CREATED:  [2023-11-21 Tue 11:14]
 :END:
