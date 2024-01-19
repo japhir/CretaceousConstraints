@@ -8801,6 +8801,98 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 
+**** SOME CaCO3: ten Kate and Sprenger 1993
+:PROPERTIES:
+:CREATED:  [2024-01-18 Thu 16:16]
+:END:
+:LOGBOOK:
+- Note taken on [2024-01-19 Fri 11:19] \\
+  ok just read in the data and did some linear detrending and spectral analysis
+- Note taken on [2024-01-18 Thu 16:49] \\
+  Martin told me about this but I'm not sure I can find their raw data
+- State "SOME"       from "NEXT"       [2024-01-18 Thu 16:49]
+:END:
+[cite:@tenKateSprenger1993]
+#+begin_src R
+  Zumaia_CaCO3 <- readxl::read_excel("dat/tenKateSprenger1993/Zumaya-Kate-Sprenger.xls",
+                     sheet = 2,
+                     skip = 1) |>
+    select(-...6, -...8)
+
+  Zumaia_CaCO3 <- Zumaia_CaCO3 |>
+    mutate(grp = findInterval(`dist from K/T (m)`, rev(c(0, -6.5, -12.5, -41.8)))) |>
+    ## filter(`dist from K/T (m)` < 0) |> # normalizing using the stuff above makes the values very small
+    nest(.by = grp) |>
+    mutate(lin = map(data, \(x) lm(carbonate ~ `dist from K/T (m)`, data = x))) |>
+    mutate(lin_pred = map(lin, predict)) |>
+    unnest(c(data, lin_pred)) |>
+    mutate(detrended = carbonate - lin_pred) |>
+    mutate(lin_scl = scale(detrended)[, 1]) |>
+    select(-lin)
+
+  agem_CaCO3 <- tribble(
+    ~ chron, ~ age, ~ depth,
+    "C28R/C29N", -63.6, 12.53,
+    "C29N/C29R", -64.27, 4.37,
+    "K/Pg boundary", -64.5, 0.0,
+    "C29R/C30N", -64.84, NA_real_,
+    "C30R/C31N", -66.62, -74.75,
+    ) |>
+    filter(!is.na(depth))
+
+  Zumaia_CaCO3 <- Zumaia_CaCO3 |>
+    mutate(depth = -`dist from K/T (m)`) |>
+    mutate(age = -approx(agem_CaCO3$depth, y = agem_CaCO3$age,
+                        xout = `dist from K/T (m)`)$y) |>
+    mutate(age = age * 1e3) # from Ma to ka
+
+  # depth domain + detrending
+  Zumaia_CaCO3 |>
+    ggplot(aes(x = `dist from K/T (m)`,
+               y = carbonate)) +
+    labs(x = "Depth (m)",
+         y = "Ca" * CO[3] ~ "(%)") +
+    scale_x_reverse() +
+    geom_smooth(aes(group = grp), method = "lm") +
+    ## geom_line(aes(y = lin_pred), colour = "purple", linewidth = 2) +
+    geom_line() +
+    geom_line(aes(y = lin_scl))
+
+  Zumaia_CaCO3 |>
+    spectral_analysis(x = `dist from K/T (m)`, y = lin_scl) |>
+    # they say analyisis in the depth domain doesn't make sense due to changing
+    # sedrates
+    plot_spectrum(ar1 = TRUE)
+
+  # time domain + detrending
+  Zumaia_CaCO3 |>
+    ggplot(aes(x = age * 1e-3,
+               y = carbonate)) +
+    labs(x = "Age (Ma)",
+         y = "Ca" * CO[3] ~ "(%)") +
+    scale_x_reverse() +
+    geom_smooth(aes(group = grp), method = "lm") +
+    ## geom_line(aes(y = lin_pred), colour = "purple", linewidth = 2) +
+    geom_line() +
+    geom_line(aes(y = lin_scl))
+
+  Zumaia_CaCO3 |>
+    spectral_analysis(x = age, y = lin_scl) |>
+    # they say analyisis in the depth domain doesn't make sense due to changing
+    # sedrates
+    plot_spectrum(ar1 = TRUE) +
+    labs(x = "Frequency (cycles/kyr)") +
+    scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x,
+                                           "Period (kyr)",
+                                           breaks = c(405, 100, 23))) +
+    coord_cartesian(xlim = c(0, 0.06))
+
+  # this errors for some reason when linterping!
+  Zumaia_CaCO3 |>
+    bandpass_filter(frequencies = my_filt_age |> filter(target == "405 kyr"),
+                    x = age, y = lin_scl,
+                    add_depth = TRUE)
+#+end_src
 *** Age Model
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:01]
