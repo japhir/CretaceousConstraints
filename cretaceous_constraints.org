@@ -12598,23 +12598,28 @@ old
 :END:
 limit to comb == "1:1" and don't show the lin_scl_rw.
 
-#+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 2400 :height 1700 :res 300
+#+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 2600 :height 1700 :res 300
   best_age_optim |>
     filter(comb == "1:1") |>
     filter(detrend_type != "lin_scl_rw") |>
-    ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
+    ggplot(aes(x = RMSD, y = sol, colour = detrend_type,
+               ## alpha = !str_detect(exp, "upper"),
                group = paste(site, proxy, comb,
                              detrend_type, date, exp))) +
-    labs(x = "Astronomical solution", shape = "Age model", linetype = "Age model") +
-    facet_grid(rows = vars(proxy), cols = vars(site)) +
+    labs(y = "Astronomical solution",
+         shape = "Age model", linetype = "Age model"## ,
+         ## alpha = "lower / full record"
+         ) +
+    facet_grid(rows = vars(proxy),
+               cols = vars(site, str_detect(exp, "-portion"))) +
     scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
     scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    geom_point(aes(y = RMSD_start, shape = "Field")) +
+    geom_point(aes(x = RMSD_start, shape = "Field")) +
     geom_point(aes(fill = detrend_type, shape = "Optimized")) +
-    geom_line(aes(y = RMSD_start, linetype = "Field")) +
-    geom_line(aes(x = sol, y = RMSD, linetype = "Optimized")) +
+    geom_path(aes(x = RMSD_start, linetype = "Field")) +
+    geom_path(aes(y = sol, x = RMSD, linetype = "Optimized")) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
-    geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
+    geom_linerange(aes(xmin = RMSD_start, xmax = RMSD),
                    alpha = .2)
 #+end_src
 
@@ -13159,7 +13164,7 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_ecc_after_optim.png]]
 
-**** plot of matched records and solutions for Zumaia Lstar 1:1
+**** COMMENT plot of matched records and solutions for Zumaia Lstar 1:1
 :PROPERTIES:
 :CREATED:  [2024-01-12 Fri 15:22]
 :END:
@@ -13187,7 +13192,7 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions.png]]
 
-**** plot of matched records and solutions for Zumaia MS 1:1
+**** COMMENT plot of matched records and solutions for Zumaia MS 1:1
 :PROPERTIES:
 :CREATED:  [2024-01-12 Fri 15:22]
 :END:
@@ -13215,7 +13220,7 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+RESULTS:
 [[file:imgs/Zumaia_MS_1-1_solutions.png]]
 
-**** plot of matched records and solutions for Zumaia d13C 1:1
+**** COMMENT plot of matched records and solutions for Zumaia d13C 1:1
 :PROPERTIES:
 :CREATED:  [2024-01-16 Tue 16:43]
 :END:
