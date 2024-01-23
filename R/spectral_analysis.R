@@ -5,6 +5,12 @@
 ##' @param y Column in `data` with variable of interest.
 ##' @param method Character specifying which spectral analysis method to apply.
 ##' @return Dataframe with spectral outcome. Defaults to MTM with output = 1.
+##' @examples
+##' dat <- tibble::tibble(a = 1:10,
+##'                       b = 11:20,
+##'                       c = stats::rnorm(10),
+##'                       d = sample(letters[1:3], 10, TRUE))
+##' spectral_analysis(dat, x = a, y = c)
 spectral_analysis <- function(data, x, y, method = "MTM") {
   if ("MTM" != method) {
     cli::cli_abort(c("Only method MTM is currently supported.",
