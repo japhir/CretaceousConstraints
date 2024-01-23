@@ -43,16 +43,18 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
 :CUSTOM_ID: sec:shared-code
 :END:
 these have mostly migrated to a development package!
-** functions
+** AstronomicalSolutions
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:00]
 :header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
 :END:
-*** SOME make this into a package for myself
+*** DONE make this into a package for myself
+CLOSED: [2024-01-23 Tue 13:35]
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 21:59]
 :END:
 :LOGBOOK:
+- State "DONE"       from "SOME"       [2024-01-23 Tue 13:35]
 - State "SOME"       from              [2023-12-22 Fri 21:59]
 :END:
 
@@ -127,6 +129,10 @@ This filters out all the frequencies in dataframe ~freqs~.
 :END:
 I haven't written clean code for this yet, not sure if it'll be useful. The idea is to filter precession, then do a hilbert transform for it to get the amplitude modulation, which should correspond to the eccentricity signal.
 
+** functions that haven't landed yet
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 13:35]
+:END:
 *** get_rmcd
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 11:58]
@@ -449,7 +455,7 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
 :PROPERTIES:
 :CREATED:  [2023-11-28 Tue 11:12]
 :END:
-#+begin_src R
+#+begin_src R :eval never
   slns <- sln |>
     bind_rows(sln2) |>
     bind_rows(sln2b) |>
@@ -457,11 +463,15 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
     bind_rows(sln2d) |>
     bind_rows(sln3) |>
     bind_rows(sln4) |>
-    bind_rows(sln5)
+    bind_rows(sln5) |>
+    write_rds("out/slns.rds")
 #+end_src
 
 #+RESULTS:
 
+#+begin_src R
+  slns <- read_rds("out/slns.rds")
+#+end_src
 ** spectral analysis on astronomical solutions
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 10:56]
@@ -492,6 +502,22 @@ I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those 
 #+end_src
 
 #+RESULTS:
+
+Just to check, this results in the following periods for filtering the AS:
+#+begin_src R
+  my_filt_age |>
+    mutate(plow = 1 / flow, phigh = 1 / fhigh)
+#+end_src
+
+#+RESULTS:
+: # A tibble: 3 × 9
+:   target      p       f    range    flow   fhigh ref         plow phigh
+:   <chr>   <dbl>   <dbl>    <dbl>   <dbl>   <dbl> <chr>      <dbl> <dbl>
+: 1 405 kyr   405 0.00247 0.000741 0.00173 0.00321 This study 579.  312.
+: 2 100 kyr   110 0.00909 0.00273  0.00636 0.0118  This study 157.   84.6
+: 3 23 kyr     23 0.0435  0.0130   0.0304  0.0565  This study  32.9  17.7
+
+So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenburg2014], where they filter the La11 solution between 300 and 623 kyr to target the 405 kyr solution.
 
 *** COMMENT test plot_spectrum for a single spectrum
 :PROPERTIES:
@@ -547,22 +573,6 @@ I'd like to filter out the 405 and 100 kyr eccentricity cycles. I just do those 
 #+end_src
 
 #+RESULTS:
-
-Just to check, this results in the following periods for filtering the AS:
-#+begin_src R
-  my_filt_age |>
-    mutate(plow = 1 / flow, phigh = 1 / fhigh)
-#+end_src
-
-#+RESULTS:
-: # A tibble: 3 × 9
-:   target      p       f    range    flow   fhigh ref         plow phigh
-:   <chr>   <dbl>   <dbl>    <dbl>   <dbl>   <dbl> <chr>      <dbl> <dbl>
-: 1 405 kyr   405 0.00247 0.000741 0.00173 0.00321 This study 579.  312.
-: 2 100 kyr   110 0.00909 0.00273  0.00636 0.0118  This study 157.   84.6
-: 3 23 kyr     23 0.0435  0.0130   0.0304  0.0565  This study  32.9  17.7
-
-So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenburg2014], where they filter the La11 solution between 300 and 623 kyr to target the 405 kyr solution.
 
 ** get 405 kyr minima ages for each solution
 :PROPERTIES:
@@ -8853,8 +8863,22 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 #+end_src
 
 #+RESULTS:
+#+begin_example
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > + indexing 18696_2.csv [====================================================================================================================] 1.61GB/s, eta:  0s                                                                                                                                                                                                 New names:
+• `` -> `...3`
+Rows: 629 Columns: 3
+── Column specification ──────────────────────────────────────────────────────
+Delimiter: ","
+dbl (3): depth, MS, Lstar
 
-**** NEXT CaCO3: ten Kate and Sprenger 1993
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
++ filter: removed 5 rows (<1%), 4,159 rows remaining
+filter: removed 1,045 rows (25%), 3,114 rows remaining
+select: columns reordered (site, proxy, depth, value, comment)
+#+end_example
+
+**** CaCO3: ten Kate and Sprenger 1993
 :PROPERTIES:
 :CREATED:  [2024-01-18 Thu 16:16]
 :END:
@@ -8867,6 +8891,12 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 - State "SOME"       from "NEXT"       [2024-01-18 Thu 16:49]
 :END:
 [cite:@tenKateSprenger1993]
+very short record, Ma405_{-3} to Ma405_{4} and a bit
+
+***** read the data
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 14:08]
+:END:
 #+begin_src R
   Zumaia_CaCO3 <- readxl::read_excel("dat/tenKateSprenger1993/Zumaya-Kate-Sprenger.xls",
                      sheet = 2,
@@ -8899,7 +8929,18 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
     mutate(age = -approx(agem_CaCO3$depth, y = agem_CaCO3$age,
                         xout = `dist from K/T (m)`)$y) |>
     mutate(age = age * 1e3) # from Ma to ka
+#+end_src
 
+#+RESULTS:
+: -/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            New names:
+: • `` -> `...6`
+: • `` -> `...8`
+
+***** overview plot of detrending and spectral analysis
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 14:09]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_CaCO3_detrend_and_spectra.png :width 2400 :height 2300 :res 300
   # depth domain + detrending
   (
     Zumaia_CaCO3 |>
@@ -8929,36 +8970,22 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
     facet_grid(cols = vars(grp)) +
     coord_cartesian(xlim = c(0, 5))
   )
+#+end_src
 
-  # time domain + detrending
-  Zumaia_CaCO3 |>
-    ggplot(aes(x = age * 1e-3,
-               y = carbonate)) +
-    labs(x = "Age (Ma)",
-         y = "Ca" * CO[3] ~ "(%)") +
-    scale_x_reverse() +
-    geom_smooth(aes(group = grp), method = "lm") +
-    ## geom_line(aes(y = lin_pred), colour = "purple", linewidth = 2) +
-    geom_line() +
-    geom_line(aes(y = lin_scl))
+#+RESULTS:
+[[file:imgs/Zumaia_CaCO3_detrend_and_spectra.png]]
 
-  Zumaia_CaCO3 |>
-    spectral_analysis(x = age, y = lin_scl) |>
-    # they say analyisis in the depth domain doesn't make sense due to changing
-    # sedrates
-    plot_spectrum(ar1 = TRUE) +
-    labs(x = "Frequency (cycles/kyr)") +
-    scale_x_continuous(sec.axis = sec_axis(trans = ~ 1 / .x,
-                                           "Period (kyr)",
-                                           breaks = c(405, 100, 23))) +
-    coord_cartesian(xlim = c(0, 0.06))
-
+***** plot of record and bandpass filters
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 14:09]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_CaCO3_bandpass_filters.png :width 2400 :height 1000 :res 300
   Zumaia_CaCO3 |>
     # full record?
     # or just everything older than the K/Pg?
     ## filter(age > -1e3 * agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) |>
     # or just omitting the interval around the K/Pg?
-    filter(age < 64.5e3 + 50e3 | age > 64.5e3 - 50e3) |>
+    ## filter(age < 64.5e3 + 50e3 | age > 64.5e3 - 50e3) |>
     bandpass_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
                     x = age, y = lin_scl,
                     add_depth = TRUE) |>
@@ -8973,8 +9000,10 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
     geom_line(aes(y = `405 kyr`, colour = "405 kyr filter")) +
     geom_line(aes(y = `100 kyr`, colour = "100 kyr filter")) +
     geom_line(aes(y = ecc, colour = "Norm. Eccentricity construct"))
-
 #+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_CaCO3_bandpass_filters.png]]
 
 *** Age Model
 :PROPERTIES:
