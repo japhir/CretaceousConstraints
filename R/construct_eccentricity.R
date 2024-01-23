@@ -12,13 +12,15 @@
 #' @param f The column in data that contains the filter values.
 #' @export
 construct_eccentricity <- function(data, sign = 1, weights = c("405" = 1, "100" = 1),
-                                   id_cols = c(depth, age, value), f = filter
+                                   id_cols = c(.data$depth, .data$age, .data$value), f = .data$filter
                                    ) {
   data |>
-    pivot_wider(id_cols = {{id_cols}},
-                names_from = target,
-                values_from = {{f}}
+    tidyr::pivot_wider(id_cols = {{id_cols}},
+                       names_from = .data$target,
+                       values_from = {{f}}
                 ) |>
-    mutate(ecc = sign * weights[[1]] * scale(`405 kyr`)[, 1] +
-             sign * weights[[2]] * scale(`100 kyr`)[, 1])
+    dplyr::mutate(ecc = sign * weights[[1]] *
+                    scale(.data$`405 kyr`)[, 1] +
+                    sign * weights[[2]] *
+                    scale(.data$`100 kyr`)[, 1])
 }

@@ -1,5 +1,5 @@
 Package: AstronomicalSolutions
-Title: Find best astronomical solution.
+Title: Find best astronomical solution
 Version: 0.0.0.9000
 Authors@R:
     person("Ilja", "Kocken", , "ikocken@hawaii.edu", role = c("aut", "cre"),
@@ -9,7 +9,16 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.0
-Imports: 
+Imports:
+    astrochron,
+    cli,
     dplyr,
     ggplot2,
-    readr
+    Hmisc,
+    purrr,
+    readr,
+    rlang,
+    stats,
+    stringr,
+    tibble,
+    tidyr

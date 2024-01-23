@@ -1,3 +1,9 @@
+##' Evolutive Harmonics Analysis Wrapper
+##'
+##' @param data Tibble TODO.
+##' @param nest Tibble TODO.
+##' @param x,y Column names.
+##' @export
 evolutive_analysis <- function(data, nest, x, y) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
@@ -11,17 +17,18 @@ evolutive_analysis <- function(data, nest, x, y) {
   }
 
   data |>
-    nest(.by = all_of(nest)) |>
-    mutate(
-      eha = map(data,
+    tidyr::nest(.by = tidyr::all_of(nest)) |>
+    dplyr::mutate(
+      eha = purrr::map(.data$data,
                 ~ . |>
-                  select({{x}}, {{y}}) |>
+                  dplyr::select({{x}}, {{y}}) |>
                   astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
                   astrochron::eha(output = 3, genplot = FALSE, verbose = FALSE) |>
-                  pivot_longer(-freq) |>
-                  mutate(name = str_sub(name, 2, -1) |> parse_double()) |>
-                  rename({{x}} := name))
+                  tidyr::pivot_longer(-freq) |>
+                  dplyr::mutate(name = stringr::str_sub(name, 2, -1) |>
+                                  readr::parse_double()) |>
+                  dplyr::rename({{x}} := name))
     ) |>
-    select(-data) |>
-    unnest(eha)
+    dplyr::select(-.data$data) |>
+    tidyr::unnest(.data$eha)
 }

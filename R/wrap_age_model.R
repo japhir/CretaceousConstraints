@@ -31,7 +31,7 @@
 #' @export
 wrap_age_model <- function(data,
                            agemodel,
-                           astronomical_solution = sln,
+                           astronomical_solution,
                            tiepoint_uncertainty = seq(-4, 4, .5),
                            proxy_phase = 1,
                            target_periods = c("405 kyr" = 405, "100 kyr" = 110),
@@ -101,7 +101,7 @@ wrap_age_model <- function(data,
 
   if (!"Ma405" %in% colnames(data)) {
     data <- data |>
-      mutate(Ma405 = findInterval(depth, agemodel$strat_bot))
+      dplyr::mutate(Ma405 = findInterval(.data$depth, agemodel$strat_bot))
   }
   # this is kind of hard
   # while the above was correct, I want to /interpolate/, so should always
@@ -130,31 +130,31 @@ wrap_age_model <- function(data,
   # end input validation
 
   # convert input frequency to tibble with desired frequency ranges
-  my_filt_age <- tibble(target = c("405 kyr", "100 kyr"),
+  my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
                         p = target_periods) |>
-    mutate(f = 1 / p,
-           range = frequency_fraction * f,
-           flow = f - range,
-           fhigh = f + range,
+    dplyr::mutate(f = 1 / .data$p,
+           range = frequency_fraction * .data$f,
+           flow = .data$f - .data$range,
+           fhigh = .data$f + .data$range,
            ref = "This study")
 
   # make sure to fully initialize the whole output dataframe
   # this will make looping less slow
   the_best_summary <- agemodel |>
-    filter(n %in% tiepoints) |>
-    select(all_of(c("sol", "n", "strat_bot", "age"))) |>
-    mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
-           RMSD_cum = NA_real_) # best RMSD score for full record
+    dplyr::filter(.data$n %in% tiepoints) |>
+    dplyr::select(tidyr::all_of(c("sol", "n", "strat_bot", "age"))) |>
+    dplyr::mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
+                  RMSD_cum = NA_real_) # best RMSD score for full record
 
   the_best <- the_best_summary |>
-    select(-tie_err, -RMSD_cum) |>
-    mutate(
-      optimal = list(tibble(error = tiepoint_uncertainty,
-                            RMSD_tie = NA_real_))
+    dplyr::select(-.data$tie_err, -.data$RMSD_cum) |>
+    dplyr::mutate(
+      optimal = list(tibble::tibble(error = tiepoint_uncertainty,
+                                    RMSD_tie = NA_real_))
     ) |>
-    unnest(cols = c(optimal))
+    tidyr::unnest(cols = c(.data$optimal))
 
-  full_record <- tibble(
+  full_record <- tibble::tibble(
     depth = numeric(),
     age = numeric(),
     value = numeric(),
@@ -173,53 +173,57 @@ wrap_age_model <- function(data,
 
         if (!(tiepoint - 1) %in% the_best_summary$n) {
           am <- the_best_summary |>
-            mutate(tie = case_when(n == tiepoint ~ error,
-                                   .default = NA_real_)) |>
-            mutate(depth = case_when(!is.na(tie) ~ strat_bot + tie,
-                                     .default = strat_bot))
+            dplyr::mutate(tie = dplyr::case_when(
+              .data$n == tiepoint ~ error,
+              .default = NA_real_)) |>
+            dplyr::mutate(depth = dplyr::case_when(
+              !is.na(.data$tie) ~ .data$strat_bot + .data$tie,
+              .default = .data$strat_bot))
 
         } else {
           am <- the_best_summary |>
-            mutate(tie = case_when(n == tiepoint ~ error,
-                                   n < tiepoint ~ tie_err,
-                                   .default = NA_real_)) |>
-            mutate(depth = case_when(!is.na(tie) ~ strat_bot + tie,
-                                     .default = strat_bot))
+            dplyr::mutate(tie = dplyr::case_when(
+              .data$n == tiepoint ~ error,
+              .data$n < tiepoint ~ tie_err,
+              .default = NA_real_)) |>
+            dplyr::mutate(depth = dplyr::case_when(
+              !is.na(.data$tie) ~ .data$strat_bot + .data$tie,
+              .default = .data$strat_bot))
         }
 
         # calculate age from age model for each uncertainty
         tmp <- data |>
-          mutate(age = map_dbl(depth,
+          dplyr::mutate(age = purrr::map_dbl(.data$depth,
                                ~ Hmisc::approxExtrap(
                                  # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
                                  am$depth,
                                  am$age,
                                  xout = .x)$y),
-                 .after = depth)
+                 .after = .data$depth)
 
         flt <- tmp |>
-          # TODO: make frequencies a parameter!!! For now, inheriting
-          # my_filt_age from global namespace
           bandpass_filter(frequencies = my_filt_age,
-                          x = age, y = value, add_depth = TRUE)
+                          x = .data$age, y = .data$value, add_depth = TRUE)
 
         ecc <- flt |>
           # NOTE: this assumes that the frequencies tibble had column target
           # with names `405 kyr` and `100 kyr`!
-          construct_eccentricity(id_cols = c(depth, age, value),
-                                 f = filter,
+          construct_eccentricity(id_cols = c(.data$depth,
+                                             .data$age,
+                                             .data$value),
+                                 f = .data$filter,
                                  # I'm now forcing sign = 1 here!
                                  sign = 1,
                                  weights = eccentricity_weights)
 
         esd <- ecc |>
           # linearly interpolate the astronomical solution eccentricity
-          mutate(
-            ecc_sln = approx(astronomical_solution$age,
-                             astronomical_solution$scl,
-                             xout = age)$y) |>
+          dplyr::mutate(
+            ecc_sln = stats::approx(astronomical_solution$age,
+                                    astronomical_solution$scl,
+                                    xout = .data$age)$y) |>
           # calculate SD between ecc and ecc_sol
-          mutate(SD = (proxy_phase * ecc - ecc_sln)^2)
+          dplyr::mutate(SD = (proxy_phase * .data$ecc - .data$ecc_sln)^2)
 
         # DEBUG
         ## if (8 == tiepoint) {
@@ -228,7 +232,7 @@ wrap_age_model <- function(data,
 
         # summarize into RMSD
         smy <- esd |>
-          summarize(RMSD = sqrt(mean(SD)))
+          dplyr::summarize(RMSD = sqrt(mean(.data$SD)))
 
         # save the results to our tibble
         # NOTE: not using tidyverse syntax here because this is way faster than
@@ -238,8 +242,8 @@ wrap_age_model <- function(data,
 
         # before esd goes out scope!
         if (output %in% c("full", "matched")) {
-          if (tiepoint == last(tiepoints) &&
-                error == last(tiepoint_uncertainty))
+          if (tiepoint == dplyr::last(tiepoints) &&
+                error == dplyr::last(tiepoint_uncertainty))
             full_record <- esd
         }
 
@@ -251,7 +255,7 @@ wrap_age_model <- function(data,
       # limit the error options for choosing the best value
       # we do this here so that we can still compute it for a very wide range
       # so we can illustrate subsequent dips!
-      tb <- tb |> filter(abs(error) <= max_error_range)
+      tb <- tb |> dplyr::filter(abs(error) <= max_error_range)
 
       # THIS is where we decide which strategy to use!
       bst <- min(tb$RMSD_tie)
@@ -280,21 +284,25 @@ wrap_age_model <- function(data,
   if (genplot) {
     # new plot against depth
     pl <- the_best |>
-      ggplot(aes(x = strat_bot + error, y = RMSD_tie,
-                 colour = factor(n))) +
-      labs(x = "Depth (m)", y = "RMSD") +
-      scale_x_reverse() +
-      geom_vline(aes(xintercept = strat_bot), colour = "gray",
-                 data = the_best_summary) +
-      geom_text(aes(x = strat_bot + tie_err, y = RMSD_cum, label = n),
+      ggplot2::ggplot(ggplot2::aes(
+        x = .data$strat_bot + .data$error, y = .data$RMSD_tie,
+        colour = factor(.data$n))) +
+      ggplot2::labs(x = "Depth (m)", y = "RMSD") +
+      ggplot2::scale_x_reverse() +
+      ggplot2::geom_vline(ggplot2::aes(xintercept = .data$strat_bot),
+        colour = "gray",
+        data = the_best_summary) +
+      ggplot2::geom_text(ggplot2::aes(x = .data$strat_bot + .data$tie_err,
+                                      y = .data$RMSD_cum, label = .data$n),
                 nudge_y = -5 * RMSD_threshold,
                 data = the_best_summary) +
-      annotate("segment", x = 0, xend = 0,
-               y = 1.2, yend = 1.2 + RMSD_threshold) +
-      geom_line(aes(group = n)) +
-      geom_line(aes(group = n), linewidth = 1.2,
-                data = \(x) x |> filter(abs(error) <= max_error_range)) +
-      geom_point(aes(x = strat_bot + tie_err, y = RMSD_cum),
+      ggplot2::annotate("segment", x = 0, xend = 0,
+                        y = 1.2, yend = 1.2 + RMSD_threshold) +
+      ggplot2::geom_line(ggplot2::aes(group = .data$n)) +
+      ggplot2::geom_line(ggplot2::aes(group = .data$n), linewidth = 1.2,
+                data = \(x) x |> dplyr::filter(abs(error) <= max_error_range)) +
+      ggplot2::geom_point(ggplot2::aes(x = .data$strat_bot + .data$tie_err,
+                                       y = .data$RMSD_cum),
                  colour = "red", size = 3,
                  data = the_best_summary)
     if (output != "full") {

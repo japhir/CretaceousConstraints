@@ -24,29 +24,30 @@ bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
   }
 
   out <- data |>
-    mutate(filt = list(frequencies)) |>
-    unnest(filt) |>
-    nest(.by = all_of(colnames(frequencies)))
+    dplyr::mutate(filt = list(frequencies)) |>
+    tidyr::unnest(.data$filt) |>
+    tidyr::nest(.by = tidyr::all_of(colnames(frequencies)))
 
   out <- out |>
-    mutate(
-      lt = map(data, \(d) d |>
-                          select({{x}}, {{y}}) |>
-                          astrochron::linterp(genplot = FALSE, verbose = FALSE)),
-      bp = pmap(list(lt, flow, fhigh), \(d, l, h)
+    dplyr::mutate(
+      lt = purrr::map(data, \(d) d |>
+                          dplyr::select({{x}}, {{y}}) |>
+                            astrochron::linterp(genplot = FALSE,
+                                                verbose = FALSE)),
+      bp = purrr::pmap(list(.data$lt, .data$flow, .data$fhigh), \(d, l, h)
                 d |>
                 astrochron::bandpass(flow = l, fhigh = h, win = 0,
                                      genplot = FALSE, verbose = FALSE) |>
-                select(filter = {{y}}))) |>
-    select(-data) |>
-    unnest(cols = c(lt, bp))
+                dplyr::select(filter = {{y}}))) |>
+    dplyr::select(-.data$data) |>
+    tidyr::unnest(cols = c(.data$lt, .data$bp))
 
   if (add_depth) {
     # interpolate depth back to new age scale
     out <- out |>
-      mutate(depth = approx(data |> pull({{x}}),
-                            data$depth,
-                            out |> pull({{x}}))$y,
+      dplyr::mutate(depth = stats::approx(data |> dplyr::pull({{x}}),
+                                   data$depth,
+                                   out |> dplyr::pull({{x}}))$y,
              .before = {{x}})
   }
 
@@ -66,12 +67,12 @@ nested_bandpass_filter <- function(data, frequencies, x, y, nest, add_depth = FA
   }
 
   data |>
-    nest(.by = all_of(nest)) |>
-    mutate(bp = purrr::map(data,
+    tidyr::nest(.by = tidyr::all_of(nest)) |>
+    dplyr::mutate(bp = purrr::map(data,
                \(d) d |>
                     bandpass_filter(frequencies = frequencies,
                                     x = {{x}}, y = {{y}},
                                     add_depth = add_depth))) |>
-    unnest(bp) |>
-    select(-data)
+    tidyr::unnest(.data$bp) |>
+    dplyr::select(-.data$data)
 }

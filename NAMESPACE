@@ -2,5 +2,9 @@
 
 export(bandpass_filter)
 export(construct_eccentricity)
+export(evolutive_analysis)
+export(nested_spectral_analysis)
 export(plot_spectrum)
+export(spectral_analysis)
 export(wrap_age_model)
+importFrom(rlang,.data)

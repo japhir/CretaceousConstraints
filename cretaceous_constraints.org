@@ -133,10 +133,63 @@ I haven't written clean code for this yet, not sure if it'll be useful. The idea
 :END:
 This function calculates the (r)mcd from a dataset with mbsf and a splice table.
 
-#+transclude: [[file:R/get_rmcd.R]]  :src R
+#+begin_src R
+get_rmcd <- function(data, rmcd = "dat/ODP208_1267_rmcd.csv") {
+  rmcd <- readr::read_csv(rmcd) |>
+    separate(label, into = c("sitehole", "coretype", "Sec"),
+               sep = "-", remove = FALSE) |>
+    separate(sitehole, into = c("Site", "H"), sep = -1) |>
+    separate(coretype, into = c("Core", "T"), sep = -1) |>
+    # we do not rename the interval, may not be the same as in the data!
+    # rename the CC sections into 7, the naming convention in the MS data
+    mutate(Sec = ifelse(Sec == "7", "7", Sec),
+           Sec = ifelse(Sec == "cc", "C", Sec)) |>
+    mutate(diff = depth_rmcd - depth_mbsf, .after = depth_rmcd) |>
+    mutate(diff2 = depth_rmcd2 - depth_mbsf2, .after = depth_rmcd2) |>
+    mutate(row = 1:n())
 
-#+RESULTS:
+  # the right side of the splice table only
+  rmcd2 <- rmcd |>
+    select(label, link, label2, interval2, depth_mbsf2, depth_rmcd2, diff2, row) |>
+    separate(label2, into = c("sitehole", "coretype", "Sec"),
+               sep = "-", remove = FALSE) |>
+    separate(sitehole, into = c("Site", "H"), sep = -1) |>
+    separate(coretype, into = c("Core", "T"), sep = -1) |>
+    # we do not rename the interval, may not be the same as in the data!
+    mutate(Sec = ifelse(Sec == "7", "7", Sec),
+           Sec = ifelse(Sec == "cc", "C", Sec))
 
+  out <- data |>
+    tidylog::left_join(rmcd |>
+                     # make the types the same
+                     mutate(across(c(Site, Core), parse_double)) |>
+                     # do NOT match by section, only by core!
+                     rename(section = Sec) |>
+                     select(top = label, to = label2,
+                            Site, H, Core, T, section, interval,
+                            depth_mbsf, depth_rmcd, diff, row)) |>
+    # add the right-hand side of the splice table
+    tidylog::left_join(rmcd2 |>
+                       mutate(across(c(Site, Core), parse_double)) |>
+                       rename(section2 = Sec) |>
+                       select(from = label, bot = label2,
+                              Site, H, Core, T, section2, interval2,
+                              depth_mbsf2, depth_rmcd2, diff2, row2 = row)) |>
+  mutate(my_rmcd = case_when(
+  (Sec <= section) | ((Sec == section) & (`Top (cm)` <= interval)) ~
+    `Depth (mbsf)` + diff,
+  (Sec >= section2) | ((Sec == section2) & (`Top (cm)` >= interval2)) ~
+    `Depth (mbsf)` + diff2,
+  TRUE ~ NA_real_)) |>
+    mutate(on_splice = (Sec < section | ((Sec == section) &
+                                         (`Top (cm)` <= interval))) &
+             (Sec > section2 | ((Sec == section2) &
+                                `Top (cm)` >= interval2))) |>
+    mutate(on_splice = ifelse(is.na(on_splice), FALSE, on_splice))
+
+  return(out)
+}
+#+end_src
 ** Astronomical Solutions
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:50]
@@ -8801,11 +8854,12 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 
-**** SOME CaCO3: ten Kate and Sprenger 1993
+**** NEXT CaCO3: ten Kate and Sprenger 1993
 :PROPERTIES:
 :CREATED:  [2024-01-18 Thu 16:16]
 :END:
 :LOGBOOK:
+- State "NEXT"       from "SOME"       [2024-01-19 Fri 11:47]
 - Note taken on [2024-01-19 Fri 11:19] \\
   ok just read in the data and did some linear detrending and spectral analysis
 - Note taken on [2024-01-18 Thu 16:49] \\
@@ -8893,6 +8947,29 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
                     x = age, y = lin_scl,
                     add_depth = TRUE)
 #+end_src
+
+#+RESULTS:
+#+begin_example
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            New names:
+• `` -> `...6`
+• `` -> `...8`
+`geom_smooth()` using formula = 'y ~ x'
+`geom_smooth()` using formula = 'y ~ x'
+Warning messages:
+1: Removed 49 rows containing non-finite values (`stat_smooth()`).
+2: Removed 49 rows containing missing values (`geom_line()`).
+3: Removed 49 rows containing missing values (`geom_line()`).
+Scale for x is already present.
+Adding another scale for x, which will replace the existing scale.
+Error in `mutate()`:
+ℹ In argument: `lt = map(...)`.
+Caused by error in `map()`:
+ℹ In index: 1.
+Caused by error in `seq.default()`:
+! 'to' must be a finite number
+Run `rlang::last_trace()` to see where the error occurred.
+#+end_example
+
 *** Age Model
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:01]
@@ -9575,7 +9652,7 @@ filter: removed 48,049 rows (61%), 30,561 rows remaining
 :END:
 we make this plot with the raw results because it gives us more control but more code.
 
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :height 1200 :width 2600 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_records_complicated.png :height 2200 :width 2600 :res 300
   xnot <- 144
   ## prx <- "MS"
   ## prx <- "d13C"
@@ -9586,91 +9663,107 @@ we make this plot with the raw results because it gives us more control but more
       site == "Zumaia",
       proxy == prx
     ) |>
+    mutate(mean = mean(value),
+           med = median(value),
+           sd = sd(value),
+           max = max(value),
+           min = min(value),
+           rng = max - min,
+           .by = c(site,proxy)) |>
     ggplot(aes(x = depth, y = value,
                group = paste(site, proxy))) +
     facet_grid(rows = vars(proxy),
                scales = "free_y") +
+    scale_colour_brewer(type = "qual") +
+    scale_size_manual(values = c("FALSE" = 1, "TRUE" = 1.3)) +
     coord_cartesian(xlim = c(178, 0)) +
     labs(x = "Depth (m)", y = "Proxy value", colour = "", size = "Well-defined") +
     scale_x_continuous(minor_breaks = seq(0, 200, 10)) +
 
     # r/w intervals
-    scale_fill_manual(values = c("red" = "indianred", "pink" = "pink", "white" = "gray"),
-                      guide = "none") +
-    geom_rect(aes(fill = str_sub(colour, 1, -2),
-                  xmin = depth - .1, xmax = depth + .1,
-                  ymin = max(value) + 2, ymax = max(value) + 4)) +
+    ## scale_fill_manual(values = c("red" = "indianred", "pink" = "pink", "white" = "gray"),
+    ##                   guide = "none") +
+    ## geom_rect(aes(fill = str_sub(colour, 1, -2),
+    ##               xmin = depth - .1, xmax = depth + .1,
+    ##               ymin = min, ymax = (min - rng) / rng)) +
 
     # "raw" data
     geom_line(colour = "gray") +
-    annotate("text", x = xnot, y = mean(value),
-             label = "value", size = 2, hjust = 1) +
+    geom_text(aes(x = xnot, y = med, label = "value"),
+              size = 2, hjust = 1) +
     # raw value scaled
-    geom_line(aes(y = scale(value)[, 1]), colour = "gray") + # scaled
-    annotate("text", x = xnot, y = 0, label = "scl = scale(value)",
-             size = 2, hjust = 1) +
+    geom_line(aes(y = (med - 3 * sd) + scale(value)[, 1]), colour = "gray") + # scaled
+    geom_text(aes(x = xnot, y = med - 3 * sd,
+                  label = "scl = scale(value)"),
+             size = 2, hjust = 1)
 
     # raw data after subtracting lines for red/white intervals
     ## geom_line(aes(y = lin_scl - 5), colour = "gray") +
     ## annotate("text", x = xnot, y = -5, label = "lin_scl = scale(value-lin)",
     ##          size = 2, hjust = 1) +
     # TEMP other linear detrend approaches: results
-    geom_line(aes(y = lin_scl - 30), colour = "gray") +
-    annotate("text", x = xnot, y = -30, label = "lin_scl_rw",
-             size = 2, hjust = 1) +
-    geom_line(aes(y = lin_scl - 35), colour = "gray",
-              data = smooth_2 |> filter(site == "Zumaia", proxy == prx)) +
-    annotate("text", x = xnot, y = -35, label = "lin_scl_fine",
-             size = 2, hjust = 1) +
-    geom_line(aes(y = lin_scl - 40), colour = "gray",
-              data = smooth_3 |> filter(site == "Zumaia", proxy == prx)) +
-    annotate("text", x = xnot, y = -40, label = "lin_scl_coarse",
-             size = 2, hjust = 1) +
-    # TEMP
 
-    # scale(value - gam_pred) = det
-    geom_line(aes(y = scale(value - gam_pred)[, 1] - 10), colour = "gray") +
-    annotate("text", x = xnot, y = -10, label = "gam_scl = scale(value-gam)",
-             size = 2, hjust = 1) +
-    # scale(value - gam_pred - lin_gam) = det
-    ## geom_line(aes(y = det - 15), colour = "gray") +
-    ## annotate("text", x = xnot, y = -15, label = "lin_gam_det = scale(value-gam-lin_gam)",
+    ## geom_line(aes(y = lin_scl - 30), colour = "gray") +
+    ## annotate("text", x = xnot, y = -30, label = "lin_scl_rw",
     ##          size = 2, hjust = 1) +
-    # scale(value - lowpass) = highpass
-    geom_line(aes(x = depth_linterp, y = scale(highpass)[,1] - 20), colour = "gray",
-              data = smooth_hp |>
-                filter(site == "Zumaia", proxy == prx)) +
-    annotate("text", x = xnot, y = -20, label = "hp_scl = scale(value-lowpass)",
-             size = 2, hjust = 1) +
+    ## geom_line(aes(y = lin_scl - 35), colour = "gray",
+    ##           data = smooth_2 |> filter(site == "Zumaia"## , proxy == prx
+    ##                                     )) +
+    ## annotate("text", x = xnot, y = -35, label = "lin_scl_fine",
+    ##          size = 2, hjust = 1) +
+    ## geom_line(aes(y = lin_scl - 40), colour = "gray",
+    ##           data = smooth_3 |> filter(site == "Zumaia"## , proxy == prx
+    ##                                     )) +
+    ## annotate("text", x = xnot, y = -40, label = "lin_scl_coarse",
+    ##          size = 2, hjust = 1) +
+    ## # TEMP
 
-    # trends: lin, gam, lowpass
-    geom_line(aes(y = gam_pred, colour = "gam"),
-              linewidth = 1.2,alpha = .6,
-              data = smooth_basic |>
-                filter(site == "Zumaia", proxy == prx)) +
-    geom_line(aes(x = depth_linterp, y = lowpass,
-                  colour = detrend_type),
-                linewidth = 1.2,alpha = .6,
-              data = smooth_hp |>
-                mutate(detrend_type = "lowpass") |>
-                filter(site == "Zumaia", proxy == prx)) +
-    ## geom_line(aes(y = gam_pred - 5, colour = "lin_gam"),
-    ##           linewidth = 1.2,
+    ## # scale(value - gam_pred) = det
+    ## geom_line(aes(y = scale(value - gam_pred)[, 1] - 10), colour = "gray") +
+    ## annotate("text", x = xnot, y = -10, label = "gam_scl = scale(value-gam)",
+    ##          size = 2, hjust = 1) +
+
+    ## # scale(value - lowpass) = highpass
+    ## geom_line(aes(x = depth_linterp, y = scale(highpass)[,1] - 20), colour = "gray",
+    ##           data = smooth_hp |>
+    ##             filter(site == "Zumaia"## , proxy == prx
+    ##                    )) +
+    ## annotate("text", x = xnot, y = -20, label = "hp_scl = scale(value-lowpass)",
+    ##          size = 2, hjust = 1) +
+
+    ## # trends: lin, gam, lowpass
+    ## geom_line(aes(y = gam_pred, colour = "gam"),
+    ##           linewidth = 1.2,alpha = .9,
+    ##           data = smooth_basic |>
+    ##             filter(site == "Zumaia"## , proxy == prx
+    ##                    )) +
+    ## geom_line(aes(x = depth_linterp, y = lowpass,
+    ##               colour = detrend_type),
+    ##             linewidth = 1.2,alpha = .9,
+    ##           data = smooth_hp |>
+    ##             mutate(detrend_type = "lowpass") |>
+    ##             filter(site == "Zumaia"## , proxy == prx
+    ##                    )) +
+    ## ## geom_line(aes(y = gam_pred - 5, colour = "lin_gam"),
+    ## ##           linewidth = 1.2,
+    ## ##           data = smooth |>
+    ## ##             filter(site == "Zumaia", proxy == prx)) +
+
+    ## geom_line(aes(y = lin_pred, colour = "lin_rw", group = colour),
+    ##           linewidth = 1.2, alpha = .9,
     ##           data = smooth |>
-    ##             filter(site == "Zumaia", proxy == prx)) +
-
-    geom_line(aes(y = lin_pred, colour = "lin_rw", group = colour),
-              linewidth = 1.2, alpha = .6,
-              data = smooth |>
-                filter(site == "Zumaia", proxy == prx)) +
-    geom_line(aes(y = lin_pred, colour = "lin_fine", group = colour),
-              linewidth = 1.2,alpha = .6,
-              data = smooth_2 |>
-                filter(site == "Zumaia", proxy == prx)) +
-    geom_line(aes(y = lin_pred, colour = "lin_coarse", group = colour),
-              linewidth = 1.2,alpha = .6,
-              data = smooth_3 |>
-                filter(site == "Zumaia", proxy == prx)) +
+    ##             filter(site == "Zumaia"## , proxy == prx
+    ##                    )) +
+    ## geom_line(aes(y = lin_pred, colour = "lin_fine", group = colour),
+    ##           linewidth = 1.2, alpha = .9,
+    ##           data = smooth_2 |>
+    ##             filter(site == "Zumaia"## , proxy == prx
+    ##                    )) +
+    ## geom_line(aes(y = lin_pred, colour = "lin_coarse", group = colour),
+    ##           linewidth = 1.2, alpha = .9,
+    ##           data = smooth_3 |>
+    ##             filter(site == "Zumaia"## , proxy == prx
+    ##                    )) +
 
     # filters
     ## geom_line(aes(y = filt, colour = detrend_type, group = target),
@@ -9678,20 +9771,19 @@ we make this plot with the raw results because it gives us more control but more
     ##             filter(site == "Zumaia", proxy == "MS")) +
 
     # age model from the log
-    geom_point(aes(x = strat_bot, y = -2,
-                   size = !is.na(comment)),
-               inherit.aes = FALSE,
-               data = agem |>
-                 filter(minmax == "minimum")) +
-    scale_size_manual(values = c("FALSE" = 1, "TRUE" = 1.3)) +
-    annotate("text", x = xnot, y = -2, label = "405 kyr minima (field)", hjust = 1, size = 2.5) +
-    annotate("text", x = xnot, y = 2, label = "405 kyr maxima (field)", hjust = 1, size = 2.5) +
-    geom_segment(aes(x = strat_bot, xend = strat_top,
-                     y = 2, yend = 2),
-                 inherit.aes = FALSE,
-                 data = agem |>
-                   filter(minmax == "maximum"),
-                 linewidth = 1)
+    ## geom_point(aes(x = strat_bot, y = -2,
+    ##                size = !is.na(comment)),
+    ##            inherit.aes = FALSE,
+    ##            data = agem |>
+    ##              filter(minmax == "minimum")) +
+    ## annotate("text", x = xnot, y = -2, label = "405 kyr minima (field)", hjust = 1, size = 2.5) +
+    ## annotate("text", x = xnot, y = 2, label = "405 kyr maxima (field)", hjust = 1, size = 2.5) +
+    ## geom_segment(aes(x = strat_bot, xend = strat_top,
+    ##                  y = 2, yend = 2),
+    ##              inherit.aes = FALSE,
+    ##              data = agem |>
+    ##                filter(minmax == "maximum"),
+    ##              linewidth = 1)
     ## try to make it into little sine waves
     ## geom_segment(aes(x = strat_bot, xend = strat_top,
     ##                  y = if_else(minmax == "minimum", 1.5, -1.5),
@@ -12570,22 +12662,28 @@ old
   best_age_optim |>
     filter(site == "Zumaia") |>
     ## filter(site == "Zumaia", comb == "1:1", proxy == "Lstar") |>
-    mutate(comb = factor(comb, levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                                          "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-    ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
+    mutate(comb = factor(comb,
+                         levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                                    "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+    ggplot(aes(y = sol, x = RMSD, colour = detrend_type,
                group = paste(site, proxy, comb,
                              detrend_type, date, exp))) +
-    labs(x = "Astronomical solution", shape = "Age model", linetype = "Age model") +
-    facet_grid(rows = vars(proxy), cols = vars(comb)) +
-    theme(axis.text.x = element_text(angle = 90, size = 7)) +
+    labs(y = "Astronomical solution", shape = "Age model", linetype = "Age model") +
+    facet_grid(rows = vars(proxy), cols = vars(comb),
+               ## scales = "free_x"
+               ## space = "free_x",
+               ) +
+    scale_x_continuous(breaks = c(0, 1, 1.5, 2),
+                       minor_breaks = seq(0,2,.1)) +
+    ## theme(axis.text.y = element_text(angle = 90, size = 7)) +
     scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
     scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    geom_point(aes(y = RMSD_start, shape = "Field")) +
+    geom_point(aes(x = RMSD_start, shape = "Field")) +
     geom_point(aes(fill = detrend_type, shape = "Optimized")) +
-    geom_line(aes(y = RMSD_start, linetype = "Field")) +
-    geom_line(aes(x = sol, y = RMSD, linetype = "Optimized")) +
+    geom_path(aes(x = RMSD_start, linetype = "Field")) +
+    geom_path(aes(y = sol, x = RMSD, linetype = "Optimized")) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
-    geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
+    geom_linerange(aes(xmin = RMSD_start, xmax = RMSD),
                    alpha = .2)
 #+end_src
 
@@ -13252,12 +13350,13 @@ oh no, the Sopelana results are not exporting the Matched record!
 :PROPERTIES:
 :CREATED:  [2024-01-15 Mon 15:22]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+# #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.pdf :width 9.6 :height 8
   best_age_optim |>
     filter(comb == "1:1") |>
     filter(proxy == "Lstar") |>
     filter(detrend_type == "lin_scl_fine") |>
-    ## filter(exp != ) # TODO
+    filter(str_detect(exp, "-portion") | site == "Sopelana") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
     ggplot(aes(x = age * 1e-3,
@@ -13298,11 +13397,81 @@ oh no, the Sopelana results are not exporting the Matched record!
               ## position = position_dodge(width = 1.2),
               data = \(x) x |>
                           filter(age == min(age),
-                                 .by = c(RMSD, site, sol, proxy, detrend_type)))
+                                 .by = c(RMSD, site, sol, proxy, detrend_type))) +
+    # annotate depths of 405 kyr minima
+    geom_point(aes(x = age * 1e-3, y = -4),
+               shape = ".",
+              data = best_age_optim |>
+                filter(comb == "1:1") |>
+                filter(proxy == "Lstar") |>
+                filter(detrend_type == "lin_scl_fine") |>
+                filter(str_detect(exp, "-portion") | site == "Sopelana") |>
+                select(-sol) |>
+                mutate(m = map(the_best, "summary")) |>
+                unnest(m)) +
+    geom_text(aes(x = age * 1e-3, y = -4.5,
+                  label = paste(strat_bot, tie_err)),
+              size = 1.8,
+              data = best_age_optim |>
+                filter(comb == "1:1") |>
+                filter(proxy == "Lstar") |>
+                filter(detrend_type == "lin_scl_fine") |>
+                filter(str_detect(exp, "-portion") | site == "Sopelana") |>
+                select(-sol) |>
+                mutate(m = map(the_best, "summary")) |>
+                unnest(m))
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia_Lstar_1-1_solutions_simple.png]]
+[[file:imgs/Zumaia_Lstar_1-1_solutions_simple.pdf]]
+
+**** simplified plot of filters, raw data vs depth
+:PROPERTIES:
+:CREATED:  [2024-01-15 Mon 15:22]
+:END:
+# #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_depth.pdf :width 9.6 :height 2
+  best_age_optim |>
+    filter(comb == "1:1") |>
+    filter(proxy == "Lstar") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    filter(sol == "ZB20b") |>
+    filter(str_detect(exp, "-portion") | site == "Sopelana" |
+           str_detect(exp, "all after")) |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = depth,
+               y = sign_405 * ecc,
+               colour = site,
+               group = paste(site, sol, proxy,
+                             detrend_type, date, exp))) +
+    facet_grid(rows = vars(sol)) +
+    labs(x = "Depth (m)", y = "Norm. Filter & Solution",
+         colour = "") +
+    ## theme(legend.pos = c(.64, .864),
+    ##       legend.direction = "horizontal") +
+    scale_x_reverse(breaks = seq(200, -50, -10),
+                    minor_breaks = seq(200, -50, -5)) +
+    ## scale_y_continuous(breaks = c(-4, 0, 4)) +
+    ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
+    ## scale_alpha_continuous(range = c(1, 0.2)) +
+    scale_colour_manual(values = c("Astronomical Solution" = "black",
+                                   "Zumaia" = "purple",
+                                   "Sopelana" = "skyblue"
+                                   ## "Lstar" = "purple",
+                                   ## "MS" = "skyblue",
+                                   ## "d13C" = "darkgreen"
+                                   )) +
+    geom_vline(xintercept = 0) +
+    geom_line() #+
+    ## geom_line(aes(y = value), colour = "gray")
+    ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
+    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Lstar_1-1_solutions_depth.pdf]]
 
 **** [10/11] tasks
 :PROPERTIES:

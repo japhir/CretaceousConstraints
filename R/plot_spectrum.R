@@ -24,45 +24,64 @@ plot_spectrum <- function(spec,
 
   if ("none" %in% group) {
     pl <- spec |>
-      ggplot(aes(x = frequency, y = power))
+      ggplot2::ggplot(ggplot2::aes(x = .data$frequency, y = .data$power))
     if (ar1) {
       pl <- pl +
-        geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
-                        linetype = NA, group = .width),
-                    alpha = .1)
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
+                                          ymax = .data$ar1_power,
+                                 linetype = NA, group = .data$.width),
+                             alpha = .1)
     }
   } else {
     pl <- spec |>
-      ggplot(aes(x = frequency, y = power, colour = .data[[group]]))
+      ggplot2::ggplot(ggplot2::aes(x = .data$frequency,
+                                   y = .data$power,
+                                   colour = .data[[group]]))
     if (ar1) {
       pl <- pl +
-        geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power, fill = .data[[group]],
-                        linetype = NA, group = paste(c(group, .width))),
-                    alpha = .1)
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
+                                          ymax = .data$ar1_power,
+                                          fill = .data[[group]],
+                                          linetype = NA,
+                                          group = paste(c(.data$group,
+                                                          .data$.width))),
+                             alpha = .1)
       }
   }
 
   if (logx && logy) {
-    pl <- pl + annotation_logticks() +
-      scale_y_log10() +
-      scale_x_log10(sec.axis = sec_axis(breaks = periods,
-                                        trans = \(x) 1 / x, name = "Period (m)"))
+    pl <- pl + ggplot2::annotation_logticks() +
+      ggplot2::scale_y_log10() +
+      ggplot2::scale_x_log10(
+        sec.axis = ggplot2::sec_axis(breaks = periods,
+                                     trans = \(x) 1 / x,
+                                     name = "Period (m)"))
   } else if (logx){
-      pl <- pl + annotation_logticks(sides = "b") +
-        scale_x_log10(sec.axis = sec_axis(breaks = periods,
-                                          trans = \(x) 1 / x, name = "Period (m)"))
+      pl <- pl + ggplot2::annotation_logticks(sides = "b") +
+        ggplot2::scale_x_log10(
+          sec.axis = ggplot2::sec_axis(breaks = periods,
+                                       trans = \(x) 1 / x,
+                                       name = "Period (m)"))
   } else if (logy) {
-    pl <- pl + annotation_logticks(sides = "l") + scale_y_log10() +
-      scale_x_continuous(sec.axis = sec_axis(breaks = periods,
-                                             trans = \(x) 1 / x, name = "Period (m)"))
+    pl <- pl +
+      ggplot2::annotation_logticks(sides = "l") +
+      ggplot2::scale_y_log10() +
+      ggplot2::scale_x_continuous(
+        sec.axis = ggplot2::sec_axis(breaks = periods,
+                                     trans = \(x) 1 / x,
+                                     name = "Period (m)"))
   } else {# neither
     pl <- pl +
-      scale_x_continuous(sec.axis = sec_axis(breaks = periods,
-                                             trans = \(x) 1 / x, name = "Period (m)"))
+      ggplot2::scale_x_continuous(
+        sec.axis = ggplot2::sec_axis(breaks = periods,
+                                     trans = \(x) 1 / x,
+                                     name = "Period (m)"))
   }
 
   pl <- pl +
-    geom_line() +
-    labs(x = "Frequency (cycles/m)", y = "Spectral power (-)")
+    ggplot2::geom_line() +
+    ggplot2::labs(x = "Frequency (cycles/m)",
+                  y = "Spectral power (-)")
+
   return(pl)
 }

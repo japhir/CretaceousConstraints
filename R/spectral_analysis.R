@@ -11,6 +11,7 @@
 ##'                       c = stats::rnorm(10),
 ##'                       d = sample(letters[1:3], 10, TRUE))
 ##' spectral_analysis(dat, x = a, y = c)
+##' @export
 spectral_analysis <- function(data, x, y, method = "MTM") {
   if ("MTM" != method) {
     cli::cli_abort(c("Only method MTM is currently supported.",
@@ -21,22 +22,29 @@ spectral_analysis <- function(data, x, y, method = "MTM") {
   }
 
   data |>
-    select({{x}}, {{y}}) |>
+    dplyr::select({{x}}, {{y}}) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
     astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
-    pivot_longer(c(AR1_90_power, AR1_95_power, AR1_99_power),
-                 names_to = c("AR1", ".width"), names_pattern = "^(AR1)_(9[950])",
+    tidyr::pivot_longer(c(.data$AR1_90_power,
+                          .data$AR1_95_power,
+                          .data$AR1_99_power),
+                        names_to = c("AR1", ".width"),
+                        names_pattern = "^(AR1)_(9[950])",
                  values_to = "ar1_power") |>
-    select(-AR1) |>
-    mutate(.width = parse_double(paste0(".", .width))) |>
-    rename(frequency = Frequency, power = Power, harmonic_cl = Harmonic_CL,
-           ar1_cl = AR1_CL, ar1_fit = AR1_fit, .width = .width)
+    dplyr::select(-.data$AR1) |>
+    dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+    dplyr::rename(frequency = .data$Frequency,
+                  power = .data$Power,
+                  harmonic_cl = .data$Harmonic_CL,
+                  ar1_cl = .data$AR1_CL,
+                  ar1_fit = .data$AR1_fit)
 }
 
 ##' Nested Spectral Analysis
 ##'
 ##' @inheritParams spectral_analysis
 ##' @param nest Character vector to nest by.
+##' @export
 nested_spectral_analysis <- function(data, nest, x, y) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
@@ -50,10 +58,12 @@ nested_spectral_analysis <- function(data, nest, x, y) {
   }
 
   data |>
-    nest(.by = all_of(nest)) |>
-    mutate(
-      mtm = map(data, spectral_analysis, x = {{x}}, y = {{y}})
+    tidyr::nest(.by = tidyr::all_of(nest)) |>
+    dplyr::mutate(
+      mtm = purrr::map(.data$data,
+                       spectral_analysis,
+                       x = {{x}}, y = {{y}})
     ) |>
-    select(-data) |>
-    unnest(mtm)
+    dplyr::select(-.data$data) |>
+    tidyr::unnest(.data$mtm)
 }
