@@ -8925,6 +8925,8 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
                              y = lin_scl) |>
     mutate(grp = as.character(grp)) |>
     plot_spectrum(group = "grp", periods = c(10, 1, .5, .4, .3, .2)) +
+    # SOME: add AR1 spectra to each facet?
+    facet_grid(cols = vars(grp)) +
     coord_cartesian(xlim = c(0, 5))
   )
 
@@ -8951,34 +8953,28 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
                                            breaks = c(405, 100, 23))) +
     coord_cartesian(xlim = c(0, 0.06))
 
-  # this errors for some reason when linterping!
   Zumaia_CaCO3 |>
-    bandpass_filter(frequencies = my_filt_age |> filter(target == "405 kyr"),
+    # full record?
+    # or just everything older than the K/Pg?
+    ## filter(age > -1e3 * agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) |>
+    # or just omitting the interval around the K/Pg?
+    filter(age < 64.5e3 + 50e3 | age > 64.5e3 - 50e3) |>
+    bandpass_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
                     x = age, y = lin_scl,
-                    add_depth = TRUE)
-#+end_src
+                    add_depth = TRUE) |>
+    construct_eccentricity(id_cols = c("depth", "age", "lin_scl")) |>
+    ggplot(aes(x = age * 1e-3, y = ecc)) +
+    labs(x = "Age (Ma) but OLD age model",
+         y = "Norm. scaled record and filter",
+         colour = "") +
+    scale_x_reverse() +
+    geom_vline(xintercept = -agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) +
+    geom_line(aes(y = lin_scl, colour = "CaCO3")) +
+    geom_line(aes(y = `405 kyr`, colour = "405 kyr filter")) +
+    geom_line(aes(y = `100 kyr`, colour = "100 kyr filter")) +
+    geom_line(aes(y = ecc, colour = "Norm. Eccentricity construct"))
 
-#+RESULTS:
-#+begin_example
--/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            New names:
-• `` -> `...6`
-• `` -> `...8`
-`geom_smooth()` using formula = 'y ~ x'
-`geom_smooth()` using formula = 'y ~ x'
-Warning messages:
-1: Removed 49 rows containing non-finite values (`stat_smooth()`).
-2: Removed 49 rows containing missing values (`geom_line()`).
-3: Removed 49 rows containing missing values (`geom_line()`).
-Scale for x is already present.
-Adding another scale for x, which will replace the existing scale.
-Error in `mutate()`:
-ℹ In argument: `lt = map(...)`.
-Caused by error in `map()`:
-ℹ In index: 1.
-Caused by error in `seq.default()`:
-! 'to' must be a finite number
-Run `rlang::last_trace()` to see where the error occurred.
-#+end_example
+#+end_src
 
 *** Age Model
 :PROPERTIES:
