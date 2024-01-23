@@ -8901,22 +8901,32 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
     mutate(age = age * 1e3) # from Ma to ka
 
   # depth domain + detrending
-  Zumaia_CaCO3 |>
+  (
+    Zumaia_CaCO3 |>
     ggplot(aes(x = `dist from K/T (m)`,
                y = carbonate)) +
     labs(x = "Depth (m)",
          y = "Ca" * CO[3] ~ "(%)") +
-    scale_x_reverse() +
-    geom_smooth(aes(group = grp), method = "lm") +
-    ## geom_line(aes(y = lin_pred), colour = "purple", linewidth = 2) +
+    ## scale_x_reverse() +
+    ## geom_smooth(aes(group = grp), method = "lm") +
+    geom_line(aes(y = lin_pred, colour = factor(grp)), linewidth = 2) +
     geom_line() +
-    geom_line(aes(y = lin_scl))
-
-  Zumaia_CaCO3 |>
+   geom_line(aes(y = lin_scl))
+  ) / (
+    Zumaia_CaCO3 |>
     spectral_analysis(x = `dist from K/T (m)`, y = lin_scl) |>
     # they say analyisis in the depth domain doesn't make sense due to changing
     # sedrates
-    plot_spectrum(ar1 = TRUE)
+    plot_spectrum(ar1 = TRUE, periods = c(10, 1, .5, .4, .3, .2))
+  ) / (
+  Zumaia_CaCO3 |>
+    nested_spectral_analysis(nest = "grp",
+                             x = `dist from K/T (m)`,
+                             y = lin_scl) |>
+    mutate(grp = as.character(grp)) |>
+    plot_spectrum(group = "grp", periods = c(10, 1, .5, .4, .3, .2)) +
+    coord_cartesian(xlim = c(0, 5))
+  )
 
   # time domain + detrending
   Zumaia_CaCO3 |>
