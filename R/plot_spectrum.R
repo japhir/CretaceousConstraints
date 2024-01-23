@@ -1,4 +1,20 @@
-plot_spectrum <- function(spec, group = "none", logx = FALSE, logy = FALSE, ar1 = FALSE) {
+##' Plot Spectrum
+##'
+##' Plot the result of [spectral_analysis()] or [nested_spectral_analysis()].
+##'
+##' @param spec Tibble with output of [spectral_analysis()] or [nested_spectral_analysis()].
+##' @param group Character(1). Group column to colour by.
+##' @param logx,logy Logical(1). Make the x- and/or y-axis log10.
+##' @param ar1 Logical(1). Plot the AR1 confidence levels.
+##' @param periods Periods of interest to plot along the top axis.
+##' @return A [ggplot2::ggplot()] object.
+##' @export
+plot_spectrum <- function(spec,
+                          group = "none",
+                          logx = FALSE,
+                          logy = FALSE,
+                          ar1 = FALSE,
+                          periods = c(405, 132.5, 124, 99.7, 95)) {
 
   if ("none" %in% group) {
     pl <- spec |>
@@ -20,7 +36,6 @@ plot_spectrum <- function(spec, group = "none", logx = FALSE, logy = FALSE, ar1 
       }
   }
 
-  periods <- c(405, 132.5, 124, 99.7, 95)
   if (logx && logy) {
     pl <- pl + annotation_logticks() +
       scale_y_log10() +

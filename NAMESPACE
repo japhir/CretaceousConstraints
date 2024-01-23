@@ -2,4 +2,5 @@
 
 export(bandpass_filter)
 export(construct_eccentricity)
+export(plot_spectrum)
 export(wrap_age_model)
