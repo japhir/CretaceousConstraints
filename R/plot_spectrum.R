@@ -8,6 +8,12 @@
 ##' @param ar1 Logical(1). Plot the AR1 confidence levels.
 ##' @param periods Periods of interest to plot along the top axis.
 ##' @return A [ggplot2::ggplot()] object.
+##' @examples
+##' dat <- tibble::tibble(a = 1:10,
+##'                       b = 11:20,
+##'                       c = stats::rnorm(10),
+##'                       d = sample(letters[1:3], 10, TRUE))
+##' plot_spectrum(spectral_analysis(dat, x = a, y = c))
 ##' @export
 plot_spectrum <- function(spec,
                           group = "none",
