@@ -4,6 +4,7 @@
 ##' @param nest Tibble TODO.
 ##' @param x,y Column names.
 ##' @export
+#   TODO: add examples!
 evolutive_analysis <- function(data, nest, x, y) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(

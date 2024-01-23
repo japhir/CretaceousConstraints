@@ -6,6 +6,14 @@
 ##' @param x Column name in `data` that holds the depth/age information.
 ##' @param y Column name in `data` that holds the proxy variable name.
 ##' @param add_depth Logical(1) Add depth back in if x is age?
+##' @examples
+##' dat <- tibble::tibble(a = 1:10,
+##'                       b = 11:20,
+##'                       c = stats::rnorm(10),
+##'                       d = sample(letters[1:3], 10, TRUE))
+##' bandpass_filter(dat,
+##'                 tibble::tibble(flow = 1, fhigh = 2, target = "group"),
+##'                 x = a, y = c)
 ##' @export
 bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
   if (! "data.frame" %in% class(data)) {
@@ -15,12 +23,12 @@ bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
   }
   if (! "data.frame" %in% class(frequencies)) {
     cli::cli_abort(c(
-           "{.var freqs} must be a {.cls data.frame}",
-           "x" = "You've supplied a {.cls {class(freqs)}}"))
+           "{.var frequencies} must be a {.cls data.frame}",
+           "x" = "You've supplied a {.cls {class(frequencies)}}"))
   }
   if (! all(c("fhigh", "flow", "target") %in% colnames(frequencies))) {
-    cli::cli_abort(c("{.var freqs} must have columns `flow` and `fhigh`",
-                     "i" = "{.var freqs} has column{?s} {.val {colnames(freqs)}}"))
+    cli::cli_abort(c("{.var frequencies} must have columns `flow`, `fhigh`, and `target`.",
+                     "i" = "{.var frequencies} has column{?s} {.val {colnames(frequencies)}}"))
   }
 
   out <- data |>

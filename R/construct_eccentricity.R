@@ -10,6 +10,7 @@
 #'   405 kyr and 100 kyr filtered record.
 #' @param id_cols The columns to maintain when pivoting wider.
 #' @param f The column in data that contains the filter values.
+#  TODO: add useful examples!
 #' @export
 construct_eccentricity <- function(data, sign = 1, weights = c("405" = 1, "100" = 1),
                                    id_cols = c(.data$depth, .data$age, .data$value), f = .data$filter

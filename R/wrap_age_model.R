@@ -29,6 +29,7 @@
 #' @details Output must be one of `"default"`, `"details"`, `"plot"`,
 #'   `"matched"`, or `"full"`.
 #' @export
+#  TODO: add example!
 wrap_age_model <- function(data,
                            agemodel,
                            astronomical_solution,
