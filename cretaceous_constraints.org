@@ -1,6 +1,6 @@
 #+title: Cretaceous Constraints
 #+author: Ilja J. Kocken
-#+PROPERTY: header-args:R  :session *R:cretaceous-constraints* :exports results :results output :eval no-export
+#+PROPERTY: header-args:R  :session *R:2023-05-19_cretaceous_constraints* :exports results :results output :eval no-export
 #+options: TOC:3 broken-links:ignore H:4
 #+startup: overview
 #+SELECT_TAGS: export
@@ -39,7 +39,7 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
 * some shared code                                     :noexport:
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 14:57]
-:header-args:R: :session *R:cretaceous-constraints* :exports code :eval no-export :results output
+:header-args:R: :session *R:2023-05-19_cretaceous_constraints* :exports code :eval no-export :results output
 :CUSTOM_ID: sec:shared-code
 :END:
 these have mostly migrated to a development package!
