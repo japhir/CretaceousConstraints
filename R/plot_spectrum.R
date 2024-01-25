@@ -43,7 +43,7 @@ plot_spectrum <- function(spec,
                                           ymax = .data$ar1_power,
                                           fill = .data[[group]],
                                           linetype = NA,
-                                          group = paste(c(.data$group,
+                                          group = paste(c(.data[[group]],
                                                           .data$.width))),
                              alpha = .1)
       }
