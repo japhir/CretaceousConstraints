@@ -13920,6 +13920,146 @@ TOC, d13C, d18O
 [cite:@Wendler2014]
 https://doi.pangaea.de/10.1594/PANGAEA.834794
 
+** apply our method to a hypothetical dataset
+:PROPERTIES:
+:CREATED:  [2024-01-25 Thu 13:16]
+:END:
+#+begin_src R
+  # create a true "astronomical" signal in the time domain
+  # it has just a single 110 kyr cycle and some noise
+  tru <- astrochron::cycles(freqs = 1 / 110,
+                             start = 0, end = 1999,
+                             dt = 1, noisevar = .5,
+                            genplot = FALSE, verbose = FALSE) |>
+    as_tibble() |>
+    mutate(age = time + 66e3) #|> # let's say it's just 66 Ma
+    ## mutate(sedrate = ifelse(time < 1000, 3, 5)) |> # cm / kyr
+    ## mutate(depth = time * sedrate * 1e-2) # m
+
+  # create an "age model" for this "site" it has the K/T boundary as a tiepoint,
+  # and then two more tiepoints that cause it to have a single kink in the
+  # sedimentation rate
+  agem <- tribble(~ comment, ~ age, ~ depth,
+                  "bottom", 68e3, 100,
+                  "middle", 67e3, 30,
+                  "K/T boundary", 66e3, 0,
+                  )
+
+  # calculate the depth based on the age and the age model
+  # then calculate teh sedimentation rate
+  tru <- tru |>
+    mutate(depth = approx(agem$age, agem$depth, .data$age)$y) |>
+    mutate(sedrate = (depth - lag(depth)) / (age - lag(age))) |>
+    mutate(sedrate = ifelse(is.na(sedrate), 0.03, sedrate)) |>
+    mutate(sedrate_group = age < agem$age[[2]])
+
+  # subset so that the sampling resolution is kind of even in the depth domain
+  tru <- tru |>
+    filter((sedrate_group & tru$time %%2 == 1) | !sedrate_group)
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/synthetic_depth_construction.png :width 2400 :height 1900 :res 300
+  # single overview plot of record in time, sedrates, record in depth, spectral
+  # analysis in depth
+  (
+  tru |>
+    ggplot(aes(x = age * 1e-3, y = value)) +
+    labs(x = "Age (Ma)") +
+    scale_x_reverse() +
+    geom_line(alpha = .4) +
+    geom_vline(xintercept = agem$age * 1e-3)
+  ) + (
+  tru |>
+    ggplot(aes(x = age * 1e-3, y = depth)) +
+    labs(x = "Age (Ma)", y = "Depth (m)") +
+    geom_line()
+  ) + (
+  tru |>
+    ggplot(aes(x = depth, y = value)) +
+    labs(x = "Depth (m)") +
+    scale_x_reverse() +
+    geom_line(alpha = .4) +
+    geom_vline(xintercept = agem$depth)
+  ) + (
+  tru |>
+    spectral_analysis(x = depth, y = value) |>
+    plot_spectrum(periods = 1 / c(1 / 110 / 0.07, 1 / 110 / 0.03),
+                  ar1 = TRUE) +
+    coord_cartesian(xlim = c(0, 0.5)) +
+    geom_vline(xintercept = c(0.05, 0.4))
+  ) +
+    plot_layout(ncol = 2, nrow = 2, heights = 1,
+                widths = c(1, 0.5, 1, 0.5))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/synthetic_depth_construction.png]]
+
+#+begin_src R
+  # filtering in the depth domain
+  flt <- tru |>
+    bandpass_filter(frequencies = tibble(target = "100 kyr",
+                                         flow = 0.05, fhigh = 0.4),
+                    x = depth, y = value)
+
+  # filter separately for the two sedimentation rates
+  nft <- tru |>
+    nested_bandpass_filter(frequencies = tibble(target = "100 kyr",
+                                                flow = 0.05, fhigh = 0.4),
+                    x = depth, y = value, nest = "sedrate_group")
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/synthetic_depth_filters.png :width 2400 :height 1000 :res 300
+  # what I think Richard thinks we're doing
+  tru |>
+    ggplot(aes(x = depth, y = value)) +
+    labs(x = "Depth (m)") +
+    scale_x_reverse() +
+    annotate("text", x = 0, y = 3, label = "K/T") +
+    geom_line(alpha = .4) +
+    geom_vline(xintercept = agem$depth) +
+    geom_line(aes(y = filter, colour = "fullrecord_filter"),
+              linewidth = 2, data = flt) +
+    geom_line(aes(y = filter, colour = "seperate_filter", group = sedrate_group),
+              linewidth = 2, data = nft)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/synthetic_depth_filters.png]]
+
+#+begin_src R
+  # filter in the time domain for everything at once
+  flta <- tru |>
+    bandpass_filter(frequencies = my_filt_age |> filter(target == "100 kyr"),
+                    x = age, y = value)
+
+  # filter in the time domain for the two sedrates separately
+  nfta <- tru |>
+    nested_bandpass_filter(frequencies = my_filt_age |> filter(target == "100 kyr"),
+                    x = age, y = value, nest = "sedrate_group")
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/synthetic_age_filters.png :width 2400 :height 1000 :res 300
+  # make a plot
+  tru |>
+    ggplot(aes(x = age * 1e-3, y = value)) +
+    labs(x = "Age (Ma)") +
+    annotate("text", x = agem$age[[3]] * 1e-3, y = 3, label = "K/T") +
+    scale_x_reverse() +
+    geom_line(alpha = .4) +
+    geom_vline(xintercept = agem$age * 1e-3) +
+    geom_line(aes(y = filter, colour = "fullrecord_filter"),
+              linewidth = 2, data = flta) +
+    geom_line(aes(y = filter, colour = "seperate_filter"),
+              linewidth = 2, alpha = .7, data = nfta)
+
+  # has a big influence on the amplitude near the gaps, but is identical
+  # otherwise.
+#+end_src
+
+#+RESULTS:
+[[file:imgs/synthetic_age_filters.png]]
+
 * References
 :PROPERTIES:
 :UNNUMBERED: t
