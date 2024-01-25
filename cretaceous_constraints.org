@@ -196,6 +196,9 @@ get_rmcd <- function(data, rmcd = "dat/ODP208_1267_rmcd.csv") {
   return(out)
 }
 #+end_src
+
+#+RESULTS:
+
 ** Astronomical Solutions
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:50]
@@ -472,6 +475,9 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
 #+begin_src R
   slns <- read_rds("out/slns.rds")
 #+end_src
+
+#+RESULTS:
+
 ** spectral analysis on astronomical solutions
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 10:56]
@@ -8864,16 +8870,16 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > + indexing 18696_2.csv [====================================================================================================================] 1.61GB/s, eta:  0s                                                                                                                                                                                                 New names:
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > + + + indexing 18696_2.csv [====================================================================================================================] 1.78GB/s, eta:  0s                                                                                                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
-── Column specification ──────────────────────────────────────────────────────
+── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Delimiter: ","
 dbl (3): depth, MS, Lstar
 
 ℹ Use `spec()` to retrieve the full column specification for this data.
 ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-+ filter: removed 5 rows (<1%), 4,159 rows remaining
+filter: removed 5 rows (<1%), 4,159 rows remaining
 filter: removed 1,045 rows (25%), 3,114 rows remaining
 select: columns reordered (site, proxy, depth, value, comment)
 #+end_example
@@ -9106,8 +9112,8 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================] 312.93MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
-: ── Column specification ──────────────────────────────────────────────────────
+: indexing 405_minima.csv [===============================================================================================================] 312.93MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
+: ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
 : dbl (2): strat_bot, strat_top
@@ -9248,21 +9254,27 @@ Except I don't know what's 2 Myr yet, so we'll do it based on the lower bracket 
 
 Let's think about what 2 Myr would look like.
 
-src_R{agem_sol[agem_sol$sol=="ZB18a","depth_diff"]}
+src_R{agem_sol[agem_sol$sol=="ZB18a","depth_diff"]$depth_diff} {{{results(= [1] 16 16 15 14 15 15 20 11 13 14 11 11 12 NA=)}}}
 holds the difference in depth for each subsequent 405 kyr cycle.
 
 So by dividing by 405 and multiplying by 2e3, we get the period of a 2 Myr cycle. If we take the inverse, we get the range of frequencies of approximately 2 Myr for each 405 kyr cycle in the whole record.
-src_R{1/(agem_sol[agem_sol$sol=="ZB18a","depth_diff"] / 405 * 2000)}
+src_R{1/(agem_sol[agem_sol$sol=="ZB18a","depth_diff"] / 405 * 2000)$depth_diff} {{{results(= [1] 0.01265625 0.01265625 0.01350000 0.01446429 0.01350000 0.01350000 0.01012500 0.01840909 0.01557692 0.01446429 0.01840909 0.01840909 0.01687500         NA=)}}}
 That ranges between 0.010 and 0.018.
 
 or visually:
-#+begin_src R
+#+begin_src R :eval never
   agem_sol |>
     filter(sol=="ZB18a") |>
     mutate(target = 1/(depth_diff / 405 * 2000)) |>
     ggplot(aes(x = target)) +
     geom_dotplot()
 #+end_src
+
+#+RESULTS:
+: Bin width defaults to 1/30 of the range of the data. Pick better value with
+: `binwidth`.
+: Warning message:
+: Removed 1 rows containing missing values (`stat_bindot()`).
 
 +We'll filter at a frequency of 0.035 cycles / m, or a period of 28.57 m+
 +I chose this because+ the 405 kyr target filter range (\pm40 %) ranges from 0.0375 to 0.0875 cycles/m, +so it doesn't overlap.+
@@ -9394,8 +9406,9 @@ lower edge of the 405 kyr filter
     geom_line(aes(y = lowpass, colour = "lp 0.01"), data = smooth_hp_2) +
     geom_line(aes(y = lowpass, colour = "lp 0.02"), data = smooth_hp_3) +
     geom_line(aes(y = lowpass, colour = "lp 0.0375"), data = smooth_hp_4) +
-    geom_line(aes(x = depth, y = gam_pred, colour = "gam"), data = smooth_basic) +
-    geom_line(aes(x = depth, y = filter, colour = "bp 0.0625 ± 40%"), data = filts |> filter(detrend_type == "value", target == "405 kyr"))
+    geom_line(aes(x = depth, y = gam_pred, colour = "gam"), data = smooth_basic) #+
+    # this one isn't available yet!
+    ## geom_line(aes(x = depth, y = filter, colour = "bp 0.0625 ± 40%"), data = filts |> filter(detrend_type == "value", target == "405 kyr"))
 #+end_src
 
 #+RESULTS:
@@ -9831,6 +9844,7 @@ we make this plot with the raw results because it gives us more control but more
 #+caption: Zumaia and Sopelana trend removal using various strategies (coloured lines). See cref:tab:detrend_types for an overview. Bottom gray lines show results of these long-term detrending strategies with offsets incremented by -5. The highpass was constructed by subtracting a lowpass filter with a frequency \lt\qty{0.035}{cycles\per\metre} (period of \qty{28.57}{\metre}).
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_records_complicated.png]]
+
 *** COMMENT figures to inspect if it worked
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 13:26]
@@ -9960,6 +9974,56 @@ we make this plot with the raw results because it gives us more control but more
 :PROPERTIES:
 :CREATED:  [2023-09-29 Fri 13:11]
 :END:
+**** create tables with ranges of bp filters in depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 10:05]
+:END:
+#+begin_src R
+  # for wavelet analysis: notch filter that removes periods >25 m
+  bat_filters_old <- tribble(
+    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh,
+    "405 kyr", "Lstar", 15.7, 12, 22,
+    "405 kyr", "MS", 18.9, 12, 40,
+    "405 kyr", "d13C", 16.6, 11, 31,
+    ) |>
+    mutate(flow = 1 / plow, fhigh = 1 / phigh, site = "Zumaia", ref = "Batenburg et al., 2011")
+
+  # these are from Batenburg et al., 2014 figure 3
+  bat_filters <- tribble(
+    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh, ~site,
+    "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
+    "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
+    ## "prec", "Lstar", 4, 3.0, 6.0, "both",
+    "100 kyr", "Lstar", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "Lstar", 4, 3.0, 6.0, "Sopelana",
+    "prec", "Lstar", 0.72, 0.53, 1.1, "Zumaia",
+    "prec", "Lstar", 0.49, 0.37, 0.75, "Sopelana",
+    "405 kyr", "MS", 17, 12, 24, "Zumaia",
+    "405 kyr", "MS", 12, 8.8, 19, "Sopelana",
+    ## "prec", "MS", 4, 3.0, 6.0, "both",
+    "100 kyr", "MS", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "MS", 4, 3.0, 6.0, "Sopelana",
+    ## "prec", "MS", 0.72, 0.50, 1.3, "both",
+    "prec", "MS", 0.72, 0.50, 1.3, "Zumaia",
+    "prec", "MS", 0.72, 0.50, 1.3, "Sopelana",
+    ) |>
+    mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
+
+  freq_perc <- 0.4
+  my_filters <- tribble(
+    ~ target, ~ p,
+    "405 kyr", 16,
+    "100 kyr", 4,
+    "prec", 0.72
+  ) |>
+    mutate(f = 1 / p,
+           range = freq_perc * f,
+           flow = f - range, fhigh = f + range,
+           ref = "This study")
+#+end_src
+
+#+RESULTS:
+
 **** spectral analysis
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 16:05]
@@ -10063,56 +10127,6 @@ It's pretty slow.
     select(-data) |>
     unnest(mtls) |>
     rename(frequency = freq, power = spec)
-#+end_src
-
-#+RESULTS:
-
-**** create tables with ranges of bp filters in depth domain
-:PROPERTIES:
-:CREATED:  [2023-09-27 Wed 10:05]
-:END:
-#+begin_src R
-  # for wavelet analysis: notch filter that removes periods >25 m
-  bat_filters_old <- tribble(
-    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh,
-    "405 kyr", "Lstar", 15.7, 12, 22,
-    "405 kyr", "MS", 18.9, 12, 40,
-    "405 kyr", "d13C", 16.6, 11, 31,
-    ) |>
-    mutate(flow = 1 / plow, fhigh = 1 / phigh, site = "Zumaia", ref = "Batenburg et al., 2011")
-
-  # these are from Batenburg et al., 2014 figure 3
-  bat_filters <- tribble(
-    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh, ~site,
-    "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
-    "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
-    ## "prec", "Lstar", 4, 3.0, 6.0, "both",
-    "100 kyr", "Lstar", 4, 3.0, 6.0, "Zumaia",
-    "100 kyr", "Lstar", 4, 3.0, 6.0, "Sopelana",
-    "prec", "Lstar", 0.72, 0.53, 1.1, "Zumaia",
-    "prec", "Lstar", 0.49, 0.37, 0.75, "Sopelana",
-    "405 kyr", "MS", 17, 12, 24, "Zumaia",
-    "405 kyr", "MS", 12, 8.8, 19, "Sopelana",
-    ## "prec", "MS", 4, 3.0, 6.0, "both",
-    "100 kyr", "MS", 4, 3.0, 6.0, "Zumaia",
-    "100 kyr", "MS", 4, 3.0, 6.0, "Sopelana",
-    ## "prec", "MS", 0.72, 0.50, 1.3, "both",
-    "prec", "MS", 0.72, 0.50, 1.3, "Zumaia",
-    "prec", "MS", 0.72, 0.50, 1.3, "Sopelana",
-    ) |>
-    mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
-
-  freq_perc <- 0.4
-  my_filters <- tribble(
-    ~ target, ~ p,
-    "405 kyr", 16,
-    "100 kyr", 4,
-    "prec", 0.72
-  ) |>
-    mutate(f = 1 / p,
-           range = freq_perc * f,
-           flow = f - range, fhigh = f + range,
-           ref = "This study")
 #+end_src
 
 #+RESULTS:
@@ -11094,13 +11108,13 @@ Or just blindly calculate the average RMSD of all the different approaches in [[
 #+RESULTS:
 | proxy | detrend_type |  comb | kpg_age | sol   |  RMSD |
 |-------+--------------+-------+---------+-------+-------|
-| Lstar | lin_scl      | 1:0.5 |   65920 | ZB20b | 1.038 |
-| MS    | lin_gam_det  | 1:0.5 |   65960 | La10b | 1.061 |
-| d13C  | lin_gam_det  | 1:0.5 |   65920 | ZB20a | 1.079 |
-| d13C  | gam_det      | 1:0.5 |   66000 | La10c |  1.08 |
-| Lstar | lin_scl      | 1:0.5 |   65960 | ZB18a | 1.083 |
-| Lstar | lin_scl      | 1:0.5 |   65960 | ZB20c | 1.116 |
-| d13C  | gam_det      | 1:0.5 |   65960 | ZB20d | 1.145 |
+| Lstar | lin_scl_fine | 1:0.5 |   65980 | La10b | 0.996 |
+| Lstar | lin_scl_fine | 1:0.5 |   65960 | La10c | 1.014 |
+| Lstar | lin_scl_fine | 1:0.5 |   65940 | ZB20b | 1.017 |
+| Lstar | lin_scl_fine | 1:0.5 |   65920 | ZB20a | 1.055 |
+| Lstar | lin_scl_rw   | 1:0.5 |   65960 | ZB18a | 1.083 |
+| Lstar | lin_scl_fine | 1:0.5 |   65940 | ZB20c | 1.111 |
+| d13C  | lin_scl_fine | 1:0.5 |   65920 | ZB20d | 1.136 |
 
 We can also make a nice overview figure of all the different parameter perturbations.
 
@@ -13611,6 +13625,7 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 #+begin_src R
   load(".RData")
 #+end_src
+
 ** Gubbio
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:51]
