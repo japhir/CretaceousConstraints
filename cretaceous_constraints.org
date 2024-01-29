@@ -247,8 +247,8 @@ Just 405 kyr and 100 kyr \pm30%.
 I can reuse my ~snvecR~ code here!
 #+begin_src R
   # get the first orbital solution in there
-  ZB18a <- snvecR::get_ZB18a() |>
-    select(age, ecc = ee) |>
+  ZB18a <- snvecR::get_solution("ZB18a-300") |>
+    ## select(age, ecc = ee) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
     mutate(sln = "ZB18a", .before = age)
@@ -482,8 +482,14 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 10:56]
 :END:
-#+begin_src R
+#+begin_src R :eval never
   slns_specs <- nested_spectral_analysis(slns, nest = "sln", x = age, y = ecc)
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R
+  slns_specs <- readr::read_rds("out/slns_specs.rds")
 #+end_src
 
 #+RESULTS:
@@ -529,7 +535,7 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 11:24]
 :END:
-#+begin_src R :results graphics file output :file imgs/ZB20a_spectrum.png :width 2400 :height 1900 :res 300
+#+begin_src R :results graphics file output :file imgs/ZB20a_spectrum.png :width 2400 :height 1900 :res 300 :eval never
   plot_spectrum(slns_specs |> filter(sln == "ZB20a"), ar1 = TRUE) +
   coord_cartesian(xlim = c(0, 0.02))
   ## identify 100 kyr peak components
@@ -541,7 +547,7 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 [[file:imgs/ZB20a_spectrum.png]]
 
 *** plot_spectrum for all astronomical solutions
-#+begin_src R :results graphics file output :file imgs/astronomical_solution_spectrum.png :width 2400 :height 1000 :res 300
+#+begin_src R :results graphics file output :file imgs/astronomical_solution_spectrum.png :width 2400 :height 1000 :res 300 :eval never
   plot_spectrum(slns_specs, group = "sln") +
     ## coord_cartesian(xlim = c(1/3000, 0.06), ylim = c(0, 6e-6)) + # show precession as well
     coord_cartesian(xlim = c(0, 0.015), ylim = c(0, 6e-6)) +
@@ -571,11 +577,17 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
                     x = age, y = ecc)
 #+end_src
 
-#+begin_src R
+#+begin_src R :eval never
   sln_filters <- slns |>
       nested_bandpass_filter(frequencies = my_filt_age |> filter(target != "prec"),
                       x = age, y = ecc,
                       nest = "sln")
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R
+  sln_filters <- read_rds("out/sln_filters.rds")
 #+end_src
 
 #+RESULTS:
@@ -725,14 +737,6 @@ In this study we focus on those astronomical solutions that showed the best comp
 #+caption: Example time slice of the different astronomical solutions with 405 kyr and 100 kyr filters (frequencies \pm40%, e.g. 0.6 * 1/405 to 1.4 * 1/405).
 #+RESULTS:
 [[file:imgs/orbital_solutions.png]]
-
-* COMMENT look at the orbital solution
-:PROPERTIES:
-:CREATED:  [2023-08-30 Wed 17:04]
-:END:
-#+begin_src R
-
-#+end_src
 
 * COMMENT reproduce Ma et al., 2017 steps
 :PROPERTIES:
@@ -8870,10 +8874,10 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > + + + indexing 18696_2.csv [====================================================================================================================] 1.78GB/s, eta:  0s                                                                                                                                                                                                 New names:
+-/                                                                            /                                                                            -                                                                            > > > + + + indexing 18696_2.csv [====================================] 1.61GB/s, eta:  0s                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
-── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+── Column specification ──────────────────────────────────────────────────────
 Delimiter: ","
 dbl (3): depth, MS, Lstar
 
@@ -8884,134 +8888,7 @@ filter: removed 1,045 rows (25%), 3,114 rows remaining
 select: columns reordered (site, proxy, depth, value, comment)
 #+end_example
 
-**** CaCO3: ten Kate and Sprenger 1993
-:PROPERTIES:
-:CREATED:  [2024-01-18 Thu 16:16]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "SOME"       [2024-01-19 Fri 11:47]
-- Note taken on [2024-01-19 Fri 11:19] \\
-  ok just read in the data and did some linear detrending and spectral analysis
-- Note taken on [2024-01-18 Thu 16:49] \\
-  Martin told me about this but I'm not sure I can find their raw data
-- State "SOME"       from "NEXT"       [2024-01-18 Thu 16:49]
-:END:
-[cite:@tenKateSprenger1993]
-very short record, Ma405_{-3} to Ma405_{4} and a bit
-
-***** read the data
-:PROPERTIES:
-:CREATED:  [2024-01-23 Tue 14:08]
-:END:
-#+begin_src R
-  Zumaia_CaCO3 <- readxl::read_excel("dat/tenKateSprenger1993/Zumaya-Kate-Sprenger.xls",
-                     sheet = 2,
-                     skip = 1) |>
-    select(-...6, -...8)
-
-  Zumaia_CaCO3 <- Zumaia_CaCO3 |>
-    mutate(grp = findInterval(`dist from K/T (m)`, rev(c(0, -6.5, -12.5, -41.8)))) |>
-    ## filter(`dist from K/T (m)` < 0) |> # normalizing using the stuff above makes the values very small
-    nest(.by = grp) |>
-    mutate(lin = map(data, \(x) lm(carbonate ~ `dist from K/T (m)`, data = x))) |>
-    mutate(lin_pred = map(lin, predict)) |>
-    unnest(c(data, lin_pred)) |>
-    mutate(detrended = carbonate - lin_pred) |>
-    mutate(lin_scl = scale(detrended)[, 1]) |>
-    select(-lin)
-
-  agem_CaCO3 <- tribble(
-    ~ chron, ~ age, ~ depth,
-    "C28R/C29N", -63.6, 12.53,
-    "C29N/C29R", -64.27, 4.37,
-    "K/Pg boundary", -64.5, 0.0,
-    "C29R/C30N", -64.84, NA_real_,
-    "C30R/C31N", -66.62, -74.75,
-    ) |>
-    filter(!is.na(depth))
-
-  Zumaia_CaCO3 <- Zumaia_CaCO3 |>
-    mutate(depth = -`dist from K/T (m)`) |>
-    mutate(age = -approx(agem_CaCO3$depth, y = agem_CaCO3$age,
-                        xout = `dist from K/T (m)`)$y) |>
-    mutate(age = age * 1e3) # from Ma to ka
-#+end_src
-
-#+RESULTS:
-: -/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            New names:
-: • `` -> `...6`
-: • `` -> `...8`
-
-***** overview plot of detrending and spectral analysis
-:PROPERTIES:
-:CREATED:  [2024-01-23 Tue 14:09]
-:END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_CaCO3_detrend_and_spectra.png :width 2400 :height 2300 :res 300
-  # depth domain + detrending
-  (
-    Zumaia_CaCO3 |>
-    ggplot(aes(x = `dist from K/T (m)`,
-               y = carbonate)) +
-    labs(x = "Depth (m)",
-         y = "Ca" * CO[3] ~ "(%)") +
-    ## scale_x_reverse() +
-    ## geom_smooth(aes(group = grp), method = "lm") +
-    geom_line(aes(y = lin_pred, colour = factor(grp)), linewidth = 2) +
-    geom_line() +
-   geom_line(aes(y = lin_scl))
-  ) / (
-    Zumaia_CaCO3 |>
-    spectral_analysis(x = `dist from K/T (m)`, y = lin_scl) |>
-    # they say analyisis in the depth domain doesn't make sense due to changing
-    # sedrates
-    plot_spectrum(ar1 = TRUE, periods = c(10, 1, .5, .4, .3, .2))
-  ) / (
-  Zumaia_CaCO3 |>
-    nested_spectral_analysis(nest = "grp",
-                             x = `dist from K/T (m)`,
-                             y = lin_scl) |>
-    mutate(grp = as.character(grp)) |>
-    plot_spectrum(group = "grp", periods = c(10, 1, .5, .4, .3, .2)) +
-    # SOME: add AR1 spectra to each facet?
-    facet_grid(cols = vars(grp)) +
-    coord_cartesian(xlim = c(0, 5))
-  )
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia_CaCO3_detrend_and_spectra.png]]
-
-***** plot of record and bandpass filters
-:PROPERTIES:
-:CREATED:  [2024-01-23 Tue 14:09]
-:END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_CaCO3_bandpass_filters.png :width 2400 :height 1000 :res 300
-  Zumaia_CaCO3 |>
-    # full record?
-    # or just everything older than the K/Pg?
-    ## filter(age > -1e3 * agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) |>
-    # or just omitting the interval around the K/Pg?
-    ## filter(age < 64.5e3 + 50e3 | age > 64.5e3 - 50e3) |>
-    bandpass_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
-                    x = age, y = lin_scl,
-                    add_depth = TRUE) |>
-    construct_eccentricity(id_cols = c("depth", "age", "lin_scl")) |>
-    ggplot(aes(x = age * 1e-3, y = ecc)) +
-    labs(x = "Age (Ma) but OLD age model",
-         y = "Norm. scaled record and filter",
-         colour = "") +
-    scale_x_reverse() +
-    geom_vline(xintercept = -agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) +
-    geom_line(aes(y = lin_scl, colour = "CaCO3")) +
-    geom_line(aes(y = `405 kyr`, colour = "405 kyr filter")) +
-    geom_line(aes(y = `100 kyr`, colour = "100 kyr filter")) +
-    geom_line(aes(y = ecc, colour = "Norm. Eccentricity construct"))
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia_CaCO3_bandpass_filters.png]]
-
-*** Age Model
+**** Age Model
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 11:01]
 :END:
@@ -9112,8 +8989,8 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================================================================================================] 312.93MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
-: ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+: indexing 405_minima.csv [===============================] 436.21MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
+: ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
 : dbl (2): strat_bot, strat_top
@@ -9121,11 +8998,194 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 : ℹ Use `spec()` to retrieve the full column specification for this data.
 : ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
+**** CaCO3: ten Kate and Sprenger 1993
+:PROPERTIES:
+:CREATED:  [2024-01-18 Thu 16:16]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "SOME"       [2024-01-19 Fri 11:47]
+- Note taken on [2024-01-19 Fri 11:19] \\
+  ok just read in the data and did some linear detrending and spectral analysis
+- Note taken on [2024-01-18 Thu 16:49] \\
+  Martin told me about this but I'm not sure I can find their raw data
+- State "SOME"       from "NEXT"       [2024-01-18 Thu 16:49]
+:END:
+[cite:@tenKateSprenger1993]
+very short record, Ma405_{-3} to Ma405_{4} and a bit
+
+***** read the data
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 14:08]
+:END:
+#+begin_src R
+  Zumaia_CaCO3 <- readxl::read_excel("dat/tenKateSprenger1993/Zumaya-Kate-Sprenger.xls",
+                     sheet = 2,
+                     skip = 1) |>
+    select(-...6, -...8)
+
+  Zumaia_CaCO3 <- Zumaia_CaCO3 |>
+    mutate(grp = findInterval(`dist from K/T (m)`, rev(c(0, -6.5, -12.5, -41.8)))) |>
+    ## filter(`dist from K/T (m)` < 0) |> # normalizing using the stuff above makes the values very small
+    nest(.by = grp) |>
+    mutate(lin = map(data, \(x) lm(carbonate ~ `dist from K/T (m)`, data = x))) |>
+    mutate(lin_pred = map(lin, predict)) |>
+    unnest(c(data, lin_pred)) |>
+    mutate(detrended = carbonate - lin_pred) |>
+    mutate(lin_scl = scale(detrended)[, 1]) |>
+    select(-lin)
+
+  agem_CaCO3 <- tribble(
+    ~ chron, ~ age, ~ depth,
+    "C28R/C29N", -63.6, 12.53,
+    "C29N/C29R", -64.27, 4.37,
+    "K/Pg boundary", -64.5, 0.0,
+    "C29R/C30N", -64.84, NA_real_,
+    "C30R/C31N", -66.62, -74.75,
+    ) |>
+    filter(!is.na(depth))
+
+  Zumaia_CaCO3 <- Zumaia_CaCO3 |>
+    mutate(depth = -`dist from K/T (m)`) |>
+    ## mutate(age = -approx(agem_CaCO3$depth, y = agem_CaCO3$age,
+    ##                     xout = `dist from K/T (m)`)$y) |>
+    ## mutate(age = age * 1e3) # from Ma to ka
+    # instead, apply the age model from Batenburg!
+    mutate(age = Hmisc::approxExtrap(agem_simple$strat_bot,
+                         y = agem_sol$age[agem_sol$sol == "ZB20b"],
+                         xout = .data$depth)$y)
+
+#+end_src
+
+#+RESULTS:
+: -/                                                                            /                                                                            -                                                                            New names:
+: • `` -> `...6`
+: • `` -> `...8`
+
+***** overview plot of detrending and spectral analysis
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 14:09]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_CaCO3_detrend_and_spectra.png :width 2400 :height 2300 :res 300
+  # depth domain + detrending
+  (
+    Zumaia_CaCO3 |>
+    ggplot(aes(x = `dist from K/T (m)`,
+               y = carbonate)) +
+    labs(x = "Depth (m)",
+         y = "Ca" * CO[3] ~ "(%)") +
+    ## scale_x_reverse() +
+    ## geom_smooth(aes(group = grp), method = "lm") +
+    geom_line(aes(y = lin_pred, colour = factor(grp)), linewidth = 2) +
+    geom_line() +
+   geom_line(aes(y = lin_scl))
+  ) / (
+    Zumaia_CaCO3 |>
+    spectral_analysis(x = `dist from K/T (m)`, y = lin_scl) |>
+    # they say analyisis in the depth domain doesn't make sense due to changing
+    # sedrates
+    plot_spectrum(ar1 = TRUE, periods = c(10, 1, .5, .4, .3, .2))
+  ) / (
+  Zumaia_CaCO3 |>
+    nested_spectral_analysis(nest = "grp",
+                             x = `dist from K/T (m)`,
+                             y = lin_scl) |>
+    mutate(grp = as.character(grp)) |>
+    plot_spectrum(group = "grp", periods = c(10, 1, .5, .4, .3, .2)) +
+    # SOME: add AR1 spectra to each facet?
+    facet_grid(cols = vars(grp)) +
+    coord_cartesian(xlim = c(0, 5))
+  )
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_CaCO3_detrend_and_spectra.png]]
+
+***** plot of record and bandpass filters
+:PROPERTIES:
+:CREATED:  [2024-01-23 Tue 14:09]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_CaCO3_bandpass_filters.png :width 2400 :height 1000 :res 300
+  Zumaia_CaCO3 |>
+    # full record?
+    # or just everything older than the K/Pg?
+    ## filter(age > -1e3 * agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) |>
+    # or just omitting the interval around the K/Pg?
+    ## filter(age < 64.5e3 + 50e3 | age > 64.5e3 - 50e3) |>
+    bandpass_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
+                    x = age, y = lin_scl,
+                    add_depth = TRUE) |>
+    construct_eccentricity(id_cols = c("depth", "age", "lin_scl")) |>
+    ggplot(aes(x = age * 1e-3, y = ecc)) +
+    labs(x = "Age (Ma) but for ZB20b",
+         y = "Norm. scaled record and filter",
+         colour = "") +
+    scale_x_reverse() +
+    ## geom_vline(xintercept = -agem_CaCO3$age[agem_CaCO3$chron == "K/Pg boundary"]) +
+    geom_vline(xintercept = kpg_ages$age1[kpg_ages$sln=="ZB20b"]) +
+    geom_line(aes(y = lin_scl, colour = "CaCO3")) +
+    geom_line(aes(y = `405 kyr`, colour = "405 kyr filter")) +
+    geom_line(aes(y = `100 kyr`, colour = "100 kyr filter")) +
+    geom_line(aes(y = ecc, colour = "Norm. Eccentricity construct"))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_CaCO3_bandpass_filters.png]]
+
+*** create tables with ranges of bp filters in depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-27 Wed 10:05]
+:END:
+#+begin_src R
+  # for wavelet analysis: notch filter that removes periods >25 m
+  bat_filters_old <- tribble(
+    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh,
+    "405 kyr", "Lstar", 15.7, 12, 22,
+    "405 kyr", "MS", 18.9, 12, 40,
+    "405 kyr", "d13C", 16.6, 11, 31,
+    ) |>
+    mutate(flow = 1 / plow, fhigh = 1 / phigh, site = "Zumaia", ref = "Batenburg et al., 2011")
+
+  # these are from Batenburg et al., 2014 figure 3
+  bat_filters <- tribble(
+    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh, ~site,
+    "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
+    "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
+    ## "prec", "Lstar", 4, 3.0, 6.0, "both",
+    "100 kyr", "Lstar", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "Lstar", 4, 3.0, 6.0, "Sopelana",
+    "prec", "Lstar", 0.72, 0.53, 1.1, "Zumaia",
+    "prec", "Lstar", 0.49, 0.37, 0.75, "Sopelana",
+    "405 kyr", "MS", 17, 12, 24, "Zumaia",
+    "405 kyr", "MS", 12, 8.8, 19, "Sopelana",
+    ## "prec", "MS", 4, 3.0, 6.0, "both",
+    "100 kyr", "MS", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "MS", 4, 3.0, 6.0, "Sopelana",
+    ## "prec", "MS", 0.72, 0.50, 1.3, "both",
+    "prec", "MS", 0.72, 0.50, 1.3, "Zumaia",
+    "prec", "MS", 0.72, 0.50, 1.3, "Sopelana",
+    ) |>
+    mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
+
+  freq_perc <- 0.4
+  my_filters <- tribble(
+    ~ target, ~ p,
+    "405 kyr", 16,
+    "100 kyr", 4,
+    "prec", 0.72
+  ) |>
+    mutate(f = 1 / p,
+           range = freq_perc * f,
+           flow = f - range, fhigh = f + range,
+           ref = "This study")
+#+end_src
+
+#+RESULTS:
+
 *** COMMENT make a plot
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 18:49]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500
+#+begin_src R :results output graphics file :file imgs/Zumaia_Batenburg2012.png :width 900 :height 500 :eval never
   library(patchwork)
 
   (Zumaia |>
@@ -9162,7 +9222,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 :CREATED:  [2023-09-22 Fri 14:18]
 :END:
 Like [cite:@Husson2011].
-#+begin_src R :results output graphics file :file imgs/Zumaia_filters.png :width 900 :height 500
+#+begin_src R :results output graphics file :file imgs/Zumaia_filters.png :width 900 :height 500 :eval never
   f100 <- Zumaia |>
     select(depth, Lstar) |>
     filter(!is.na(Lstar)) |>
@@ -9258,7 +9318,7 @@ src_R{agem_sol[agem_sol$sol=="ZB18a","depth_diff"]$depth_diff} {{{results(= [1] 
 holds the difference in depth for each subsequent 405 kyr cycle.
 
 So by dividing by 405 and multiplying by 2e3, we get the period of a 2 Myr cycle. If we take the inverse, we get the range of frequencies of approximately 2 Myr for each 405 kyr cycle in the whole record.
-src_R{1/(agem_sol[agem_sol$sol=="ZB18a","depth_diff"] / 405 * 2000)$depth_diff} {{{results(= [1] 0.01265625 0.01265625 0.01350000 0.01446429 0.01350000 0.01350000 0.01012500 0.01840909 0.01557692 0.01446429 0.01840909 0.01840909 0.01687500         NA=)}}}
+src_R{1/(agem_sol[agem_sol$sol=="ZB18a",]$depth_diff / 405 * 2000)$depth_diff} {{{results(=Error: object 'agem_sol' not found=)}}}
 That ranges between 0.010 and 0.018.
 
 or visually:
@@ -9461,12 +9521,12 @@ lower edge of the 405 kyr filter
               fill = "orange", alpha = .1,
               data = my_filters) +
     # hide for now because it makes the plot go up a lot
-    geom_line(aes(colour = "raw"),
-              data = specs_fancy |>
-                filter(detrend_type == "value")) +
-    geom_line(aes(colour = "gam"),
-              data = specs_fancy |>
-                filter(detrend_type == "gam_det")) +
+    ## geom_line(aes(colour = "raw"),
+    ##           data = specs_fancy |>
+    ##             filter(detrend_type == "value")) +
+    ## geom_line(aes(colour = "gam"),
+    ##           data = specs_fancy |>
+    ##             filter(detrend_type == "gam_det")) +
     geom_vline(aes(colour = "lp 0.025", xintercept = 0.025)) +
     geom_line(aes(colour = "lp 0.025")) +
     geom_line(aes(colour = "lp 0.01"), data = spec_hp_2) +
@@ -9694,9 +9754,13 @@ filter: removed 48,049 rows (61%), 30,561 rows remaining
 7 hp_scl
 #+end_example
 
-**** show how the linear/gam detrending works
+**** NEXT show how the linear/gam detrending works
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:19]
+:END:
+:LOGBOOK:
+- Note taken on [2024-01-29 Mon 13:38] \\
+  i think I messed this one up when I tried to make it fancy
 :END:
 we make this plot with the raw results because it gives us more control but more code.
 
@@ -9974,56 +10038,6 @@ we make this plot with the raw results because it gives us more control but more
 :PROPERTIES:
 :CREATED:  [2023-09-29 Fri 13:11]
 :END:
-**** create tables with ranges of bp filters in depth domain
-:PROPERTIES:
-:CREATED:  [2023-09-27 Wed 10:05]
-:END:
-#+begin_src R
-  # for wavelet analysis: notch filter that removes periods >25 m
-  bat_filters_old <- tribble(
-    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh,
-    "405 kyr", "Lstar", 15.7, 12, 22,
-    "405 kyr", "MS", 18.9, 12, 40,
-    "405 kyr", "d13C", 16.6, 11, 31,
-    ) |>
-    mutate(flow = 1 / plow, fhigh = 1 / phigh, site = "Zumaia", ref = "Batenburg et al., 2011")
-
-  # these are from Batenburg et al., 2014 figure 3
-  bat_filters <- tribble(
-    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh, ~site,
-    "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
-    "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
-    ## "prec", "Lstar", 4, 3.0, 6.0, "both",
-    "100 kyr", "Lstar", 4, 3.0, 6.0, "Zumaia",
-    "100 kyr", "Lstar", 4, 3.0, 6.0, "Sopelana",
-    "prec", "Lstar", 0.72, 0.53, 1.1, "Zumaia",
-    "prec", "Lstar", 0.49, 0.37, 0.75, "Sopelana",
-    "405 kyr", "MS", 17, 12, 24, "Zumaia",
-    "405 kyr", "MS", 12, 8.8, 19, "Sopelana",
-    ## "prec", "MS", 4, 3.0, 6.0, "both",
-    "100 kyr", "MS", 4, 3.0, 6.0, "Zumaia",
-    "100 kyr", "MS", 4, 3.0, 6.0, "Sopelana",
-    ## "prec", "MS", 0.72, 0.50, 1.3, "both",
-    "prec", "MS", 0.72, 0.50, 1.3, "Zumaia",
-    "prec", "MS", 0.72, 0.50, 1.3, "Sopelana",
-    ) |>
-    mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
-
-  freq_perc <- 0.4
-  my_filters <- tribble(
-    ~ target, ~ p,
-    "405 kyr", 16,
-    "100 kyr", 4,
-    "prec", 0.72
-  ) |>
-    mutate(f = 1 / p,
-           range = freq_perc * f,
-           flow = f - range, fhigh = f + range,
-           ref = "This study")
-#+end_src
-
-#+RESULTS:
-
 **** spectral analysis
 :PROPERTIES:
 :CREATED:  [2023-10-03 Tue 16:05]
@@ -10103,6 +10117,25 @@ we make this plot with the raw results because it gives us more control but more
 :   method            from
 :   as.zoo.data.frame zoo
 
+***** Lomb-Scargle
+:PROPERTIES:
+:CREATED:  [2024-01-29 Mon 13:39]
+:END:
+#+begin_src R
+  specs_ls <- smooth_pred |>
+    nest(.by = c("proxy", "site", "detrend_type")) |>
+    mutate(ls = map(data,
+                      ~ . |>
+                        select(depth, value) |>
+                        TSAUMN::spec.ls(plot = FALSE) |>
+                        as_tibble())) |>
+    select(-data) |>
+    unnest(ls) |>
+    rename(frequency = freq, power = spec)
+#+end_src
+
+#+RESULTS:
+
 ***** use MTLS on the record
 :PROPERTIES:
 :CREATED:  [2023-11-16 Thu 12:01]
@@ -10141,9 +10174,13 @@ The blue rectangles correspond to our simplified filter intervals where we just 
 The frequency ranges need to be a little broad to encapsulate the potentially variable sedimentation rates throughout the record.
 
 Note that we flip our default faceting here, because it makes comparison between detrend_types easier.
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2900 :height 3200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2900 :height 2200 :res 300
+  my_filt <- \(d) d |>
+    ## filter(detrend_type != "value") |>
+    filter(detrend_type == "lin_scl_fine")
+
   specs_fancy |>
-    filter(detrend_type != "value") |>
+    my_filt() |>
     ggplot(aes(x = frequency, y = power,
                ## colour = detrend_type,
                group = paste(detrend_type, proxy, site))) +
@@ -10154,10 +10191,11 @@ Note that we flip our default faceting here, because it makes comparison between
       ## xlim = c(1e-4, 0.0625) * 100 # log axis
       ## xlim = c(0, 2.6), # linear axis
       xlim = c(0, .4),  # linear axis zoomed on 405 and 100 kyr
+      ## xlim = c(0, 2.1),  # linear axis
       ## xlim = c(0, .1),  # linear axis zoomed on 405 and lower to find lowpass/highpass cutoff
       ## xlim = c(0, 1.5),  # linear axis zoomed on 405 and 100 kyr
       ## ylim = c(0, 3)
-      ylim = c(1e-4, .1) # linear axis
+      ylim = c(1e-4, 1.5) # linear axis
       ) +
     scale_x_continuous(
     ## scale_x_log10(
@@ -10168,7 +10206,8 @@ Note that we flip our default faceting here, because it makes comparison between
          colour = "Spectral analysis type") +
     labs(fill = "Filter interval from study") +
     ## scale_colour_manual(values = c("MTM" = "solid","FFT" = "dotdash", "MTLS" = "longdash")) +
-    scale_colour_manual(values = c("MTM" = "indianred","FFT" = "darkgray", "MTLS" = "purple")) +
+    scale_colour_manual(values = c("MTM" = "indianred","FFT" = "darkgray", "MTLS" = "purple",
+                                   "LS" = "lightblue", "BT" = "orange")) +
 
     # annotate the Batenburg 2014 filters
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1.5e-4, ymax = 3e-4, fill = ref),
@@ -10185,11 +10224,13 @@ Note that we flip our default faceting here, because it makes comparison between
 
     # plot periodogram
     geom_line(aes(colour = "FFT"),
-              data = specs_fft |> filter(detrend_type != "value")) +
+              data = specs_fft |> my_filt()) +
     # annotate Blackman-Tukey spectra
     # commented out because the y axis values are waaaay higher (up at 1--10)
-    ## geom_line(aes(colour = "BT"),
-    ##           data = specs_bt|> filter(detrend_type != "value")) +
+    geom_line(aes(colour = "BT"),
+              data = specs_bt|> my_filt()) +
+    geom_line(aes(colour = "LS"),
+              data = specs_ls |> my_filt()) +
     # plot MTM spectra
     geom_line(aes(colour = "MTM")) +
     # add AR1 fit and uncertainty
@@ -10201,7 +10242,7 @@ Note that we flip our default faceting here, because it makes comparison between
     ##             alpha = .1) +
     # annotate the MTLS spectra
     geom_line(aes(colour = "MTLS"),
-              data = specs_mtls |> filter(detrend_type != "value"))
+              data = specs_mtls |> my_filt())
 
 #+end_src
 
@@ -10945,7 +10986,7 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
                colour = paste(inv_sedrate, " = ", round(1 / inv_sedrate * 100, 2))## ,
                ## linetype = comb
                )) +
-    facet_grid(cols = vars(site, filt_env, comb), rows = vars(proxy, sol)) +
+    facet_grid(cols = vars(site, comb), rows = vars(proxy, sol)) +
     ## geom_point() +
     ## geom_vline(xintercept = c(## kpg_age * 0.001, # based on 405 kyr minima in La11
     ##              66.043 + c(-1, 0, 1) * 0.043 # based on 40Ar/39Ar and U-Pb data from bentonites
@@ -10956,7 +10997,6 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
 
     geom_line(aes(group = paste(inv_sedrate,
                                 comb,
-                                filt_env,
                                 detrend_type)),
               linewidth = .7) +
     ## scale_linewidth_discrete(range = c(.5, 2)) +
@@ -10983,10 +11023,13 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
 Here I make a heatmap with the same information as the previous figure.
 
 # #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 1920 :height 800
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 800 :height 1200
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 400 :height 1200
+  my_filt <- \(d) d |>
+                    filter(detrend_type == "lin_scl_fine")
+
   msd |>
     # let's simplify a bit
-    ## filter(comb == "1:1", filt_env == "filter", site == "Zumaia") |>
+    my_filt() |>
     ggplot(aes(x = kpg_age * 0.001, y = inv_sedrate,
                ## group = paste(comb, filt_env, site, tau, sol),
                ## colour = tau
@@ -10994,7 +11037,7 @@ Here I make a heatmap with the same information as the previous figure.
                )) +
     facet_grid(rows = vars(proxy, sol  # , proxy_lag
                            ),
-               cols = vars(site, detrend_type, filt_env, comb)) +
+               cols = vars(site, detrend_type, comb)) +
     ## geom_line() +
     geom_raster() +
     geom_vline(aes(xintercept = age1),
@@ -11075,7 +11118,7 @@ We only look at Zumaia here though.
 | MS    | Sopelana | lin_scl_fine   | 1:0.5 |   65920 |        30.5 | La10b | 1.112 |
 | MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65960 |        26.5 | La10c | 1.084 |
 | MS    | Sopelana | gam_scl        | 1:0.5 |   65940 |        30.5 | La10c | 1.094 |
-| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65940 |          26 | ZB18a | 1.104 |
+| MS    | Zumaia   | lin_scl_rw     | 1:0.5 |   65940 |          26 | ZB18a | 1.103 |
 | MS    | Sopelana | lin_scl_fine   | 1:0.5 |   66020 |          29 | ZB18a | 1.111 |
 | MS    | Sopelana | gam_scl        | 1:0.5 |   65980 |        29.5 | ZB20a | 1.066 |
 | MS    | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |          26 | ZB20a | 1.143 |
@@ -11087,7 +11130,7 @@ We only look at Zumaia here though.
 | MS    | Sopelana | lin_scl_fine   | 1:0.5 |   66020 |          29 | ZB20d | 1.221 |
 | d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | La10b | 1.052 |
 | d13C  | Zumaia   | lin_scl_coarse | 1:0.5 |   66000 |          25 | La10c | 1.068 |
-| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | ZB18a | 1.113 |
+| d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | ZB18a | 1.112 |
 | d13C  | Zumaia   | lin_scl_coarse | 1:0.5 |   65980 |          25 | ZB20a | 1.067 |
 | d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |          26 | ZB20b | 1.061 |
 | d13C  | Zumaia   | lin_scl_fine   | 1:0.5 |   65920 |        26.5 | ZB20c | 1.113 |
@@ -11106,15 +11149,7 @@ Or just blindly calculate the average RMSD of all the different approaches in [[
 #+name: tab:best-depth-global
 #+caption: Zumaia records lowest RMSD score per astronomical solution.
 #+RESULTS:
-| proxy | detrend_type |  comb | kpg_age | sol   |  RMSD |
-|-------+--------------+-------+---------+-------+-------|
-| Lstar | lin_scl_fine | 1:0.5 |   65980 | La10b | 0.996 |
-| Lstar | lin_scl_fine | 1:0.5 |   65960 | La10c | 1.014 |
-| Lstar | lin_scl_fine | 1:0.5 |   65940 | ZB20b | 1.017 |
-| Lstar | lin_scl_fine | 1:0.5 |   65920 | ZB20a | 1.055 |
-| Lstar | lin_scl_rw   | 1:0.5 |   65960 | ZB18a | 1.083 |
-| Lstar | lin_scl_fine | 1:0.5 |   65940 | ZB20c | 1.111 |
-| d13C  | lin_scl_fine | 1:0.5 |   65920 | ZB20d | 1.136 |
+: Could not parse R result
 
 We can also make a nice overview figure of all the different parameter perturbations.
 
