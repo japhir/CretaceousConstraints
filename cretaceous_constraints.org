@@ -13509,6 +13509,8 @@ oh no, the Sopelana results are not exporting the Matched record!
 :CREATED:  [2024-01-15 Mon 15:22]
 :END:
 # #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+# #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_simple.pdf :width 9.6 :height 8
+# #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_simple.pdf :width 9.6 :height 8
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.pdf :width 9.6 :height 8
   best_age_optim |>
     filter(comb == "1:1") |>
@@ -13588,48 +13590,50 @@ oh no, the Sopelana results are not exporting the Matched record!
 :CREATED:  [2024-01-15 Mon 15:22]
 :END:
 # #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+# #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_depth.pdf :width 9.6 :height 2
+# #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_depth.pdf :width 9.6 :height 2
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_depth.pdf :width 9.6 :height 2
-  best_age_optim |>
-    filter(comb == "1:1") |>
-    filter(proxy == "Lstar") |>
-    filter(detrend_type == "lin_scl_fine") |>
-    filter(sol == "ZB20b") |>
-    filter(str_detect(exp, "-portion") | site == "Sopelana" |
-           str_detect(exp, "all after")) |>
-    mutate(m = map(the_best, "matched")) |>
-    unnest(m) |>
-    ggplot(aes(x = depth,
-               y = sign_405 * ecc,
-               colour = site,
-               group = paste(site, sol, proxy,
-                             detrend_type, date, exp))) +
-    facet_grid(rows = vars(sol)) +
-    labs(x = "Depth (m)", y = "Norm. Filter & Solution",
-         colour = "") +
-    ## theme(legend.pos = c(.64, .864),
-    ##       legend.direction = "horizontal") +
-    scale_x_reverse(breaks = seq(200, -50, -10),
-                    minor_breaks = seq(200, -50, -5)) +
-    ## scale_y_continuous(breaks = c(-4, 0, 4)) +
-    ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
-    ## scale_alpha_continuous(range = c(1, 0.2)) +
-    scale_colour_manual(values = c("Astronomical Solution" = "black",
-                                   "Zumaia" = "purple",
-                                   "Sopelana" = "skyblue"
-                                   ## "Lstar" = "purple",
-                                   ## "MS" = "skyblue",
-                                   ## "d13C" = "darkgreen"
-                                   )) +
-    geom_vline(xintercept = 0) +
-    geom_line() #+
-    ## geom_line(aes(y = value), colour = "gray")
-    ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
-    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+    best_age_optim |>
+      filter(comb == "1:1") |>
+      filter(proxy == "Lstar") |>
+      filter(detrend_type == "lin_scl_fine") |>
+      filter(sol == "ZB20b") |>
+      filter(str_detect(exp, "-portion") | site == "Sopelana" |
+             str_detect(exp, "all after")) |>
+      mutate(m = map(the_best, "matched")) |>
+      unnest(m) |>
+      ggplot(aes(x = depth,
+                 y = sign_405 * ecc,
+                 colour = site,
+                 group = paste(site, sol, proxy,
+                               detrend_type, date, exp))) +
+      facet_grid(rows = vars(sol)) +
+      labs(x = "Depth (m)", y = "Norm. Filter",
+           colour = "") +
+      ## theme(legend.pos = c(.64, .864),
+      ##       legend.direction = "horizontal") +
+      scale_x_reverse(breaks = seq(200, -50, -10),
+                      minor_breaks = seq(200, -50, -5)) +
+      ## scale_y_continuous(breaks = c(-4, 0, 4)) +
+      ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
+      ## scale_alpha_continuous(range = c(1, 0.2)) +
+      scale_colour_manual(values = c("Astronomical Solution" = "black",
+                                     "Zumaia" = "purple",
+                                     "Sopelana" = "skyblue"
+                                     ## "Lstar" = "purple",
+                                     ## "MS" = "skyblue",
+                                     ## "d13C" = "darkgreen"
+                                     )) +
+      geom_vline(xintercept = 0) +
+      geom_line() #+
+      ## geom_line(aes(y = value), colour = "gray")
+      ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
+      ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+      ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia_Lstar_1-1_solutions_depth.pdf]]
+[[file:imgs/Zumaia_d13C_1-1_solutions_depth.pdf]]
 
 **** [10/11] tasks
 :PROPERTIES:
