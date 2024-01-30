@@ -22,18 +22,24 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
 #+begin_src R :results none
   library(tidyverse) # data wrangling + plotting
   library(patchwork) # multipane plots
-  theme_set(theme_bw()) # set ggplot theme
   # I also use `astrochron` and `snvecR` throughout,
   # but always use them like `package::function()`
   library(assertr)   # verify data integrity
   library(profvis)   # find out where my code is slow
   library(future)    # this is for parallel computing
   library(furrr)     # parallel purrr::map functions
-  plan(multisession, workers = 4) # set up 4 cores
   ## devtools::install_github("https://github.com/jrevenaugh/TSAUMN2")
   ## library(TSAUMN)    # for some special spectral analysis tools
   # I also use these functions with TSAUMN::function
+  # load the AstronomicalSolutions development package
   devtools::load_all()
+  # set ggplot theme
+  theme_set(theme_bw() +
+            theme(legend.key.width = unit(1, "cm"),
+                  strip.clip = "off",
+                  ## strip.text.x = element_text(size = 7.5),
+                  strip.background = element_blank()))
+  plan(multisession, workers = 4) # set up 4 cores
 #+end_src
 
 * some shared code                                     :noexport:
@@ -8874,7 +8880,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                            /                                                                            -                                                                            > > > + + + indexing 18696_2.csv [====================================] 1.61GB/s, eta:  0s                                                                                                                 New names:
+-/                                                                            /                                                                            -                                                                            > > > . + indexing 18696_2.csv [====================================] 1.78GB/s, eta:  0s                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ──────────────────────────────────────────────────────
@@ -8989,7 +8995,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================] 436.21MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
+: indexing 405_minima.csv [===============================] 312.93MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
 : ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -9318,7 +9324,7 @@ src_R{agem_sol[agem_sol$sol=="ZB18a","depth_diff"]$depth_diff} {{{results(= [1] 
 holds the difference in depth for each subsequent 405 kyr cycle.
 
 So by dividing by 405 and multiplying by 2e3, we get the period of a 2 Myr cycle. If we take the inverse, we get the range of frequencies of approximately 2 Myr for each 405 kyr cycle in the whole record.
-src_R{1/(agem_sol[agem_sol$sol=="ZB18a",]$depth_diff / 405 * 2000)$depth_diff} {{{results(=Error: object 'agem_sol' not found=)}}}
+#  src_R{1/(agem_sol[agem_sol$sol=="ZB18a",]$depth_diff / 405 * 2000)$depth_diff} {{{results(=Error: object 'agem_sol' not found=)}}}
 That ranges between 0.010 and 0.018.
 
 or visually:
@@ -11411,6 +11417,9 @@ Source the library (now installed!)
   #+end_src
 
   #+RESULTS:
+  : Registered S3 method overwritten by 'quantmod':
+  :   method            from
+  :   as.zoo.data.frame zoo
 
 **** COMMENT do eha on one example dataset
 :PROPERTIES:
@@ -12355,7 +12364,7 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 
 #+RESULTS:
 [[file:imgs/Zumaia_MS_overall.png]]
-***** Zumaia d13C subs
+***** COMMENT Zumaia d13C subs
 #+begin_src R
   tst2 <- data_ecc |>
     filter(proxy == "d13C", detrend_type == "value", comb == "1:1"## , filt_env == "filter"
@@ -12741,7 +12750,7 @@ old
 #+RESULTS:
 
 **** plot improvement after optimization after algorithm revision
-#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 3400 :height 1700 :res 300
+#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 1700 :height 2600 :res 300
 
   best_age_optim |>
     filter(site == "Zumaia") |>
@@ -12749,21 +12758,31 @@ old
     mutate(comb = factor(comb,
                          levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
                                     "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+      mutate(grp = case_when(
+             exp == "Zumaia lin_scl_fine lower-portion 1:1" ~ "depth < 109.26",
+             exp == "Zumaia lin_scl_fine upper-portion 1:1" ~ "depth >= 109.26",
+             TRUE ~ "full record",
+           )) |>
+    mutate(grp = factor(grp, levels = c("full record", "depth >= 109.26", "depth < 109.26"))) |>
+    filter(grp == "full record") |>
     ggplot(aes(y = sol, x = RMSD, colour = detrend_type,
                group = paste(site, proxy, comb,
                              detrend_type, date, exp))) +
-    labs(y = "Astronomical solution", shape = "Age model", linetype = "Age model") +
-    facet_grid(rows = vars(proxy), cols = vars(comb),
-               ## scales = "free_x"
-               ## space = "free_x",
+    labs(x = "Root Mean Square Deviation (RMSD)",
+         y = "Astronomical solution",
+         shape = "Age model",
+         linetype = "Age model") +
+    facet_grid(cols = vars(proxy), rows = vars(comb),
+               scales = "free_x", space = "free_x",
                ) +
+    theme(strip.text.y = element_text(size = 8)) +
+    scale_shape_manual(values = c("Field" = '●', "Optimized" = '◀')) +
     scale_x_continuous(breaks = c(0, 1, 1.5, 2),
                        minor_breaks = seq(0,2,.1)) +
     ## theme(axis.text.y = element_text(angle = 90, size = 7)) +
-    scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
     scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    geom_point(aes(x = RMSD_start, shape = "Field")) +
-    geom_point(aes(fill = detrend_type, shape = "Optimized")) +
+    geom_point(aes(x = RMSD_start, shape = "Field"), size = 3) +
+    geom_point(aes(fill = detrend_type, shape = "Optimized"), size = 3) +
     geom_path(aes(x = RMSD_start, linetype = "Field")) +
     geom_path(aes(y = sol, x = RMSD, linetype = "Optimized")) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
@@ -12780,29 +12799,39 @@ old
 :END:
 limit to comb == "1:1" and don't show the lin_scl_rw.
 
-#+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 2600 :height 1700 :res 300
+#+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 1700 :height 1700 :res 300
   best_age_optim |>
     filter(comb == "1:1") |>
     filter(detrend_type != "lin_scl_rw") |>
+    mutate(grp = case_when(
+             exp == "Zumaia lin_scl_fine lower-portion 1:1" ~ "depth < 109.26",
+             exp == "Zumaia lin_scl_fine upper-portion 1:1" ~ "depth >= 109.26",
+             TRUE ~ "full record",
+           )) |>
+    mutate(grp = factor(grp, levels = rev(c("depth >= 109.26", "depth < 109.26", "full record")))) |>
     ggplot(aes(x = RMSD, y = sol, colour = detrend_type,
-               ## alpha = !str_detect(exp, "upper"),
+               ## alpha = exp == "all after package",
                group = paste(site, proxy, comb,
                              detrend_type, date, exp))) +
-    labs(y = "Astronomical solution",
-         shape = "Age model", linetype = "Age model"## ,
+    labs(x = "Root Mean Square Deviation (RMSD)",
+         y = "Astronomical solution",
+         shape = "Age model", linetype = "Age model",
          ## alpha = "lower / full record"
          ) +
-    facet_grid(rows = vars(proxy),
-               cols = vars(site, str_detect(exp, "-portion"))) +
-    scale_shape_manual(values = c("Field" = 16, "Optimized" = 25)) +
+    ## scale_alpha_manual(values = c("TRUE" = 0.5, "FALSE" = 1)) +
+    facet_grid(cols = vars(proxy),
+               rows = vars(site, grp)) +
+    scale_x_continuous(breaks = c(0, 1, 1.5, 2),
+                       minor_breaks = seq(0,3,.1)) +
+    scale_shape_manual(values = c("Field" = '●', "Optimized" = '◀')) +
     scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    geom_point(aes(x = RMSD_start, shape = "Field")) +
-    geom_point(aes(fill = detrend_type, shape = "Optimized")) +
+    geom_point(aes(x = RMSD_start, shape = "Field"), size = 3) +
+    geom_point(aes(fill = detrend_type, shape = "Optimized"), size = 3) +
     geom_path(aes(x = RMSD_start, linetype = "Field")) +
     geom_path(aes(y = sol, x = RMSD, linetype = "Optimized")) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
     geom_linerange(aes(xmin = RMSD_start, xmax = RMSD),
-                   alpha = .2)
+                   alpha = .6)
 #+end_src
 
 #+name: fig:rolling-rmsd
@@ -13089,7 +13118,7 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+end_src
 
 #+RESULTS:
-: filter: removed 28 rows (12%), 203 rows remaining
+: filter: removed 70 rows (26%), 203 rows remaining
 : filter: removed 196 rows (97%), 7 rows remaining
 
 ***** mtm
@@ -13182,7 +13211,7 @@ oh no, the Sopelana results are not exporting the Matched record!
       ## xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
       ## ylim = c(0, .025) # previous best
       ## ylim = c(0, .010) # previous best
-      ylim = c(.0001, 0.020) # log axis
+      ylim = c(.00005, 0.055) # log axis
     ) +
     scale_x_continuous(
     ## scale_x_log10(
@@ -13440,7 +13469,7 @@ oh no, the Sopelana results are not exporting the Matched record!
     filter(comb == "1:1") |>
     filter(proxy == "Lstar") |>
     filter(detrend_type == "lin_scl_fine") |>
-    filter(str_detect(exp, "-portion") | site == "Sopelana") |>
+    filter(str_detect(exp, "-portion") | site == "Sopelana" | exp == "all after package") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
     ggplot(aes(x = age * 1e-3,
