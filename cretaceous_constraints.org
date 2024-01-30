@@ -38,7 +38,8 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
             theme(legend.key.width = unit(1, "cm"),
                   strip.clip = "off",
                   ## strip.text.x = element_text(size = 7.5),
-                  strip.background = element_blank()))
+                  strip.background = element_blank(),
+                  strip.placement = "outside"))
   plan(multisession, workers = 4) # set up 4 cores
 #+end_src
 
@@ -8880,10 +8881,10 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                            /                                                                            -                                                                            > > > . + indexing 18696_2.csv [====================================] 1.78GB/s, eta:  0s                                                                                                                 New names:
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > + + + indexing 18696_2.csv [====================================================================================================================] 1.47GB/s, eta:  0s                                                                                                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
-── Column specification ──────────────────────────────────────────────────────
+── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Delimiter: ","
 dbl (3): depth, MS, Lstar
 
@@ -8995,8 +8996,8 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================] 312.93MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
-: ── Column specification ──────────────────────────────────────────────────────
+: indexing 405_minima.csv [===============================================================================================================] 378.81MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
+: ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
 : dbl (2): strat_bot, strat_top
@@ -9063,7 +9064,7 @@ very short record, Ma405_{-3} to Ma405_{4} and a bit
 #+end_src
 
 #+RESULTS:
-: -/                                                                            /                                                                            -                                                                            New names:
+: -/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            New names:
 : • `` -> `...6`
 : • `` -> `...8`
 
@@ -9153,31 +9154,57 @@ very short record, Ma405_{-3} to Ma405_{4} and a bit
 
   # these are from Batenburg et al., 2014 figure 3
   bat_filters <- tribble(
-    ~ target, ~ proxy, ~ center, ~ plow, ~ phigh, ~site,
-    "405 kyr", "Lstar", 16, 12, 29, "Zumaia",
-    "405 kyr", "Lstar", 12, 8.5, 20, "Sopelana",
+    ~ target, ~ proxy, ~ depth_chunk, ~ center, ~ plow, ~ phigh, ~site,
+    "405 kyr", "Lstar", "depth < 109.26", 16, 12, 29, "Zumaia",
+    "405 kyr", "Lstar", "depth >= 109.26", 12, 8.5, 20, "Zumaia",
+    "405 kyr", "Lstar", "full record", 12, 8.5, 20, "Sopelana",
     ## "prec", "Lstar", 4, 3.0, 6.0, "both",
-    "100 kyr", "Lstar", 4, 3.0, 6.0, "Zumaia",
-    "100 kyr", "Lstar", 4, 3.0, 6.0, "Sopelana",
-    "prec", "Lstar", 0.72, 0.53, 1.1, "Zumaia",
-    "prec", "Lstar", 0.49, 0.37, 0.75, "Sopelana",
-    "405 kyr", "MS", 17, 12, 24, "Zumaia",
-    "405 kyr", "MS", 12, 8.8, 19, "Sopelana",
+    "100 kyr", "Lstar", "depth < 109.26", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "Lstar", "depth >= 109.26", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "Lstar", "full record", 4, 3.0, 6.0, "Sopelana",
+    "prec", "Lstar", "depth < 109.26", 0.72, 0.53, 1.1, "Zumaia",
+    "prec", "Lstar", "depth >= 109.26", 0.49, 0.37, 0.75, "Zumaia",
+    "prec", "Lstar", "full record", 0.49, 0.37, 0.75, "Sopelana",
+    "405 kyr", "MS", "depth < 109.26", 17, 12, 24, "Zumaia",
+    "405 kyr", "MS", "depth >= 109.26", 12, 8.8, 19, "Zumaia",
+    "405 kyr", "MS", "full record", 12, 8.8, 19, "Sopelana",
     ## "prec", "MS", 4, 3.0, 6.0, "both",
-    "100 kyr", "MS", 4, 3.0, 6.0, "Zumaia",
-    "100 kyr", "MS", 4, 3.0, 6.0, "Sopelana",
+    "100 kyr", "MS", "depth < 109.26", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "MS", "depth >= 109.26", 4, 3.0, 6.0, "Zumaia",
+    "100 kyr", "MS", "full record", 4, 3.0, 6.0, "Sopelana",
     ## "prec", "MS", 0.72, 0.50, 1.3, "both",
-    "prec", "MS", 0.72, 0.50, 1.3, "Zumaia",
-    "prec", "MS", 0.72, 0.50, 1.3, "Sopelana",
+    "prec", "MS", "depth < 109.26", 0.72, 0.50, 1.3, "Zumaia",
+    "prec", "MS", "depth >= 109.26", 0.72, 0.50, 1.3, "Zumaia",
+    "prec", "MS", "full record", 0.72, 0.50, 1.3, "Sopelana",
     ) |>
     mutate(flow = 1 / plow, fhigh = 1 / phigh, ref = "Batenburg et al., 2014")
 
   freq_perc <- 0.4
   my_filters <- tribble(
-    ~ target, ~ p,
+    ~ target,  ~site,     ~ depth_chunk, ~ p,
+    "405 kyr", "Zumaia", "full record", 16,
+    "405 kyr", "Zumaia", "depth < 109.26", 16,
+    "405 kyr", "Zumaia", "depth >= 109.26", 12,
+    "405 kyr", "Sopelana", "full record", 12,
+    "100 kyr", "Zumaia", "full record", 4,
+    "100 kyr", "Zumaia", "depth < 109.26", 4,
+    "100 kyr", "Zumaia", "depth >= 109.26", 4,
+    "405 kyr", "Sopelana", "full record", 4,
+    "prec", "Zumaia", "depth < 109.26", 0.72,
+    "prec", "Zumaia", "depth >= 109.26", 0.49,
+    "prec", "Sopelana", "full record", 0.49,
+  ) |>
+    mutate(f = 1 / p,
+           range = freq_perc * f,
+           flow = f - range, fhigh = f + range,
+           ref = "This study")
+
+  # stick to old simple version for now to make sure nested_bandpass_filter still works :S
+  my_filters <- tribble(
+    ~ target,  ~ p,
     "405 kyr", 16,
     "100 kyr", 4,
-    "prec", 0.72
+    "prec", 0.72,
   ) |>
     mutate(f = 1 / p,
            range = freq_perc * f,
@@ -9741,13 +9768,23 @@ this is not easy to customize, so we manually create it below.
                       "lin_scl_rw", "lin_scl_fine", "lin_scl_coarse",
                       "gam_scl", ## "lin_gam_scl"
                       "hp_scl"
-                      ))
+                      )) |>
+    mutate(depth_chunk = list(c(
+             "full record", "depth < 109.26", "depth >= 109.26"))) |>
+    unnest(depth_chunk) |>
+    tidylog::filter(
+               (site == "Zumaia" & depth_chunk == "depth < 109.26" & depth < 109.26) |
+               (site == "Zumaia" & depth_chunk == "depth >= 109.26" & depth >= 109.26) |
+               ((site == "Zumaia" | site == "Sopelana") & depth_chunk == "full record")
+           )
+
   smooth_pred |> distinct(detrend_type)
 #+end_src
 
 #+RESULTS:
 #+begin_example
 filter: removed 48,049 rows (61%), 30,561 rows remaining
+filter: removed 39,359 rows (43%), 52,324 rows remaining
 # A tibble: 7 × 1
   detrend_type
   <chr>
@@ -10054,7 +10091,7 @@ we make this plot with the raw results because it gives us more control but more
 :END:
 #+begin_src R
   specs_fancy <- smooth_pred |>
-    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type"),
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "depth_chunk"),
                              x = depth, y = value)
 #+end_src
 
@@ -10066,7 +10103,7 @@ we make this plot with the raw results because it gives us more control but more
 :END:
 #+begin_src R
   specs_fft <- smooth_pred |>
-    nest(.by = c("proxy", "site", "detrend_type")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
     mutate(fft = map(data,
                       ~ . |>
                         select(depth, value) |>
@@ -10103,7 +10140,7 @@ we make this plot with the raw results because it gives us more control but more
   ##   ## select(c("freq", "spec"))
 
   specs_bt <- smooth_pred |>
-    nest(.by = c("proxy", "site", "detrend_type")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
     mutate(bt = map(data,
                       ~ . |>
                         select(depth, value) |>
@@ -10119,9 +10156,6 @@ we make this plot with the raw results because it gives us more control but more
 #+end_src
 
 #+RESULTS:
-: Registered S3 method overwritten by 'quantmod':
-:   method            from
-:   as.zoo.data.frame zoo
 
 ***** Lomb-Scargle
 :PROPERTIES:
@@ -10129,7 +10163,7 @@ we make this plot with the raw results because it gives us more control but more
 :END:
 #+begin_src R
   specs_ls <- smooth_pred |>
-    nest(.by = c("proxy", "site", "detrend_type")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
     mutate(ls = map(data,
                       ~ . |>
                         select(depth, value) |>
@@ -10155,7 +10189,7 @@ It's pretty slow.
   ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
 
   specs_mtls <- smooth_pred |>
-    nest(.by = c("proxy", "site", "detrend_type")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
     mutate(mtls = map(data,
                       ~ . |>
                         select(depth, value) |>
@@ -10189,8 +10223,8 @@ Note that we flip our default faceting here, because it makes comparison between
     my_filt() |>
     ggplot(aes(x = frequency, y = power,
                ## colour = detrend_type,
-               group = paste(detrend_type, proxy, site))) +
-    facet_grid(cols = vars(proxy), rows = vars(site, detrend_type)) +
+               group = paste(detrend_type, proxy, site, depth_chunk))) +
+    facet_grid(cols = vars(proxy), rows = vars(site, depth_chunk, detrend_type)) +
     scale_y_log10() +
     annotation_logticks(sides = "l") + # remember to update if we switch back to log!
     coord_cartesian(
@@ -10220,7 +10254,8 @@ Note that we flip our default faceting here, because it makes comparison between
               inherit.aes = FALSE,
               ## colour = "black",
               alpha = .2,
-              data = bat_filters |> bind_rows(bat_filters_old)) +
+              data = bat_filters ## |> bind_rows(bat_filters_old)
+              ) +
     # show our filters
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1.5e-4, fill = ref),
               inherit.aes = FALSE,
@@ -10676,8 +10711,17 @@ The filter intervals are perhaps not so good for Sopelana?
 :END:
 #+begin_src R
   filts <- smooth_pred |>
-    nested_bandpass_filter(frequencies = my_filters, x = depth, y = value,
-                    nest = c("proxy", "site", "detrend_type"))
+    ## nested_bandpass_filter(frequencies = my_filters, x = depth, y = value,
+                    ## nest = c("proxy", "site", "detrend_type", "depth_chunk"))
+    nest(.by = all_of(c("proxy", "site", "detrend_type", "depth_chunk"))) |>
+    # todo: separate target frequencies for different chunks
+    dplyr::mutate(bp = purrr::map(data,
+                                  \(d) d |>
+                                       bandpass_filter(frequencies = frequencies,
+                                                       x = depth, y = value,
+                                      add_depth = FALSE))) |>
+    unnest(bp) |>
+    select(-data)
 #+end_src
 
 #+RESULTS:
@@ -10702,7 +10746,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+end_src
 
 #+RESULTS:
-: filter: removed 60,606 rows (67%), 30,303 rows remaining
+: filter: removed 104,648 rows (67%), 52,324 rows remaining
 
 **** hilbert transform of the precession bp filter
 :PROPERTIES:
@@ -10711,7 +10755,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+begin_src R :exports none
   hb_prec <- filts |>
     filter(target == "prec") |>
-    nest(.by = c(site, proxy, detrend_type)) |>
+    nest(.by = c(site, proxy, detrend_type, depth_chunk)) |>
     mutate(hb = map(data, \(d) d |>
                                select(depth, filter) |>
                                astrochron::hilbert(genplot = FALSE, verbose = FALSE))) |>
@@ -10734,11 +10778,11 @@ The highpass filter gets rid of a LOT of the signal in all the filters *for d13C
   smooth_pred |>
     filter(detrend_type != "value") |>
     ggplot(aes(x = depth, y = value, colour = detrend_type)) +
-    facet_grid(rows = vars(proxy),
+    facet_grid(rows = vars(proxy, depth_chunk),
                scales = "free", space = "free_x") +
-    geom_line(aes(group = paste(detrend_type, site)), alpha = .1) +
+    geom_line(aes(group = paste(detrend_type, site, depth_chunk)), alpha = .1) +
     geom_line(aes(y = filter + as.integer(as.factor(target)),
-                  group = paste(detrend_type, site, target)),
+                  group = paste(detrend_type, site, target, depth_chunk)),
               data = filts |> filter(detrend_type != "value")) +
     geom_vline(aes(xintercept = strat_bot), colour = "gray", data = agem_simple) +
     geom_line(aes(y = envelope + 3.5, group = paste(detrend_type, site)),
@@ -10804,7 +10848,7 @@ We normalize the filtered record and combine them in a few different proportions
                            proxy == "Lstar" ~ -1,
                            proxy == "MS" ~ 1)) |>
     unnest(fracs) |>
-    nest(.by = c(proxy, site, detrend_type, comb, s405, s100, sign_405, sign_100)) |>
+    nest(.by = c(proxy, site, detrend_type, comb, depth_chunk, s405, s100, sign_405, sign_100)) |>
     mutate(ecc = pmap(list(data, s405, s100, sign_405, sign_100),
                       \(d, s405, s100, sign405, sign100)
                       d |>
@@ -10834,10 +10878,11 @@ See [[cref:fig:record-construct]].
     ## filter(filt_env != "hilbert") |>
     ggplot(aes(x = depth, y = ecc,
                linetype = comb,
-               group = paste(site, comb, detrend_type## , filt_env
+               group = paste(site, comb, depth_chunk, detrend_type## , filt_env
                              ),
                colour = detrend_type)) +
-    facet_grid(rows = vars(proxy)) +
+    facet_grid(rows = vars(proxy, depth_chunk)) +
+    theme(strip.text.y = element_text(size = 7)) +
     scale_x_reverse(breaks = seq(0, 200, 10), minor_breaks = seq(0, 200, 2)) +
     labs(x = "Depth (m)", y = "Normalized scaled combination of filters",
          colour = "Detrend method") +
@@ -10889,7 +10934,7 @@ Which detrend_type is best?
     # filter to limit options a little
     ## tidylog::filter(detrend_type == "lin_gam_det") |>
     ## tidylog::filter(comb == "0.5:1", filt_env == "filter") |>
-    tidylog::filter(comb == "1:0.5") |>
+    tidylog::filter(comb == "1:1") |>
     ## tidylog::filter(filt_env == "filter") |>
     ## tidylog::filter(site == "Zumaia") |>
     ## tidylog::filter(proxy == "MS") |>
