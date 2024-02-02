@@ -3,14 +3,15 @@
 ##' @param data Dataframe with input data.
 ##' @param x Column in `data`, i.e. `depth`, `height`, or `age`.
 ##' @param y Column in `data` with variable of interest.
-##' @param method Character specifying which spectral analysis method to apply.
-##' @return Dataframe with spectral outcome. Defaults to MTM with output = 1.
+##' @param method Spectral analysis method to apply: `"MTM"` or `"LOWSPEC"`.
+##' @return A [tibble::tibble()] with spectral outcome.
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
 ##'                       b = 11:20,
 ##'                       c = stats::rnorm(10),
 ##'                       d = sample(letters[1:3], 10, TRUE))
 ##' spectral_analysis(dat, x = a, y = c)
+##' @seealso plot_spectrum
 ##' @export
 spectral_analysis <- function(data, x, y, method = "MTM") {
   supported_methods <- c("MTM", "LOWSPEC")

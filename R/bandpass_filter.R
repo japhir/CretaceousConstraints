@@ -1,11 +1,11 @@
 #' Bandpass filter
 #'
-##' @param data data.frame()
+##' @param data data.frame() to bandpass filter.
 ##' @param frequencies data.frame() with columns `target`, `flow`, and `fhigh`.
 ##'   Can contain multiple rows for multiple frequency filtering.
 ##' @param x Column name in `data` that holds the depth/age information.
 ##' @param y Column name in `data` that holds the proxy variable name.
-##' @param add_depth Logical(1) Add depth back in if x is age?
+##' @param add_depth Defaults to `FALSE`. If `TRUE`, find column `depth` in original and interpolate it back from age.
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
 ##'                       b = 11:20,

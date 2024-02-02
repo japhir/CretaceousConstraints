@@ -2,11 +2,16 @@
 ##'
 ##' Plot the result of [spectral_analysis()] or [nested_spectral_analysis()].
 ##'
-##' @param spec Tibble with output of [spectral_analysis()] or [nested_spectral_analysis()].
-##' @param group Character(1). Group column to colour by.
-##' @param logx,logy Logical(1). Make the x- and/or y-axis log10.
-##' @param confidence Logical(1). Plot the AR1 or LOWSPEC confidence levels.
-##' @param periods Periods of interest to plot along the top axis.
+##' @param spec A [tibble::tibble()] with the output of [spectral_analysis()]
+##'   or [nested_spectral_analysis()].
+##' @param group Character(1) Column name to colour lines and ribbons by.
+##' @param logx,logy If `TRUE`, plot the axis on a log10 scale. Defaults to
+##'   `FALSE`.
+##' @param domain Domain of spectral analysis: `"depth"` or `"time"`.
+##' @param confidence If `TRUE`, plot the AR1 or LOWSPEC confidence levels.
+##' @param periods Periods of interest to plot along the top axis. Defaults to
+##'   `NULL` if we're in the depth domain, and to the short and long
+##'   eccentricity cycles if we're in the time domain.
 ##' @return A [ggplot2::ggplot()] object.
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
