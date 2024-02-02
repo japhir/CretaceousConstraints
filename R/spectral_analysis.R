@@ -13,31 +13,57 @@
 ##' spectral_analysis(dat, x = a, y = c)
 ##' @export
 spectral_analysis <- function(data, x, y, method = "MTM") {
-  if ("MTM" != method) {
-    cli::cli_abort(c("Only method MTM is currently supported.",
-                     "i" = "Other methods I may implement:",
-                     "*" = "FFT = periodogram",
-                     "*" = "Blackman-Tukey",
-                     "*" = "MTLS?"))
+  supported_methods <- c("MTM", "LOWSPEC")
+  ## if ("MTM" != method) {
+  ##   cli::cli_abort(c("Only method MTM is currently supported.",
+  ##                    "i" = "Other methods I may implement:",
+  ##                    "*" = "FFT = periodogram",
+  ##                    "*" = "Blackman-Tukey",
+  ##                    "*" = "MTLS?"))
+  ## }
+  if (!method %in% supported_methods) {
+    cli::cli_abort(c("Method {.q {method}} is not currently supported.",
+                     "i" = "Supported methods are {.q {supported_methods}}."))
   }
 
-  data |>
-    dplyr::select({{x}}, {{y}}) |>
-    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-    astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
-    tidyr::pivot_longer(c(.data$AR1_90_power,
-                          .data$AR1_95_power,
-                          .data$AR1_99_power),
-                        names_to = c("AR1", ".width"),
-                        names_pattern = "^(AR1)_(9[950])",
-                 values_to = "ar1_power") |>
-    dplyr::select(-.data$AR1) |>
-    dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
-    dplyr::rename(frequency = .data$Frequency,
-                  power = .data$Power,
-                  harmonic_cl = .data$Harmonic_CL,
-                  ar1_cl = .data$AR1_CL,
-                  ar1_fit = .data$AR1_fit)
+  if (method == "MTM") {
+    out <- data |>
+      dplyr::select({{x}}, {{y}}) |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
+      tidyr::pivot_longer(c(.data$AR1_90_power,
+                            .data$AR1_95_power,
+                            .data$AR1_99_power),
+                          names_to = c("AR1", ".width"),
+                          names_pattern = "^(AR1)_(9[950])",
+                          values_to = "ar1_power") |>
+      dplyr::select(-.data$AR1) |>
+      dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+      dplyr::rename(frequency = .data$Frequency,
+                    power = .data$Power,
+                    harmonic_cl = .data$Harmonic_CL,
+                    ar1_cl = .data$AR1_CL,
+                    ar1_fit = .data$AR1_fit)
+  } else if (method == "LOWSPEC") {
+   out <- data |>
+      dplyr::select({{x}}, {{y}}) |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::lowspec(output = 1, genplot = FALSE, verbose = FALSE) |>
+      tidyr::pivot_longer(c(.data$LOWSPEC_90_power,
+                            .data$LOWSPEC_95_power,
+                            .data$LOWSPEC_99_power),
+                          names_to = c("LOWSPEC", ".width"),
+                          names_pattern = "^(LOWSPEC)_(9[950])",
+                          values_to = "lowspec_power") |>
+      dplyr::select(-.data$LOWSPEC) |>
+      dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+      dplyr::rename(frequency = .data$Frequency,
+                    power = .data$Prewhite_power,
+                    harmonic_cl = .data$Harmonic_CL,
+                    lowspec_cl = .data$LOWSPEC_CL,
+                    lowspec_fit = .data$LOWSPEC_back)
+  }
+  return(out)
 }
 
 ##' Nested Spectral Analysis

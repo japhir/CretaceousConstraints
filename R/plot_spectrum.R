@@ -5,7 +5,7 @@
 ##' @param spec Tibble with output of [spectral_analysis()] or [nested_spectral_analysis()].
 ##' @param group Character(1). Group column to colour by.
 ##' @param logx,logy Logical(1). Make the x- and/or y-axis log10.
-##' @param ar1 Logical(1). Plot the AR1 confidence levels.
+##' @param confidence Logical(1). Plot the AR1 or LOWSPEC confidence levels.
 ##' @param periods Periods of interest to plot along the top axis.
 ##' @return A [ggplot2::ggplot()] object.
 ##' @examples
@@ -19,34 +19,68 @@ plot_spectrum <- function(spec,
                           group = "none",
                           logx = FALSE,
                           logy = FALSE,
-                          ar1 = FALSE,
-                          periods = c(405, 132.5, 124, 99.7, 95)) {
+                          domain = "depth",
+                          confidence = FALSE,
+                          periods = NULL) {
+  if (domain == "depth") {
+    xlab <- "Frequency (cycles/m)"
+    sec_xlab <- "Period (m)"
+  } else if (domain == "time") {
+    xlab <- "Frequency (cycles/kyr)"
+    sec_xlab <- "Period (kyr)"
+  }
+
+  if (is.null(periods)) {
+    if (domain == "time") {
+      periods <- c(405, 132.5, 124, 99.7, 95)
+    }
+  }
 
   if ("none" %in% group) {
     pl <- spec |>
       ggplot2::ggplot(ggplot2::aes(x = .data$frequency, y = .data$power))
-    if (ar1) {
-      pl <- pl +
-        ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
-                                          ymax = .data$ar1_power,
-                                 linetype = NA, group = .data$.width),
-                             alpha = .1)
+    if (confidence) {
+      if ("ar1_fit" %in% colnames(spec)) {
+        pl <- pl +
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
+                                            ymax = .data$ar1_power,
+                                            linetype = NA, group = .data$.width),
+                               alpha = .1)
+      } else if ("lowspec_fit" %in% colnames(spec)) {
+        pl <- pl +
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+                                            ymax = .data$lowspec_power,
+                                            linetype = NA,
+                                            group = .data$.width),
+                               alpha = .1)
+      }
     }
   } else {
     pl <- spec |>
       ggplot2::ggplot(ggplot2::aes(x = .data$frequency,
                                    y = .data$power,
                                    colour = .data[[group]]))
-    if (ar1) {
-      pl <- pl +
-        ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
-                                          ymax = .data$ar1_power,
-                                          fill = .data[[group]],
-                                          linetype = NA,
-                                          group = paste(c(.data[[group]],
-                                                          .data$.width))),
-                             alpha = .1)
+    if (confidence) {
+      if ("ar1_fit" %in% colnames(spec)) {
+        pl <- pl +
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
+                                            ymax = .data$ar1_power,
+                                            fill = .data[[group]],
+                                            linetype = NA,
+                                            group = paste(c(.data[[group]],
+                                                            .data$.width))),
+                               alpha = .1)
+      } else if ("lowspec_fit" %in% colnames(spec)) {
+        pl <- pl +
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+                                            ymax = .data$lowspec_power,
+                                            fill = .data[[group]],
+                                            linetype = NA,
+                                            group = paste(c(.data[[group]],
+                                                            .data$.width))),
+                               alpha = .1)
       }
+    }
   }
 
   if (logx && logy) {
@@ -55,13 +89,13 @@ plot_spectrum <- function(spec,
       ggplot2::scale_x_log10(
         sec.axis = ggplot2::sec_axis(breaks = periods,
                                      trans = \(x) 1 / x,
-                                     name = "Period (m)"))
+                                     name = sec_xlab))
   } else if (logx){
-      pl <- pl + ggplot2::annotation_logticks(sides = "b") +
-        ggplot2::scale_x_log10(
-          sec.axis = ggplot2::sec_axis(breaks = periods,
-                                       trans = \(x) 1 / x,
-                                       name = "Period (m)"))
+    pl <- pl + ggplot2::annotation_logticks(sides = "b") +
+      ggplot2::scale_x_log10(
+        sec.axis = ggplot2::sec_axis(breaks = periods,
+                                     trans = \(x) 1 / x,
+                                     name = sec_xlab))
   } else if (logy) {
     pl <- pl +
       ggplot2::annotation_logticks(sides = "l") +
@@ -69,18 +103,18 @@ plot_spectrum <- function(spec,
       ggplot2::scale_x_continuous(
         sec.axis = ggplot2::sec_axis(breaks = periods,
                                      trans = \(x) 1 / x,
-                                     name = "Period (m)"))
+                                     name = sec_xlab))
   } else {# neither
     pl <- pl +
       ggplot2::scale_x_continuous(
         sec.axis = ggplot2::sec_axis(breaks = periods,
                                      trans = \(x) 1 / x,
-                                     name = "Period (m)"))
+                                     name = sec_xlab))
   }
 
   pl <- pl +
     ggplot2::geom_line() +
-    ggplot2::labs(x = "Frequency (cycles/m)",
+    ggplot2::labs(x = xlab,
                   y = "Spectral power (-)")
 
   return(pl)
