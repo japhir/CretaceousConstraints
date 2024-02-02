@@ -23,16 +23,18 @@ plot_spectrum <- function(spec,
                           confidence = FALSE,
                           periods = NULL) {
   if (domain == "depth") {
-    xlab <- "Frequency (cycles/m)"
+    xlab <- "Frequency (cycles" ~ m^{-1} * ")"
     sec_xlab <- "Period (m)"
   } else if (domain == "time") {
-    xlab <- "Frequency (cycles/kyr)"
+    xlab <- "Frequency (cycles" ~ kyr^{-1} * ")"
     sec_xlab <- "Period (kyr)"
   }
 
   if (is.null(periods)) {
     if (domain == "time") {
       periods <- c(405, 132.5, 124, 99.7, 95)
+    } else if (domain == "depth") {
+      sec_xlab <- ""
     }
   }
 
@@ -72,13 +74,26 @@ plot_spectrum <- function(spec,
                                alpha = .1)
       } else if ("lowspec_fit" %in% colnames(spec)) {
         pl <- pl +
+          # this is a bit silly, cannot pass group = paste(group, .width)
+          # so have to repeat myself
           ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
                                             ymax = .data$lowspec_power,
                                             fill = .data[[group]],
-                                            linetype = NA,
-                                            group = paste(c(.data[[group]],
-                                                            .data$.width))),
-                               alpha = .1)
+                                            linetype = NA),
+                       alpha = .1,
+                       data = \(x) x |> filter(.width == .9)) +
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+                                            ymax = .data$lowspec_power,
+                                            fill = .data[[group]],
+                                            linetype = NA),
+                               alpha = .1,
+                               data = \(x) x |> filter(.width == .95)) +
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+                                            ymax = .data$lowspec_power,
+                                            fill = .data[[group]],
+                                            linetype = NA),
+                               alpha = .1,
+                               data = \(x) x |> filter(.width == .99))
       }
     }
   }

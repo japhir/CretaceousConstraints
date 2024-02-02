@@ -71,7 +71,7 @@ spectral_analysis <- function(data, x, y, method = "MTM") {
 ##' @inheritParams spectral_analysis
 ##' @param nest Character vector to nest by.
 ##' @export
-nested_spectral_analysis <- function(data, nest, x, y) {
+nested_spectral_analysis <- function(data, nest, ..., x, y) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
            "{.var data} must be a {.cls data.frame}",
@@ -88,7 +88,8 @@ nested_spectral_analysis <- function(data, nest, x, y) {
     dplyr::mutate(
       mtm = purrr::map(.data$data,
                        spectral_analysis,
-                       x = {{x}}, y = {{y}})
+                       x = {{x}}, y = {{y}},
+                       ...)
     ) |>
     dplyr::select(-.data$data) |>
     tidyr::unnest(.data$mtm)
