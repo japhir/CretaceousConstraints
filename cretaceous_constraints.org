@@ -2588,7 +2588,7 @@ age from 56 Ma to 69.1 Ma
                 filter(age > 66 & age < 68.5) |>
                 mutate(ecc = scale(ee)[, 1]))
 #+end_src
-*** colour reflectance data from Janus database?
+*** colour reflectance data from Janus database
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:23]
 :END:
@@ -2597,56 +2597,179 @@ https://web.iodp.tamu.edu/janusweb/physprops/colordat.cgi?leg=208&site=1267
 
 They did this analysis also in [cite:@Westerhold2007] and extended it in [cite:@Batenburg2018a] (56.042 Ma to 69.070 Ma).
 
-**** read in the data and calculate normalized a*/b*
+**** [#B] read in the data and calculate normalized a*/b*
 #+begin_src R :exports none
-  ODP208_1267_color_A <- readr::read_tsv("dat/ODP208_1267_color-reflectance.dat")
-  ODP208_1267_color_B <- readr::read_tsv("dat/ODP208_1267_color-reflectance_B.dat")
+  ## ODP208_1267_color_A <- readr::read_tsv("dat/ODP208_1267_color-reflectance.dat")
+  ## ODP208_1267_color_B <- readr::read_tsv("dat/ODP208_1267_color-reflectance_B.dat")
 
+  # downloaded this again with all the relevant columns!
+  dat <- read_csv("dat/colordat208-1267.csv")
   # dat is only hole B for now
-  dat <- ODP208_1267_color_B |>
-    select(depth = `Depth (mbsf)`,
+
+  dat |>
+    ggplot(aes(x = `Depth (mbsf)`,
+               y = `L*`,
+               ## y = `a*`,
+               ## y = `b*`,
+               ## y = `a*` / `b*`,
+               )) +
+    scale_x_reverse() +
+    geom_vline(xintercept = 287) + # approximately the K/T (in mbsf)
+    geom_line()
+#+end_src
+
+#+RESULTS:
+: indexing colordat208-1267.csv [===------------------------] 7.30GB/s, eta:  0sindexing colordat208-1267.csv [=========================] 432.90MB/s, eta:  0s                                                                                                                 Rows: 25316 Columns: 55
+: ── Column specification ──────────────────────────────────────────────────────
+: Delimiter: ","
+: chr  (5): H, T, Sec, Run Date/Time, Munsell_HVC
+: dbl (50): Leg, Site, Core, Top (cm), Depth (mbsf), Depth (mcd), Run Number...
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+**** prep data
+:PROPERTIES:
+:CREATED:  [2024-02-02 Fri 09:37]
+:END:
+***** rename some columns, limit to depth of interest
+:PROPERTIES:
+:CREATED:  [2024-02-02 Fri 10:38]
+:END:
+#+begin_src R
+  dat <- dat |>
+    rename(depth = `Depth (mbsf)`,
            Lstar = `L*`,
            astar = `a*`,
            bstar = `b*`) |>
     filter(depth >= 285.9) |>
     mutate(aob = scale(astar / bstar)[, 1]) |>
     select(depth, aob, everything())
+#+end_src
+***** remove long-term trends in the depth domain
+:PROPERTIES:
+:CREATED:  [2023-09-21 Thu 11:39]
+:END:
+#+begin_src R :exports none
+  fit_loess <- loess(aob ~ depth, data = dat, span = .75)
+  fit_gam <- mgcv::gam(aob ~ s(depth, bs = "cs"), data = dat)
 
-  # raw data with simple loess curve
+  lp <- dat |>
+    select(depth, aob## Lstar_scl
+           ) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::lowpass(fcut = 1 / 15) # how do you decide which frequency to cull?
+  # this is linearly interpolated so it can't go into the other df
+
+  # let's see how sensitive it is to the span or to size of the rolling mean
+  dat <- dat |>
+    mutate(
+      # there are several methods of calculating a rolling average
+      ## ma = roll::roll_mean() # that's left-aligned
+      ## ma = zoo::rollmean(Lstar, k = 33, align = "center", na.pad = TRUE),
+      # I prefer the slider implementation, it's FAAAST
+      # I've played around with the size of the window. If I make it larger,
+      # more low-frequency peaks are preserved.
+      ma = slider::slide_mean(aob,
+                              before = 39, after = 39),
+      ## loess = predict(fit_loess),
+      ## gam = predict(fit_gam),
+      scl = scale(aob)[, 1],
+      ## loess_scl = scale(aob - loess)[, 1],
+      ## gam_scl = scale(aob - loess)[, 1],
+      ma_scl = scale(aob - ma)[, 1],
+      .by = c(Leg, Site, H))
+
   dat |>
-    ggplot(aes(x = depth, y = Lstar)) +
+    ggplot(aes(x = depth, y = aob, group = paste(Leg, Site, H, Core, Sec))) +
+    geom_line(aes(colour = H), alpha = .3) +
+    ## geom_line(aes(y = loess), colour = "orange") +
+    ## geom_line(aes(y = gam), colour = "red") +
+    geom_line(aes(y = ma), colour = "indianred")
+
+  dat |>
+    ggplot(aes(x = depth, y = aob, group = paste(Leg, Site, H, Core, Sec))) +
     geom_line() +
-    geom_line(aes(x = `Depth (mbsf)`, y = `L*`), data = ODP208_1267_color_A, alpha = .2) +
-    geom_smooth(method = "loess", span = .2) +
-    geom_smooth(method = "gam", colour = "orange")
+    ## geom_line(aes(y = loess_scl + 3), colour = "orange") +
+    ## geom_line(aes(y = gam_scl + 6), colour = "red") +
+    geom_line(aes(y = ma_scl + 9), colour = "indianred")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-indexed 0B in  0s, 0B/sindexed 1.00TB in  0s, 48.28TB/s                                                                                                       Rows: 25316 Columns: 15
-── Column specification ─────────────────────────────────────────────────────────────────────────────────
-Delimiter: "\t"
-chr  (4): H, T, Sec, Munsell_HVC
-dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
 
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-indexing ODP208_1267_color-reflectance_B.dat [=====================================] 130.62GB/s, eta:  0s                                                                                                                                            Rows: 13263 Columns: 15
-── Column specification ─────────────────────────────────────────────────────────────────────────────────
-Delimiter: "\t"
-chr  (4): H, T, Sec, Munsell_HVC
-dbl (11): Leg, Site, Core, Top (cm), Depth (mbsf), L*, a*, b*, X, Y, Z
+----- LOWPASS FILTERING STRATIGRAPHIC SERIES-----
 
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-`geom_smooth()` using formula = 'y ~ x'
-`geom_smooth()` using formula = 'y ~ s(x, bs = "cs")'
+----- APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
+
+ ,* Number of samples= 2794
+ ,* Determining median sampling interval for series
+ ,* Will interpolate to median sampling interval of 0.025
+ ,* New number of samples= 1733
+ ,* Number of data points= 1733
+ ,* Sample interval= 0.025
+ ,* Mean value removed= 0.0958775
+ ,* 5 pos/neg frequency pairs and f(0) will be bandpassed
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
 #+end_example
 
-**** do analysis of hole B in the depth domain
+**** do analysis in the depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 12:42]
 :END:
+***** do spectral analysis
+:PROPERTIES:
+:CREATED:  [2023-09-19 Tue 12:14]
+:END:
+#+begin_src R :results output graphics file :file imgs/208-1267B_color_mtm.png :width 900 :height 500
+  dat |>
+    nested_spectral_analysis(x = depth, y = scl,
+                             nest = "H",
+                      ## method = "MTM"
+                      method = "LOWSPEC"
+                      ) |>
+    plot_spectrum(group = "H",
+                  confidence = TRUE,
+                  periods = c(0.4, 0.47, 1.7, 4)) +
+    facet_grid(cols = vars(H)) +
+    coord_cartesian(xlim = c(0, 5),
+                    ylim = c(0,
+                             ## 0.01
+                             0.002
+                             ## 0.0005
+                             ))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/208-1267B_color_mtm.png]]
+
+old code before I had turned this into a package :)
+#+begin_src R :eval never
+  mtm <- dat |>
+    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
+    astrochron::mtm(xmax = 6, pl = 1, output = 1) |>
+    as_tibble()
+
+  # plot the mtm
+  mtm |>
+    ggplot(aes(x = Frequency, y = Power)) +
+    geom_line() +
+    scale_y_log10() +
+    scale_x_continuous(
+      sec.axis = sec_axis(trans = ~ 1 / .x,
+                          name = "Period",
+                          breaks = c(.01, .5, .1, 1, 10))) +
+    geom_line(aes(y = AR1_fit), colour = "red") +
+    geom_line(aes(y = AR1_90_power), colour = "red") +
+    geom_line(aes(y = AR1_95_power), colour = "red") +
+    geom_line(aes(y = AR1_99_power), colour = "red") +
+    # highlight what filters are being used by Husson 2011
+    annotate("rect", xmin = 0., xmax = .25, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
+    annotate("rect", xmin = 0., xmax = .9, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
+#+end_src
+
 ***** use taner filters
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 12:16]
@@ -2684,38 +2807,6 @@ Warning message:
 In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
   collapsing to unique 'x' values
 #+end_example
-
-***** COMMENT do spectral analysis
-:PROPERTIES:
-:CREATED:  [2023-09-19 Tue 12:14]
-:END:
-#+begin_src R :results output graphics file :file imgs/208-1267B_color_mtm.png :width 900 :height 500
-  mtm <- dat |>
-    astrochron::linterp(genplot = FALSE) |> # this seems to get rid of the main outliers as well
-    astrochron::mtm(xmax = 6, pl = 1, output = 1) |>
-    as_tibble()
-
-  # plot the mtm
-  mtm |>
-    ggplot(aes(x = Frequency, y = Power)) +
-    geom_line() +
-    scale_y_log10() +
-    scale_x_continuous(
-      sec.axis = sec_axis(trans = ~ 1 / .x,
-                          name = "Period",
-                          breaks = c(.01, .5, .1, 1, 10))) +
-    geom_line(aes(y = AR1_fit), colour = "red") +
-    geom_line(aes(y = AR1_90_power), colour = "red") +
-    geom_line(aes(y = AR1_95_power), colour = "red") +
-    geom_line(aes(y = AR1_99_power), colour = "red") +
-    # highlight what filters are being used by Husson 2011
-    annotate("rect", xmin = 0., xmax = .25, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
-    annotate("rect", xmin = 0., xmax = .9, ymin = 1e-5, ymax = 1e-1, alpha = .3, fill = "red") +
-    coord_cartesian(xlim = c(0, 10))
-#+end_src
-
-#+RESULTS:
-[[file:imgs/208-1267B_color_mtm.png]]
 
 ***** plot the filters and the record
 :PROPERTIES:
@@ -2850,72 +2941,6 @@ ID  / Frequency / Period / Harmonic_CL / Rednoise_CL
 31   0.1635265   6.115217   95.39002   85.09184
 32   0.167051   5.986196   95.01506   91.9216
 33   0.1933293   5.172523   94.30443   84.0192
-Warning message:
-In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
-  collapsing to unique 'x' values
-#+end_example
-
-***** remove long-term trends in the depth domain
-:PROPERTIES:
-:CREATED:  [2023-09-21 Thu 11:39]
-:END:
-#+begin_src R :exports none
-  fit_loess <- loess(aob ~ depth, data = dat, span = .75)
-  fit_gam <- mgcv::gam(aob ~ s(depth, bs = "cs"), data = dat)
-
-  lp <- dat |>
-    select(depth, aob## Lstar_scl
-           ) |>
-    astrochron::linterp(genplot = FALSE) |>
-    astrochron::lowpass(fcut = 1 / 15) # how do you decide which frequency to cull?
-  # this is linearly interpolated so it can't go into the other df
-
-  # let's see how sensitive it is to the span or to size of the rolling mean
-  dat <- dat |>
-    mutate(
-      # there are several methods of calculating a rolling average
-      ## ma = roll::roll_mean() # that's left-aligned
-      ## ma = zoo::rollmean(Lstar, k = 33, align = "center", na.pad = TRUE),
-      # I prefer the slider implementation, it's FAAAST
-      # I've played around with the size of the window. If I make it larger,
-      # more low-frequency peaks are preserved.
-      ma = slider::slide_mean(aob, before = 200, after = 200),
-      loess = predict(fit_loess),
-      gam = predict(fit_gam),
-      scl = scale(Lstar)[, 1],
-      loess_scl = scale(aob - loess)[, 1],
-      gam_scl = scale(aob - loess)[, 1],
-      ma_scl = scale(aob - ma)[, 1])
-
-  dat |>
-    ggplot(aes(x = depth, y = aob)) +
-    geom_line(alpha = .3) +
-    geom_line(aes(y = loess), colour = "orange") +
-    geom_line(aes(y = gam), colour = "red") +
-    geom_line(aes(y = ma), colour = "indianred")
-
-  dat |>
-    ggplot(aes(x = depth, y = aob)) +
-    geom_line() +
-    geom_line(aes(y = loess_scl + 3), colour = "orange") +
-    geom_line(aes(y = gam_scl + 6), colour = "red") +
-    geom_line(aes(y = ma_scl + 9), colour = "indianred")
-#+end_src
-
-#+RESULTS:
-#+begin_example
------ LOWPASS FILTERING STRATIGRAPHIC SERIES-----
-
------ APPLYING PIECEWISE-LINEAR INTERPOLATION TO STRATIGRAPHIC SERIES -----
-
- ,* Number of samples= 1840
- ,* Determining median sampling interval for series
- ,* Will interpolate to median sampling interval of 0.025
- ,* New number of samples= 1733
- ,* Number of data points= 1733
- ,* Sample interval= 0.025
- ,* Mean value removed= 0.01953956
- ,* 5 pos/neg frequency pairs and f(0) will be bandpassed
 Warning message:
 In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
   collapsing to unique 'x' values
@@ -13955,14 +13980,37 @@ Ma_{405}6 to Ma_{405}8.5
 - State "WAIT"       from              [2023-08-31 Thu 15:20]
 :END:
 
-** ODP Leg 207 Site 1258B
+** [#B] ODP Leg 207 Site 1258B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:58]
 :END:
 Ma_{405}8? to Ma_{405}14
+is 8 also high amplitude in short ecc?
 
 raw data from https://doi.pangaea.de/10.1594/PANGAEA.266578
 analysis copies [cite:@Husson2011]
+
+https://web.iodp.tamu.edu/janusweb/physprops/colordat.cgi
+
+report options: excel compatible CSV <3
+be sure to check "output raw data"
+
+#+begin_src R
+  library(tidyverse)
+  dat <- read_csv("dat/colordat207-1258.csv")
+
+  dat |>
+    ggplot(aes(x =`Depth (mcd)`,
+               y = `L*`,
+               ## y = `a*`,
+               ## y = `b*`,
+               ## y = `a*` / `b*`,
+               colour = H,
+               group = paste(Core, H, Sec))) +
+    geom_vline(xintercept = 285) + # should be around beginning cycle Ma405_8
+    geom_vline(xintercept = 350) + # around end cycle Ma405_14/15
+    geom_line()
+#+end_src
 
 #+begin_src R :results output graphics file :file imgs/207-1258B_MS_Husson-fig4.png :width 900 :height 500
   ODP207_1258B_MS <- pangaear::pg_data("10.1594/PANGAEA.266578")[[1]]
