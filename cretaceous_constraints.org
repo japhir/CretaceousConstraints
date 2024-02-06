@@ -10167,13 +10167,6 @@ we make this plot with the raw results because it gives us more control but more
 #+end_src
 
 #+RESULTS:
-: Error in `mutate()`:
-: ℹ In argument: `lowspec = map(...)`.
-: Caused by error in `map()`:
-: ℹ In index: 13.
-: Caused by error in `rfbaseline()`:
-: ! could not compute scale of residuals for iter = 3
-: Run `rlang::last_trace()` to see where the error occurred.
 
 ***** FFT periodogram
 :PROPERTIES:
@@ -10234,6 +10227,9 @@ we make this plot with the raw results because it gives us more control but more
 #+end_src
 
 #+RESULTS:
+: Registered S3 method overwritten by 'quantmod':
+:   method            from
+:   as.zoo.data.frame zoo
 
 ***** Lomb-Scargle
 :PROPERTIES:
@@ -10292,7 +10288,7 @@ The blue rectangles correspond to our simplified filter intervals where we just 
 The frequency ranges need to be a little broad to encapsulate the potentially variable sedimentation rates throughout the record.
 
 Note that we flip our default faceting here, because it makes comparison between detrend_types easier.
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2600 :height 3200 :res 300 :eval never
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2600 :height 3200 :res 300
   my_filt <- \(d) d |>
       filter(detrend_type == "lin_scl_fine") |>
       filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
@@ -10984,7 +10980,7 @@ See [[cref:fig:record-construct]].
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_depth.png :width 2400 :height 2000 :res 300
   data_ecc |>
-    ## filter(filt_env != "hilbert") |>
+    ## filter(site == "Sopelana") |>
     mutate(scaled_405 = scale(`405 kyr`)[, 1], .by = c(proxy, site, depth_chunk, detrend_type)) |>
     ggplot(aes(x = depth, y = ecc,
                linetype = comb,
@@ -11000,7 +10996,7 @@ See [[cref:fig:record-construct]].
     ## geom_line(aes(y = `100 kyr`, colour = "100 kyr")) +
     ## geom_line(aes(y = prec, colour = "prec")) +
     ## geom_line(aes(y = envelope, colour = "envelope")) +
-    geom_vline(aes(xintercept = strat_bot), alpha = .2, data = agem_simple) +
+    geom_vline(aes(xintercept = strat_bot, colour = site), alpha = .2, data = agem_simple) +
     geom_line(aes(y = scaled_405)) +
     geom_line()
 #+end_src
@@ -11015,6 +11011,7 @@ See [[cref:fig:record-construct]].
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 11:20]
 :END:
+***** some old notes
 We filter out only the 1:0.5 filtered records (because they consistently gave the lowest RMSD scores and otherwise my computer often froze).
 
 There are a few parameters we can vary to convert our depth record to a record against time.
@@ -11034,6 +11031,7 @@ Which detrend_type is best?
 - For Zumaia d13C, ~lin_gam_det~ and ~lin_scl~ are identical at 1:0.5 filter.
 - For almost all 1:0.5 combs, filter is better than hilbert except for Zumaia d13C scl, so we can safely filter out only those comb/filt_env's.
 ***** calculate diffs and RMSD
+first generate estimates of sedimentation rate based on the number of long ecc cycles in the depth range
 #+begin_src R
   ## kpg_age <- 65970 # age taken from Batenburg et al., 2014
   ## tau <- (13 * 405) / 183 # conversion from depth to time,
@@ -11041,8 +11039,22 @@ Which detrend_type is best?
   # if we multiply the metres by this number you get kyr out.
   ## proxy_lag <- 2--3 precessional cycles, 44--65 kyr (Batenburg et al., 2012)
 
-  ## miscount <- c(-.5, 0, .5)
-  ## miscount <- 0
+  ## miscount <- c(.5, .1, 0.05) # this still runs!
+  ## miscount <- c(.5, .4, .3, .2, .1) # this was too large
+  ## miscount <- c(.3, .2, .1) # .3 is way too large
+  ## miscount <- c(.2, .15, .1, .05)
+  ## miscount <- c(-miscount, 0, rev(miscount))
+  ## sedrange <- seq(1.5, 0.5, -0.5) * 1e-2 # works, but coarse
+  sedrange <- seq(0, 2, 0.2)[-1] * 1e-2 # change sedrate by ±1 cm
+  sedrange <- c(-rev(sedrange), 0, sedrange)
+  sedrange
+
+  age_offsets <- seq(-200, +200, 40)
+  age_offsets
+
+  # first set them both to 0 and hone in on the correct number of cycles
+  ## sedrange <- 0
+  ## age_offsets <- 0
 
   diffs <-
     data_ecc |>
@@ -11054,7 +11066,8 @@ Which detrend_type is best?
     ## tidylog::filter(filt_env == "filter") |>
     ## tidylog::filter(site == "Zumaia") |>
     ## tidylog::filter(proxy == "MS") |>
-    ## tidylog::filter(proxy == "Lstar") |>
+    tidylog::filter(proxy == "Lstar") |>
+    ## tidylog::filter(depth_chunk == "depth < 109.26") |>
     select(-`405 kyr`, -`100 kyr`) |>
     ## mutate(proxy_lag = case_when(
     ##          proxy == "d13C" ~ list(seq(44, 65, 5)), # 44 to 65 kyr (Batenburg et al., 2012)
@@ -11082,38 +11095,29 @@ Which detrend_type is best?
              ## 1 / 8 * 100, 1 / 2 * 100, # 2 to 8 cm / kyr?
              case_when(
                site == "Zumaia" & depth_chunk == "depth < 109.26" ~ 7,
-               site == "Zumaia" & depth_chunk == "depth >= 109.26" ~ 2.5,
-               site == "Zumaia" & depth_chunk == "full record" ~ 9.5,
-               site == "Sopelana" ~ 4.2,
+               site == "Zumaia" & depth_chunk == "depth >= 109.26" ~ 2,
+               site == "Zumaia" & depth_chunk == "full record" ~ 8,
+               site == "Sopelana" ~ 3.35,
                )
              ## length.out = 12 # this is to limit the total number of simulations
              ## )
              ) |>
-    mutate(count_error = list(c(-0.5, 0, .5))) |>
-    unnest(count_error) |>
-    mutate(inv_sedrate = ((count_error + num_cycles) * 405) / depth_range) |>
+    ## mutate(count_error = list(miscount)) |>
+    ## unnest(count_error) |>
+    ## mutate(inv_sedrate = (num_cycles * 405) / depth_range) |>
+    mutate(m_per_kyr = depth_range / (num_cycles * 405)) |> # in m/kyr
+    mutate(sed_error = list(sedrange)) |>
+    unnest(sed_error) |>
+    mutate(sedrate = m_per_kyr + sed_error) |>
     ## distinct(site, depth_chunk, inv_sedrate) # check if it worked
-    ## unnest(cols = c(inv_sedrate)) |>
-    mutate(floating_age = depth * inv_sedrate) |>
-    # add target orbital solutions
-    # let's put some uncertainty on the K/T boundary age
-    mutate(kpg_age = list(
-             # manual list to keep the number of parameter permutations low
-             ## c(65500, 65600, 65700, 65800, 65900,
-             ##   66000, #65970, # the estimate from Batenburg et al., 2014
-             ##   66100, 66200, 66300, 66400, 66500)
-             # sequence of potential ages, increase resolution of x
-             ## seq(65500, 66500, 50)
-             ## seq(65500, 66100, 20) # slightly smaller range
-             ## seq(65920, 66020, 20) # range of K/T ages in ZB&L2022 table 4
-             ## seq(65750, 66100, 50) # full range of calib A calib B K/T age in Zeebe and Lourens EPSL 2022
-             # K/T age \pm 200 kyr
-             seq(65.9e3 - 200, 65.9e3 + 200, 20)
-           )) |>
-    unnest(cols = c(kpg_age)) |>
+    mutate(floating_age = depth / sedrate) |>
+    mutate(age_offset = list(age_offsets)) |>
+    unnest(cols = c(age_offset)) |>
+    mutate(kpg_age = 65.9e3 + age_offset) |>
     mutate(age = kpg_age + floating_age) %>%
     # It kept crashing if I didn't filter out enough, this ensures this doesn't happen
-    assertr::verify(nrow(.) <= 6.6e5) |>
+    assertr::verify(nrow(.) <= 1.1005e6) |> # this still worked last time!
+    # add target orbital solutions
     mutate(sol = list(target_astronomical_solutions)) |>
     unnest(cols = c(sol)) |>
     mutate(ecc_sln = case_when(
@@ -11142,15 +11146,183 @@ Which detrend_type is best?
                       comb, #filt_env,
                       depth_chunk,
                       kpg_age, ## proxy_lag,
-                      inv_sedrate, count_error,
+                      m_per_kyr,
+                      sedrate, sed_error, age_offset,
                       sol)) |>
     arrange(RMSD)
 #+end_src
 
 #+RESULTS:
+:  [1] -0.020 -0.018 -0.016 -0.014 -0.012 -0.010 -0.008 -0.006 -0.004 -0.002
+: [11]  0.000  0.002  0.004  0.006  0.008  0.010  0.012  0.014  0.016  0.018
+: [21]  0.020
+:  [1] -200 -160 -120  -80  -40    0   40   80  120  160  200
 : filter: removed 44,838 rows (86%), 7,486 rows remaining
 : filter: no rows removed
+: filter: removed 4,133 rows (55%), 3,353 rows remaining
+***** same but now with simple range of sedrates
+:PROPERTIES:
+:CREATED:  [2024-02-06 Tue 11:34]
+:END:
+#+begin_src R
+  diffs <-
+    data_ecc |>
+    # filter to limit options a little
+    ## tidylog::filter(detrend_type == "lin_gam_det") |>
+    tidylog::filter(detrend_type == "lin_scl_fine") |>
+    ## tidylog::filter(comb == "0.5:1", filt_env == "filter") |>
+    tidylog::filter(comb == "1:1") |>
+    ## tidylog::filter(filt_env == "filter") |>
+    ## tidylog::filter(site == "Zumaia") |>
+    ## tidylog::filter(proxy == "MS") |>
+    ## tidylog::filter(proxy == "Lstar") |>
+    select(-`405 kyr`, -`100 kyr`) |>
+    # a single linear sedimentation rate, could well have varied by quite a bit!
+    mutate(sedrate = list(
+             case_when(site == "Sopelana" ~ seq(0.025, 0.032, length.out = )
+                         )seq(0.01, 0.05, 0.01))) |>
+    unnest(cols = c(sedrate)) |>
+    mutate(floating_age = depth / sedrate) |>
+    mutate(age_offset = list(seq(-200, +200, 20))) |>
+    unnest(cols = c(age_offset)) |>
+    mutate(kpg_age = 65.9e3 + age_offset) |>
+    mutate(age = kpg_age + floating_age) %>%
+    # It kept crashing if I didn't filter out enough, this ensures this doesn't happen
+    assertr::verify(nrow(.) <= 1.1005e6) |> # this still worked last time!
+    # add target orbital solutions
+    mutate(sol = list(target_astronomical_solutions)) |>
+    unnest(cols = c(sol)) |>
+    mutate(ecc_sln = case_when(
+             sol == "ZB18a" ~ approx(sln$age, sln$scl,
+                                     xout = age)$y,
+             sol == "ZB20a" ~ approx(sln2$age, sln2$scl,
+                                     xout = age)$y,
+             sol == "ZB20b" ~ approx(sln2b$age, sln2b$scl,
+                                     xout = age)$y,
+             sol == "ZB20c" ~ approx(sln2c$age, sln2c$scl,
+                                     xout = age)$y,
+             sol == "ZB20d" ~ approx(sln2d$age, sln2d$scl,
+                                     xout = age)$y,
+             ## sol == "La11" ~ approx(sln3$age, sln3$scl,
+             ##                         xout = age)$y,
+             sol == "La10b" ~ approx(sln4$age, sln4$scl,
+                                     xout = age)$y,
+             sol == "La10c" ~ approx(sln5$age, sln5$scl,
+                                     xout = age)$y,
+             TRUE ~ NA_real_)) |>
+    mutate(SD = (ecc_sln - ecc)^2)
 
+  msd <- diffs |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, site, detrend_type,
+                      comb, #filt_env,
+                      depth_chunk,
+                      kpg_age, ## proxy_lag,
+                      sedrate, age_offset,
+                      sol)) |>
+    arrange(RMSD)
+#+end_src
+
+#+RESULTS:
+: Error: unexpected symbol in:
+: "           case_when(site == "Sopelana" ~ seq(0.025, 0.032, length.out = )
+:                        )seq"
+: Error: object 'sedrate' not found
+
+***** a function that we can optimize
+:PROPERTIES:
+:CREATED:  [2024-02-02 Fri 15:45]
+:END:
+I think you get more insight with the gridded approach though...
+
+#+begin_src R
+  ##' Optimize Sedimentation Rate and Age
+  ##'
+  ##' .. content for \details{} ..
+  ##' @title
+  ##' @param vec Vector with sedrate and age_offset.
+  ##' @param data
+  ##' @param sol
+  ##' @return
+  optimize_sedrate_age <- function(vec, data, sol, kpg_age = 65.9e3) {
+    diffs <- data |>
+      mutate(sedrate = vec[[1]],
+             age_offset = vec[[2]]) |>
+      mutate(floating_age = .data$depth / .data$sedrate) |>
+      mutate(age = kpg_age + .data$floating_age + .data$age_offset) |>
+      mutate(ecc_sln = approx(sol$age, sol$scl, xout = .data$age)$y) |>
+      mutate(SD = (.data$ecc_sln - .data$ecc)^2)
+
+    diffs |>
+      summarize(RMSD = sqrt(mean(SD))) |>
+      pull(RMSD)
+  }
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R :eval never
+  diffs <-
+     data_ecc |>
+     tidylog::filter(detrend_type == "lin_scl_fine") |>
+     tidylog::filter(comb == "1:1") |>
+     select(-`405 kyr`, -`100 kyr`) |>
+     nest(.by = c(proxy, site, detrend_type, comb, depth_chunk)) |>
+     mutate(optim = map(data,
+                        \(d) optim(par = c(0.05, 0),
+                                   optimize_sedrate_age,
+                                   data = d,
+                                   sol = sln))) |>
+     mutate(sedrate = map_dbl(optim, \(x) x$par[[1]]),
+            age_offset = map_dbl(optim, \(x) x$par[[2]]),
+            RMSD_optim = map_dbl(optim, "value")) |>
+     select(-optim) |>
+     unnest(cols = c(data)) |>
+     mutate(floating_age = depth / sedrate,
+            kpg_age = 65900,
+            age = kpg_age + floating_age + age_offset) |>
+     mutate(ecc_sln = approx(sln$age, sln$scl, xout = .data$age)$y) |>
+     mutate(SD = (.data$ecc_sln - .data$ecc)^2) |>
+     mutate(RMSD = sqrt(mean(SD)),
+            .by = c(proxy, site, detrend_type, comb, depth_chunk))
+
+  ## # double-check
+  ## msd <- diffs |>
+  ##   summarize(RMSD = sqrt(mean(SD)),
+  ##             .by = c(proxy, site, detrend_type,
+  ##                     comb, depth_chunk, age_offset)) |>
+  ##   arrange(RMSD)
+
+  # plot
+  diffs |>
+    ggplot(aes(x = age * 1e-3, y = ecc,
+               group = paste(proxy, site, detrend_type, comb, depth_chunk))) +
+    facet_grid(rows = vars(proxy)) +
+    scale_x_reverse() +
+    scale_colour_manual(values = c("Astronomical Solution" = "black",
+                                   "Zumaia" = "purple",
+                                   "Sopelana" = "blue")) +
+    geom_vline(xintercept = kpg_ages$age1[[4]]) +
+    geom_vline(aes(xintercept = 1e-3 * (kpg_age + age_offset)),
+               linetype = "dashed") +
+    geom_line(aes(y = ecc_sln, colour = "Astronomical Solution")) +
+    geom_line(aes(colour = paste(site)))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+filter: removed 44,838 rows (86%), 7,486 rows remaining
+filter: no rows removed
++ + Error in `.data$sol`:
+! Column `sol` not found in `.data`.
+Run `rlang::last_trace()` to see where the error occurred.
+Warning message:
+Use of .data in tidyselect expressions was deprecated in tidyselect 1.2.0.
+ℹ Please use `"sol"` instead of `.data$sol`
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+generated.
+#+end_example
 
 **** which solution has the overall lowest RMSD?
 :PROPERTIES:
@@ -11159,28 +11331,35 @@ Which detrend_type is best?
 We find out which of the many solutions is the best by filtering out the lowest RMSD score for each proxy and astronomical solution in [[cref:tab:best-depth]].
 We only look at Zumaia here though.
 
-#+begin_src R :results value :colnames yes
+#+begin_src R :results output
   best <- msd |>
-    # let's limit ourselves a little
-    ## filter(site == "Zumaia") |>
-    ## filter(proxy != "d13C") |>
-    # which one is the lowest for each solution?
-    ## mutate(low = min(RMSD),
-    ##           .by = c(## proxy, site,
-    ##                   sol)) |>
-    ## # how about we get the best 3 fits for each proxy/solution/site?
-    ## mutate(low = RMSD %in% tail(RMSD, n = 3),
-    ##        .by = c(proxy, sol, site)) |>
-    ## filter(low) |>
-    ## ## arrange(RMSD)# |>
-    ## select(-low) |>
     # get the best combination of proxy_lag and inv_sedrate values
-    tidylog::filter(RMSD == min(RMSD),
-                    .by = c(proxy, site, comb, depth_chunk, count_error, #filt_env,
-                            sol)) |>
-    arrange(proxy, sol, RMSD)
+    tidylog::filter(RMSD == min(RMSD, na.rm = TRUE),
+                    .by = c(proxy, site, detrend_type, comb, depth_chunk, sol))
   best |> mutate(RMSD = round(RMSD, 3))
 #+end_src
+
+#+RESULTS:
+#+begin_example
+filter: removed 6,440 rows (>99%), 28 rows remaining
+# A tibble: 28 × 12
+   proxy site     detrend_type comb  depth_chunk     kpg_age m_per_kyr sedrate
+   <chr> <chr>    <chr>        <chr> <chr>             <dbl>     <dbl>   <dbl>
+ 1 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0231
+ 2 Lstar Sopelana lin_scl_fine 1:1   full record       65700    0.0368  0.0348
+ 3 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385
+ 4 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65820    0.0391  0.0331
+ 5 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65940    0.0385  0.0385
+ 6 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0251
+ 7 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0251
+ 8 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65980    0.0385  0.0405
+ 9 Lstar Sopelana lin_scl_fine 1:1   full record       65860    0.0368  0.0428
+10 Lstar Zumaia   lin_scl_fine 1:1   full record       66020    0.0435  0.0415
+# ℹ 18 more rows
+# ℹ 4 more variables: sed_error <dbl>, age_offset <dbl>, sol <chr>,
+#   RMSD <dbl>
+# ℹ Use `print(n = ...)` to see more rows
+#+end_example
 
 #+name: tab:best-depth
 #+caption: Zumaia records with the lowest RMSD score by proxy and astronomical solution.
@@ -11199,15 +11378,15 @@ Or just blindly calculate the average RMSD of all the different approaches in [[
 #+name: tab:best-depth-global
 #+caption: Zumaia records lowest RMSD score per astronomical solution.
 #+RESULTS:
-| proxy | detrend_type | comb | depth_chunk    | kpg_age | count_error | sol   |  RMSD |
-|-------+--------------+------+----------------+---------+-------------+-------+-------|
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65900 |        -0.5 | ZB20a | 1.272 |
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65940 |         0.5 | La10b | 1.293 |
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65920 |         0.5 | ZB20b |  1.31 |
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65940 |        -0.5 | La10c | 1.331 |
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65920 |        -0.5 | ZB20c | 1.353 |
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65920 |        -0.5 | ZB20d | 1.357 |
-| Lstar | lin_scl_fine |  1:1 | depth < 109.26 |   65940 |        -0.5 | ZB18a |  1.36 |
+| proxy | detrend_type | comb | depth_chunk     | kpg_age | count_error | age_offset | sol   |  RMSD |
+|-------+--------------+------+-----------------+---------+-------------+------------+-------+-------|
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65980 |           0 |         80 | ZB20a | 1.051 |
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65820 |       -0.15 |        -80 | ZB20b | 1.106 |
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65760 |        -0.1 |       -140 | La10c | 1.106 |
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65840 |       -0.15 |        -60 | ZB18a | 1.143 |
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65860 |       -0.15 |        -40 | La10b | 1.188 |
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65840 |       -0.15 |        -60 | ZB20c | 1.204 |
+| MS    | lin_scl_fine |  1:1 | depth >= 109.26 |   65740 |       -0.15 |       -160 | ZB20d | 1.286 |
 
 We can also make a nice overview figure of all the different parameter perturbations.
 
@@ -11215,17 +11394,19 @@ We can also make a nice overview figure of all the different parameter perturbat
   ## msd |>
   best |>
     ggplot(aes(x = sol, y = RMSD,
-               ## colour = inv_sedrate## ,
+               ## colour = factor(count_error)
+               colour = sedrate * 100
                ## shape = detrend_type
                )) +
     facet_grid(cols = vars(site, depth_chunk,
                            ## round(1 / inv_sedrate * 100, 2)
                            ), rows = vars(proxy)) +
+    scale_colour_viridis_c() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)) +
-    geom_line(aes(group = paste(site, proxy, comb))) +
-    geom_point(size = 2) +
+    geom_line(aes(group = paste(site, proxy, comb)), colour = "black") +
+    geom_point(size = 2) #+
     ## geom_point(size = 4, data = best) +
-    scale_colour_viridis_c()
+    ## scale_colour_viridis_c()
 #+end_src
 
 #+caption: Best linear age model using a single sedimentation rate. We varied the K/T age (different lines/points), the ~inv_sedrate~ (colour), and the ~detrend_type~. This figure is limited to a ~comb~ of 1:0.5.
@@ -11252,9 +11433,11 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
                            ## round(1 / inv_sedrate * 100, 2)
                            ),
                rows = vars(sol)) +
-    scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
-   ) +
+    ## scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
+   ## ) +
     scale_x_reverse() +
+    ## scale_colour_brewer(type = "div", palette = 1) +
+    scale_colour_viridis_c() +
     labs(
       ## title = "Combinations of 405 kyr and 100 kyr filters and their RMSD",
       x = "K/T age", y = "RMSD",
@@ -11262,12 +11445,9 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
     ) +
     geom_vline(aes(xintercept = age1), data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
     geom_vline(aes(xintercept = age2), data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
-
-    geom_line(aes(group = paste(count_error,
-                                inv_sedrate,
-                                comb,
-                                detrend_type),
-                  colour = factor(count_error)),
+    geom_line(aes(group = paste(sed_error, comb, detrend_type),
+                  colour = sedrate
+                  ),
               linewidth = .7) +
     geom_point(colour = "red", data = best)
 #+end_src
@@ -11278,32 +11458,42 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
 #+RESULTS:
 [[file:imgs/Zumaia_MSD-overview.png]]
 
-***** COMMENT plot RMSD as a function of orbital solution, tau, K/T age, ...
+**** plot RMSD as a function of orbital solution, tau, K/T age, ...
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:04]
 :END:
 Here I make a heatmap with the same information as the previous figure.
 
 # #+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 1920 :height 800
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 2600 :height 2200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_RMSD.png :width 1200 :height 2200 :res 300
   my_filt <- \(d) d |>
-                    filter(detrend_type == "lin_scl_fine")
+    tidylog::filter(detrend_type == "lin_scl_fine") |>
+    tidylog::filter(comb == "1:1") |>
+    ## tidylog::filter(site == "Zumaia") |>
+    tidylog::filter(proxy == "Lstar") #|>
+    ## tidylog::filter(depth_chunk == "depth < 109.26")
 
   msd |>
     # let's simplify a bit
     my_filt() |>
-    ggplot(aes(x = kpg_age * 0.001, y = 1/inv_sedrate*100,
+    ggplot(aes(x = kpg_age * 1e-3,
+               y = sedrate,
+               ## y = count_error,
                ## group = paste(comb, filt_env, site, tau, sol),
                ## colour = tau
                fill = RMSD
                )) +
+    theme(strip.text.x.top = element_text(size = 4),
+          axis.text.x = element_text(size = 6)) +
     facet_grid(cols = vars(proxy, site, depth_chunk),
                rows = vars(sol)) +
-    scale_x_continuous(breaks = c(65.9 - 0.1, 65.9, 65.9 + .1)) +
+    scale_x_continuous(breaks = c(65.9 - 0.1,65.9 + .1)) +
     scale_fill_viridis_c() +
     scale_colour_viridis_c() +
     labs(x = "Age of the K/T boundary (Ma)",
-         y = "Inverted sedimentation rate (m/kyr)",
+         ## y = "Inverted sedimentation rate (kyr/cm)",
+         y = "Sedimentation rate (cm/kyr)",
+         ## y = "Count error (fraction)",
          fill = "RMSD") +
     geom_vline(aes(xintercept = age1),
                colour = "red", alpha = .3,
@@ -11312,8 +11502,12 @@ Here I make a heatmap with the same information as the previous figure.
                colour = "red", alpha = .3,
                data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
     ## geom_line() +
-    ## geom_raster() +
-    geom_point(aes(colour = RMSD))
+    geom_raster() +
+    ## geom_rect()
+    ## geom_point(aes(colour = RMSD), size = .6, shape = "■")
+    geom_point(aes(colour = RMSD),
+               colour = "red",
+               size = .2, data = best |> my_filt())
 #+end_src
 
 #+attr_latex: :width .45\linewidth
@@ -11336,16 +11530,18 @@ This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase somet
   diffs |>
     # the "best" Zumaia setup?
     # filter out some of the best fits
-    filter(site == "Zumaia") |>
-    filter(depth_chunk == "depth < 109.26") |>
-    filter(proxy == "Lstar") |>
+    ## filter(site == "Zumaia") |>
+    ## filter(depth_chunk != "full record") |>
+    ## filter(depth_chunk != "full record") |>
+    ## filter(site == "Sopelana") |>
+    ## my_filt() |>
     tidylog::inner_join(best) |>
     ## tidylog::full_join(best) |>
     ## tidylog::left_join(best) |>
     ggplot(aes(x = age / 1e3,
                group = paste(comb, ## filt_env,
-                             site, inv_sedrate, kpg_age, depth_chunk, #proxy_lag
-                             count_error
+                             site, sedrate, kpg_age, depth_chunk #proxy_lag
+                             ## count_error
                              ),
                ## colour = 1 / tau * 100, # convert from kyr/m to cm/kyr
                ## colour = kpg_age,
@@ -11381,21 +11577,27 @@ This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase somet
     geom_vline(aes(xintercept = age2), data = kpg_ages |>
                                          filter(sln != "La11") |>
                                          rename(sol = sln)) +
+    # field tie points
+    geom_vline(aes(xintercept = age * 1e-3, colour = site),
+               data = agem_sol) +
+    # k/pg age
     geom_vline(aes(xintercept = kpg_age * 1e-3, colour = site)) +
-    # plot the orbital solutions
+    # orbital solutions
     geom_line(aes(x = age * 1e-3, y = scl, group = sol,
                   colour = "Astronomical Solution"),
               data = slns |>
                 filter(sln != "La11") |>
                 ## filter(age > 65.5e3 & age < 72.5e3) |>
-                filter(age > 65.5e3 & age < 69e3) |>
+                filter(age > 65.5e3 & age < 73e3) |>
                 rename(sol = sln)) +
+    # our filtered record
     geom_line(aes(y = ecc, #RMSD = RMSD,
-                  linetype = factor(count_error),
+                  ## linetype = factor(count_error),
                   colour = site), linewidth = 1.2) +
     # annotate RMSD for each proxy/site/sol combo
-    geom_text(aes(x = age / 1e3, y = 3.4,
-                  group = site,
+    geom_text(aes(x = age / 1e3, y = 3.6,
+                  group = paste(site, depth_chunk),
+                  colour = site,
                   label = round(RMSD, 3)
                   ),
               size = 3,
@@ -11403,7 +11605,7 @@ This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase somet
               data = \(d) d |>
                 summarize(age = mean(age),
                           RMSD = mean(RMSD),
-                          .by = c(proxy, site, comb, sol)))
+                          .by = c(proxy, site, comb, depth_chunk, sol)))
 #+end_src
 
 #+name: fig:best-depth
