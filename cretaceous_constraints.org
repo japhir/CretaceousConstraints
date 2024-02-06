@@ -11153,9 +11153,7 @@ first generate estimates of sedimentation rate based on the number of long ecc c
 #+end_src
 
 #+RESULTS:
-:  [1] -0.020 -0.018 -0.016 -0.014 -0.012 -0.010 -0.008 -0.006 -0.004 -0.002
-: [11]  0.000  0.002  0.004  0.006  0.008  0.010  0.012  0.014  0.016  0.018
-: [21]  0.020
+:  [1] -0.020 -0.018 -0.016 -0.014 -0.012 -0.010 -0.008 -0.006 -0.004 -0.002  0.000  0.002  0.004  0.006  0.008  0.010  0.012  0.014  0.016  0.018  0.020
 :  [1] -200 -160 -120  -80  -40    0   40   80  120  160  200
 : filter: removed 44,838 rows (86%), 7,486 rows remaining
 : filter: no rows removed
@@ -11164,7 +11162,7 @@ first generate estimates of sedimentation rate based on the number of long ecc c
 :PROPERTIES:
 :CREATED:  [2024-02-06 Tue 11:34]
 :END:
-#+begin_src R
+#+begin_src R :eval never
   diffs <-
     data_ecc |>
     # filter to limit options a little
@@ -11343,21 +11341,19 @@ We only look at Zumaia here though.
 #+begin_example
 filter: removed 6,440 rows (>99%), 28 rows remaining
 # A tibble: 28 × 12
-   proxy site     detrend_type comb  depth_chunk     kpg_age m_per_kyr sedrate
-   <chr> <chr>    <chr>        <chr> <chr>             <dbl>     <dbl>   <dbl>
- 1 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0231
- 2 Lstar Sopelana lin_scl_fine 1:1   full record       65700    0.0368  0.0348
- 3 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385
- 4 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65820    0.0391  0.0331
- 5 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65940    0.0385  0.0385
- 6 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0251
- 7 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0251
- 8 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65980    0.0385  0.0405
- 9 Lstar Sopelana lin_scl_fine 1:1   full record       65860    0.0368  0.0428
-10 Lstar Zumaia   lin_scl_fine 1:1   full record       66020    0.0435  0.0415
+   proxy site     detrend_type comb  depth_chunk     kpg_age m_per_kyr sedrate sed_error age_offset sol    RMSD
+   <chr> <chr>    <chr>        <chr> <chr>             <dbl>     <dbl>   <dbl>     <dbl>      <dbl> <chr> <dbl>
+ 1 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0231    -0.016        -40 ZB20a  1.26
+ 2 Lstar Sopelana lin_scl_fine 1:1   full record       65700    0.0368  0.0348    -0.002       -200 ZB18a  1.27
+ 3 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385     0              0 ZB20a  1.27
+ 4 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65820    0.0391  0.0331    -0.006        -80 La10c  1.29
+ 5 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65940    0.0385  0.0385     0             40 La10b  1.29
+ 6 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0251    -0.014        -40 ZB20c  1.29
+ 7 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0251    -0.014          0 ZB20b  1.31
+ 8 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65980    0.0385  0.0405     0.002         80 ZB20b  1.31
+ 9 Lstar Sopelana lin_scl_fine 1:1   full record       65860    0.0368  0.0428     0.006        -40 La10c  1.31
+10 Lstar Zumaia   lin_scl_fine 1:1   full record       66020    0.0435  0.0415    -0.002        120 ZB20a  1.32
 # ℹ 18 more rows
-# ℹ 4 more variables: sed_error <dbl>, age_offset <dbl>, sol <chr>,
-#   RMSD <dbl>
 # ℹ Use `print(n = ...)` to see more rows
 #+end_example
 
@@ -11424,6 +11420,7 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
 # #+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 1920 :height 1080
 #+begin_src R :results output graphics file :file imgs/Zumaia_MSD-overview.png :width 3400 :height 2600 :res 300
   msd |>
+    ## filter(abs(sed_error) < 0.01) |>
     ggplot(aes(x = kpg_age * 1e-3,
                y = RMSD,
                ## colour = paste(inv_sedrate, " = ", round(1 / inv_sedrate * 100, 2))## ,
@@ -11436,8 +11433,8 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
     ## scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
    ## ) +
     scale_x_reverse() +
-    ## scale_colour_brewer(type = "div", palette = 1) +
-    scale_colour_viridis_c() +
+    scale_colour_distiller(type = "div", palette = 2) +
+    ## scale_colour_viridis_c() +
     labs(
       ## title = "Combinations of 405 kyr and 100 kyr filters and their RMSD",
       x = "K/T age", y = "RMSD",
@@ -11446,7 +11443,8 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
     geom_vline(aes(xintercept = age1), data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
     geom_vline(aes(xintercept = age2), data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
     geom_line(aes(group = paste(sed_error, comb, detrend_type),
-                  colour = sedrate
+                  ## colour = sedrate
+                  colour = sed_error
                   ),
               linewidth = .7) +
     geom_point(colour = "red", data = best)
@@ -11477,8 +11475,9 @@ Here I make a heatmap with the same information as the previous figure.
     # let's simplify a bit
     my_filt() |>
     ggplot(aes(x = kpg_age * 1e-3,
-               y = sedrate,
+               y = sedrate * 1e2,
                ## y = count_error,
+               ## y = sed_error,
                ## group = paste(comb, filt_env, site, tau, sol),
                ## colour = tau
                fill = RMSD
@@ -11494,7 +11493,9 @@ Here I make a heatmap with the same information as the previous figure.
          ## y = "Inverted sedimentation rate (kyr/cm)",
          y = "Sedimentation rate (cm/kyr)",
          ## y = "Count error (fraction)",
+         ## y = "Sedimentation rate offset (m/kyr)",
          fill = "RMSD") +
+    ## geom_hline(yintercept = 0, colour = "red", alpha = .3) +
     geom_vline(aes(xintercept = age1),
                colour = "red", alpha = .3,
                data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
@@ -11504,7 +11505,7 @@ Here I make a heatmap with the same information as the previous figure.
     ## geom_line() +
     geom_raster() +
     ## geom_rect()
-    ## geom_point(aes(colour = RMSD), size = .6, shape = "■")
+    ## geom_point(aes(colour = RMSD), size = 1.2, shape = "■") +
     geom_point(aes(colour = RMSD),
                colour = "red",
                size = .2, data = best |> my_filt())
