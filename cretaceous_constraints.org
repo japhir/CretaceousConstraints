@@ -11045,7 +11045,7 @@ first generate estimates of sedimentation rate based on the number of long ecc c
   ## miscount <- c(.2, .15, .1, .05)
   ## miscount <- c(-miscount, 0, rev(miscount))
   ## sedrange <- seq(1.5, 0.5, -0.5) * 1e-2 # works, but coarse
-  sedrange <- seq(0, 2, 0.2)[-1] * 1e-2 # change sedrate by ±1 cm
+  sedrange <- seq(0, 1, 0.1)[-1] * 1e-2 # change sedrate by ±1 cm
   sedrange <- c(-rev(sedrange), 0, sedrange)
   sedrange
 
@@ -11329,31 +11329,53 @@ generated.
 We find out which of the many solutions is the best by filtering out the lowest RMSD score for each proxy and astronomical solution in [[cref:tab:best-depth]].
 We only look at Zumaia here though.
 
+
+try to eliminate large sed errors and weird offsets so that Sopelana ends up on the "right" position
 #+begin_src R :results output
-  best <- msd |>
-    # get the best combination of proxy_lag and inv_sedrate values
-    tidylog::filter(RMSD == min(RMSD, na.rm = TRUE),
-                    .by = c(proxy, site, detrend_type, comb, depth_chunk, sol))
+  best <-
+    msd |>
+      filter(abs(sed_error) < 0.005) |>
+      filter(abs(age_offset) < 100) |>
+      # get the best combination of proxy_lag and inv_sedrate values
+      ## mutate(the_lowest = min(RMSD, na.rm = TRUE),
+      ##      .by = c(proxy, site, detrend_type, comb, depth_chunk, sol)) |>
+      ## mutate(relative = RMSD - the_lowest) |>
+      ## mutate(og = sed_error == 0 & age_offset == 0) |>
+      ## ## mutate(pretty_bad = relative > 0.5) |>
+      ## mutate(not_that_much = relative < 0.1) |>
+    ##   ggplot(aes(x = kpg_age * 1e-3, y = sedrate * 1e2, fill = relative)) +
+    ##   facet_grid(cols = vars(site, proxy, depth_chunk), rows = vars(sol)) +
+    ##   scale_fill_viridis_c() +
+    ##   geom_raster() +
+    ##   geom_raster(fill = "red", alpha = .6,
+    ##               data = \(x) filter(x, not_that_much)) +
+    ##   geom_point(colour = "red",
+    ##              data = \(x) x |>
+    ##                          filter(og) ##
+    filter(RMSD == min(RMSD, na.rm = TRUE),
+           .by = c(proxy, site, detrend_type, comb, depth_chunk, sol))
+
   best |> mutate(RMSD = round(RMSD, 3))
 #+end_src
 
 #+RESULTS:
 #+begin_example
-filter: removed 6,440 rows (>99%), 28 rows remaining
 # A tibble: 28 × 12
-   proxy site     detrend_type comb  depth_chunk     kpg_age m_per_kyr sedrate sed_error age_offset sol    RMSD
-   <chr> <chr>    <chr>        <chr> <chr>             <dbl>     <dbl>   <dbl>     <dbl>      <dbl> <chr> <dbl>
- 1 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0231    -0.016        -40 ZB20a  1.26
- 2 Lstar Sopelana lin_scl_fine 1:1   full record       65700    0.0368  0.0348    -0.002       -200 ZB18a  1.27
- 3 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385     0              0 ZB20a  1.27
- 4 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65820    0.0391  0.0331    -0.006        -80 La10c  1.29
- 5 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65940    0.0385  0.0385     0             40 La10b  1.29
- 6 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65860    0.0391  0.0251    -0.014        -40 ZB20c  1.29
- 7 Lstar Zumaia   lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0251    -0.014          0 ZB20b  1.31
- 8 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26    65980    0.0385  0.0405     0.002         80 ZB20b  1.31
- 9 Lstar Sopelana lin_scl_fine 1:1   full record       65860    0.0368  0.0428     0.006        -40 La10c  1.31
-10 Lstar Zumaia   lin_scl_fine 1:1   full record       66020    0.0435  0.0415    -0.002        120 ZB20a  1.32
+   proxy site     detrend_type comb  depth_chunk    kpg_age m_per_kyr sedrate
+   <chr> <chr>    <chr>        <chr> <chr>            <dbl>     <dbl>   <dbl>
+ 1 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0395
+ 2 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0395
+ 3 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0385
+ 4 Lstar Zumaia   lin_scl_fine 1:1   full record      65940    0.0435  0.0395
+ 5 Lstar Zumaia   lin_scl_fine 1:1   full record      65980    0.0435  0.0395
+ 6 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0385
+ 7 Lstar Sopelana lin_scl_fine 1:1   full record      65820    0.0368  0.0388
+ 8 Lstar Zumaia   lin_scl_fine 1:1   full record      65980    0.0435  0.0395
+ 9 Lstar Zumaia   lin_scl_fine 1:1   full record      65980    0.0435  0.0395
+10 Lstar Sopelana lin_scl_fine 1:1   full record      65820    0.0368  0.0388
 # ℹ 18 more rows
+# ℹ 4 more variables: sed_error <dbl>, age_offset <dbl>, sol <chr>,
+#   RMSD <dbl>
 # ℹ Use `print(n = ...)` to see more rows
 #+end_example
 
@@ -11433,7 +11455,7 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
     ## scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
    ## ) +
     scale_x_reverse() +
-    scale_colour_distiller(type = "div", palette = 2) +
+    scale_colour_distiller(type = "div", palette = 3) +
     ## scale_colour_viridis_c() +
     labs(
       ## title = "Combinations of 405 kyr and 100 kyr filters and their RMSD",
@@ -11455,6 +11477,44 @@ This shows that the d13C record gives us the overall best RMSD's, but the d13C s
 #+attr_latex: :width 1.2\linewidth
 #+RESULTS:
 [[file:imgs/Zumaia_MSD-overview.png]]
+
+**** plot RMSD as a function of sedrate
+:PROPERTIES:
+:CREATED:  [2024-02-06 Tue 15:37]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_MSD-sedrate.png :width 3400 :height 2600 :res 300
+  msd |>
+    ## filter(abs(sed_error) < 0.01) |>
+    ggplot(aes(x = sedrate * 1e2,
+               y = RMSD,
+               ## colour = paste(inv_sedrate, " = ", round(1 / inv_sedrate * 100, 2))## ,
+               ## linetype = comb
+               )) +
+    facet_grid(cols = vars(proxy, site, depth_chunk,
+                           ## round(1 / inv_sedrate * 100, 2)
+                           ),
+               rows = vars(sol)) +
+    ## scale_colour_viridis_d(#guide = guide_colorbar(direction = "horizontal")
+   ## ) +
+    scale_colour_distiller(type = "div", palette = 3) +
+    ## scale_colour_viridis_c() +
+    labs(
+      ## title = "Combinations of 405 kyr and 100 kyr filters and their RMSD",
+      x =  "Sedimentation rate (cm/kyr)",
+      y = "RMSD",
+      colour = "K/T age (Ma)"
+    ) +
+    geom_line(aes(group = paste(age_offset, comb, detrend_type),
+                  colour = kpg_age * 1e-3
+                  ),
+              linewidth = .7) +
+    geom_point(colour = "red", data = best)
+#+end_src
+
+#+name: fig:depth-rmsd-scores
+#+attr_latex: :width 1.2\linewidth
+#+RESULTS:
+[[file:imgs/Zumaia_MSD-sedrate.png]]
 
 **** plot RMSD as a function of orbital solution, tau, K/T age, ...
 :PROPERTIES:
@@ -11504,6 +11564,11 @@ Here I make a heatmap with the same information as the previous figure.
                data = kpg_ages |> filter(sln != "La11") |> rename(sol = sln)) +
     ## geom_line() +
     geom_raster() +
+    geom_raster(fill = "white",
+                alpha = 0.3,
+                data = \(x)
+                x |> filter(abs(age_offset) < 100,
+                            abs(sed_error) < 0.005)) +
     ## geom_rect()
     ## geom_point(aes(colour = RMSD), size = 1.2, shape = "■") +
     geom_point(aes(colour = RMSD),
@@ -11516,17 +11581,24 @@ Here I make a heatmap with the same information as the previous figure.
 #+RESULTS:
 [[file:imgs/Zumaia_ecc_RMSD.png]]
 
-#+attr_latex: :width \linewidth
-#+caption: Older figure, higher resolution in both inverted sedimentation rate (what I thought was \tau) and age_kpg, but without the La11 solution.
-[[file:imgs/Zumaia_ecc_MSD.png]]
+**** make the plot 3d and interactive
+:PROPERTIES:
+:CREATED:  [2024-02-06 Tue 15:30]
+:END:
+#+begin_src R
+  ## pl_depth <- ggplot2::last_plot()
+  pl_depth |>
+    rayshader::plot_gg(width = 4,
+                       height = 9,
+                       height_aes = "fill",
+                       scale = 50)
+#+end_src
 
 **** plot the curves with the lowest overall RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 19:03]
 :END:
-This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase sometimes?
-
-#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 2400 :height 3200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_ecc_ZB18a.png :width 2600 :height 3200 :res 300
   # this plot crashes if I plot them all
   diffs |>
     # the "best" Zumaia setup?
@@ -11548,6 +11620,7 @@ This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase somet
                ## colour = kpg_age,
                # filt_env??
                )) +
+    theme(legend.position = "top") +
     facet_grid(rows = vars(sol), cols = vars(proxy),
                scales = "free_x", space = "free_x") +
     labs(x = "Age (Ma)",
@@ -11558,7 +11631,8 @@ This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase somet
          colour = "",
          ## alpha = "RMSD\n(lower = better)"
          ) +
-    scale_alpha_continuous(range = c(1, .4)) +
+    scale_alpha_manual("Smaller chunk",
+                       values = c(.4, 1)) +
     scale_y_continuous(breaks = c(-2, 0, 2)) +
     ## scale_colour_viridis_c() +
     ## scale_alpha_continuous(range = c(.9, .05)) +
@@ -11593,11 +11667,13 @@ This becomes [[cref:fig:best-depth]]. Somehow it seems to be in anti-phase somet
                 rename(sol = sln)) +
     # our filtered record
     geom_line(aes(y = ecc, #RMSD = RMSD,
+                  alpha = site != "Zumaia" | depth_chunk != "full record",
                   ## linetype = factor(count_error),
                   colour = site), linewidth = 1.2) +
     # annotate RMSD for each proxy/site/sol combo
     geom_text(aes(x = age / 1e3, y = 3.6,
                   group = paste(site, depth_chunk),
+                  alpha = site != "Zumaia" | depth_chunk != "full record",
                   colour = site,
                   label = round(RMSD, 3)
                   ),
