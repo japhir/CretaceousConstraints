@@ -10916,11 +10916,71 @@ The filter intervals are perhaps not so good for Sopelana?
     ##           data = filts |> my_filt() |> filter(target == "100 kyr")) +
     geom_vline(aes(xintercept = strat_bot), colour = "gray",
                data = agem_simple |> filter(strat_bot < 120))
-
 #+end_src
 
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_records_and_filters_depth_short_ecc.png]]
+
+**** [#B] do multiple-hypothesis testing corrections
+:PROPERTIES:
+:CREATED:  [2024-02-09 Fri 15:12]
+:END:
+:LOGBOOK:
+- Note taken on [2024-02-09 Fri 15:31] \\
+  just finished this, show to Frits on monday!
+:END:
+
+#+begin_src R
+  # limit to one single piece with similar sedrates
+  dat <- smooth_pred |>
+    filter(proxy == "MS",
+           site == "Zumaia",
+           detrend_type == "lin_scl_fine",
+           depth_chunk == "depth < 109.26")
+
+  lin <- dat |>
+    select(depth, value) |>
+    astrochron::linterp()
+
+  mmm <- lin |>
+    astrochron::mtm(output=1)
+
+  mult <- mmm |>
+    astrochron::multiTest(flow = 0, fhigh = 0.5) # targeting long and short ecc
+
+
+  pl_mtm <- mmm |>
+    filter(Frequency < 0.5) |>
+    ggplot(aes(x = Frequency, y = Power)) +
+    geom_ribbon(aes(y = AR1_fit, ymin = AR1_fit, ymax = AR1_90_power),
+                fill = "black", alpha = .1, colour = NA) +
+    geom_ribbon(aes(y = AR1_fit, ymin = AR1_fit, ymax = AR1_95_power),
+                fill = "black", alpha = .1, colour = NA) +
+    geom_ribbon(aes(y = AR1_fit, ymin = AR1_fit, ymax = AR1_99_power),
+                fill = "black", alpha = .1, colour = NA) +
+    geom_line()
+
+  pl_mult <- mult |>
+    as_tibble() |>
+    pivot_longer(`Uncorrected p-value`:Bonferroni) |>
+    ggplot(aes(x = Frequency, y = value, colour = name)) +
+    geom_hline(yintercept = 1 - c(0.99, 0.95, 0.9),
+               alpha = .2) +
+    geom_line()
+    # just to check: the uncorrected p-value is the same as the
+    # mtm's 1 - (AR1_CL / 100)
+    ## geom_line(aes(y = 1-(AR1_CL / 100)),
+    ##           colour = "black",
+    ##           data = mmm |> filter(Frequency < 0.35))
+    ## # no idea if below is correct
+
+
+  pl_mtm / pl_mult + plot_layout(axes = "collect")
+
+
+  # there's also this function
+  tb <- astrochron::testBackground(method="mtmAR1")
+#+end_src
 
 **** get 405 kyr minima from bandpass filters
 :PROPERTIES:
