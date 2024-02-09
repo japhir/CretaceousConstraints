@@ -8950,6 +8950,9 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
       mutate(site = "Sopelana")
     ) #|>
 
+  agem_indep <- agem_simple |>
+    mutate(floating_age = n * 405) # in kyr
+
   agem_sol <- agem_simple |>
     ## mutate(age = n * 405)
     mutate(sol = list(target_astronomical_solutions)) |>
@@ -10290,9 +10293,18 @@ The frequency ranges need to be a little broad to encapsulate the potentially va
 Note that we flip our default faceting here, because it makes comparison between detrend_types easier.
 #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2600 :height 3200 :res 300
   my_filt <- \(d) d |>
-      filter(detrend_type == "lin_scl_fine") |>
+                    ## filter(site == "Zumaia",
+                    ##        depth_chunk == "depth < 109.26") |>
+                    filter(detrend_type == "lin_scl_fine") |>
+                    filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
+                           depth_chunk == "full record")
+
+  my_rect_filt <-
+    \(d) d |>
+                     ## filter(site == "Zumaia", depth_chunk == "depth < 109.26") |>
       filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
              depth_chunk == "full record")
+
 
   specs_fancy |>
     my_filt() |>
@@ -10300,23 +10312,25 @@ Note that we flip our default faceting here, because it makes comparison between
                ## colour = detrend_type,
                group = paste(detrend_type, proxy, site, depth_chunk))) +
     facet_grid(cols = vars(proxy), rows = vars(site, depth_chunk)) +
+    ## facet_grid(rows = vars(proxy)) +
     scale_y_log10() +
     annotation_logticks(sides = "l") + # remember to update if we switch back to log!
     coord_cartesian(
       ## xlim = c(1e-4, 0.0625) * 100 # log axis
-      ## xlim = c(0, 2.6), # linear axis
+      ## xlim = c(0, 2), # linear axis
       xlim = c(0, .4),  # linear axis zoomed on 405 and 100 kyr
       ## xlim = c(0, 2.1),  # linear axis
       ## xlim = c(0, .1),  # linear axis zoomed on 405 and lower to find lowpass/highpass cutoff
       ## xlim = c(0, 1.5),  # linear axis zoomed on 405 and 100 kyr
       ## ylim = c(0, 3)
       ylim = c(2e-5, 1.5) # linear axis
+      ## ylim = c(2e-5, 0.015) # log
       ) +
     scale_x_continuous(
     ## scale_x_log10(
       sec.axis = sec_axis(trans = ~ 1 / .x,
                                            name = "Period (m)",
-                                           breaks = c(50, 10, 5, 3))) +
+                                           breaks = c(50, 10, 5, 3, 2, 1, 0.5))) +
     labs(x = "Frequency (cycles/m)", y = "Spectral power",
          colour = "Spectral analysis type") +
     labs(fill = "Filter interval from study") +
@@ -10332,7 +10346,8 @@ Note that we flip our default faceting here, because it makes comparison between
               inherit.aes = FALSE,
               ## colour = "black",
               alpha = .2,
-              data = bat_filters #|> bind_rows(bat_filters_old)
+              data = bat_filters |>
+                my_rect_filt()
               ) +
     # show our filters
     geom_rect(aes(xmin = flow, xmax = fhigh,
@@ -10340,7 +10355,8 @@ Note that we flip our default faceting here, because it makes comparison between
                   fill = ref),
               inherit.aes = FALSE,
               alpha = .3,
-              data = my_filters) +
+              data = my_filters |>
+                my_rect_filt()) +
     ggnewscale::new_scale_fill() +
 
     # plot periodogram
@@ -10380,7 +10396,6 @@ Note that we flip our default faceting here, because it makes comparison between
     # annotate the MTLS spectra
     geom_line(aes(colour = "MTLS"),
               data = specs_mtls |> my_filt())
-
 #+end_src
 
 #+attr_latex: :width \textwidth
@@ -10830,6 +10845,83 @@ The filter intervals are perhaps not so good for Sopelana?
 #+RESULTS:
 : Joining with `by = join_by(proxy, site, depth_chunk, target)`
 
+**** Bandpass Filtering the short ecc components
+:PROPERTIES:
+:CREATED:  [2024-02-09 Fri 14:27]
+:END:
+#+begin_src R
+  filts_short_ecc <- smooth_pred |>
+    nest(.by = all_of(c("proxy", "site", "detrend_type", "depth_chunk"))) |>
+    mutate(target = list(tribble( ~ target, ~ flow, ~ fhigh,
+                                 "95 kyr", 0.187, 0.248,
+                                 "110 kyr", 0.262, 0.328))) |>
+    unnest(target) |>
+    dplyr::mutate(bp = purrr::pmap(.l = list(data,
+                                             target,
+                                             flow,
+                                             fhigh),
+                                  .f = \(d, tg, fl, fh) d |>
+                                               bandpass_filter(
+                                                 frequencies = tibble(target = tg, flow = fl, fhigh = fh),
+                                                 x = depth, y = value,
+                                                 add_depth = FALSE))) |>
+    select(-target, -flow, -fhigh) |> # prevent name clash
+    unnest(bp) |>
+    select(-data)
+#+end_src
+
+#+RESULTS:
+: Joining with `by = join_by(proxy, site, depth_chunk, target)`
+
+**** make plot of short ecc independent filters
+:PROPERTIES:
+:CREATED:  [2024-02-09 Fri 14:34]
+:END:
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_records_and_filters_depth_short_ecc.png :width 2700 :height 1500 :res 300
+  my_filt <- \(d) d |>
+                    ## filter(detrend_type != "value") |>
+                    filter(detrend_type == "lin_scl_fine") |>
+                    filter(depth_chunk == "depth < 109.26") |>
+                    ## filter(depth_chunk != "full record") |>
+                    filter(proxy == "MS") |>
+                    filter(site == "Zumaia")
+
+  smooth_pred |>
+    my_filt() |>
+    ggplot(aes(x = depth, y = value, colour = target)) +
+    theme(legend.pos = c(.9, .9)) +
+    facet_grid(rows = vars(proxy, depth_chunk),
+               scales = "free", space = "free_x") +
+    scale_x_reverse(breaks = seq(0, 200, 10),
+                    minor_breaks = seq(0, 200, 5)) +
+    labs(x = "Depth (m)", y = "Normalized proxy") +
+    geom_line(aes(group = paste(detrend_type, site, depth_chunk)),
+              colour = "black",
+              alpha = .1) +
+    geom_line(aes(y = filter,
+                  group = paste(detrend_type, site, target, depth_chunk)),
+              data = filts_short_ecc |> my_filt()) +
+    ## geom_line(aes(y = `95 kyr` + `110 kyr`,
+    ##               colour = "combined 95 and 110 filter"),
+    ##           data = filts_short_ecc |>
+    ##             my_filt() |>
+    ##             select(proxy, site, detrend_type, depth_chunk, depth, filter, target) |>
+    ##             pivot_wider(names_from="target", values_from="filter")
+    ##           ) +
+    ## geom_line(aes(y = filter,
+    ##               group = paste(detrend_type, site, target, depth_chunk),
+    ##               colour = "full-width 100 kyr filter"),
+    ##           colour = "black",
+    ##           data = filts |> my_filt() |> filter(target == "100 kyr")) +
+    geom_vline(aes(xintercept = strat_bot), colour = "gray",
+               data = agem_simple |> filter(strat_bot < 120))
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Sopelana_records_and_filters_depth_short_ecc.png]]
+
 **** get 405 kyr minima from bandpass filters
 :PROPERTIES:
 :CREATED:  [2023-11-30 Thu 10:46]
@@ -11053,8 +11145,8 @@ first generate estimates of sedimentation rate based on the number of long ecc c
   age_offsets
 
   # first set them both to 0 and hone in on the correct number of cycles
-  ## sedrange <- 0
-  ## age_offsets <- 0
+  sedrange <- 0
+  age_offsets <- 0
 
   diffs <-
     data_ecc |>
@@ -11153,7 +11245,7 @@ first generate estimates of sedimentation rate based on the number of long ecc c
 #+end_src
 
 #+RESULTS:
-:  [1] -0.020 -0.018 -0.016 -0.014 -0.012 -0.010 -0.008 -0.006 -0.004 -0.002  0.000  0.002  0.004  0.006  0.008  0.010  0.012  0.014  0.016  0.018  0.020
+:  [1] -0.010 -0.009 -0.008 -0.007 -0.006 -0.005 -0.004 -0.003 -0.002 -0.001  0.000  0.001  0.002  0.003  0.004  0.005  0.006  0.007  0.008  0.009  0.010
 :  [1] -200 -160 -120  -80  -40    0   40   80  120  160  200
 : filter: removed 44,838 rows (86%), 7,486 rows remaining
 : filter: no rows removed
@@ -11361,21 +11453,19 @@ try to eliminate large sed errors and weird offsets so that Sopelana ends up on 
 #+RESULTS:
 #+begin_example
 # A tibble: 28 × 12
-   proxy site     detrend_type comb  depth_chunk    kpg_age m_per_kyr sedrate
-   <chr> <chr>    <chr>        <chr> <chr>            <dbl>     <dbl>   <dbl>
- 1 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0395
- 2 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0395
- 3 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0385
- 4 Lstar Zumaia   lin_scl_fine 1:1   full record      65940    0.0435  0.0395
- 5 Lstar Zumaia   lin_scl_fine 1:1   full record      65980    0.0435  0.0395
- 6 Lstar Zumaia   lin_scl_fine 1:1   depth < 109.26   65940    0.0385  0.0385
- 7 Lstar Sopelana lin_scl_fine 1:1   full record      65820    0.0368  0.0388
- 8 Lstar Zumaia   lin_scl_fine 1:1   full record      65980    0.0435  0.0395
- 9 Lstar Zumaia   lin_scl_fine 1:1   full record      65980    0.0435  0.0395
-10 Lstar Sopelana lin_scl_fine 1:1   full record      65820    0.0368  0.0388
+   proxy site   detrend_type comb  depth_chunk     kpg_age m_per_kyr sedrate sed_error age_offset sol    RMSD
+   <chr> <chr>  <chr>        <chr> <chr>             <dbl>     <dbl>   <dbl>     <dbl>      <dbl> <chr> <dbl>
+ 1 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 ZB20a  1.27
+ 2 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 ZB20b  1.36
+ 3 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 ZB20c  1.46
+ 4 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 ZB20d  1.46
+ 5 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 La10c  1.48
+ 6 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 La10b  1.51
+ 7 Lstar Zumaia lin_scl_fine 1:1   depth < 109.26    65900    0.0385  0.0385         0          0 ZB18a  1.52
+ 8 Lstar Zumaia lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0391         0          0 ZB20c  1.56
+ 9 Lstar Zumaia lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0391         0          0 ZB20d  1.60
+10 Lstar Zumaia lin_scl_fine 1:1   depth >= 109.26   65900    0.0391  0.0391         0          0 ZB18a  1.60
 # ℹ 18 more rows
-# ℹ 4 more variables: sed_error <dbl>, age_offset <dbl>, sol <chr>,
-#   RMSD <dbl>
 # ℹ Use `print(n = ...)` to see more rows
 #+end_example
 
@@ -11695,8 +11785,7 @@ Here I make a heatmap with the same information as the previous figure.
 :PROPERTIES:
 :CREATED:  [2023-09-29 Fri 13:11]
 :END:
-We use the age model from the field (which has the 405 kyr minima) and tie them to the minima in the 405 kyr filter of the astronomical solution (from [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*get 405 kyr minima ages for each solution][get 405 kyr minima ages for beach solution]]).
-This means that for each orbital solution we test, we generate a unique age model based only on the 405 kyr filter minima.
+We use the identification of the long eccentricity minima from the field (which has the 405 kyr minima) and assume each of them lasted 405 kyr.
 
 After applying the age model, we filter the 405 kyr and 100 kyr components to generate an `eccentricity' curve from the record. Then we calculate RMSD between that and the astronomical solution.
 
@@ -11708,38 +11797,13 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 :END:
 #+begin_src R
   smooth_ages <- smooth_pred |>
-    mutate(Ma405 = findInterval(depth, agem_sol$strat_bot[agem_sol$sol == "ZB18a"])) |>
+    mutate(Ma405 = findInterval(depth, agem_indep$strat_bot)) |>
     # add orbital solution ages based on the 405 kyr minima
-    mutate(sol = list(target_astronomical_solutions), .before = proxy) |>
-    unnest(cols = c(sol)) |>
-    mutate(age = case_when(
-             sol == "ZB18a" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "ZB18a"],
-                                                  agem_sol$age[agem_sol$sol == "ZB18a"],
+    mutate(age = Hmisc::approxExtrap(agem_indep$strat_bot,
+                                                  agem_indep$floating_age,
                                                   xout = depth)$y,
-             sol == "ZB20a" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "ZB20a"],
-                                                  agem_sol$age[agem_sol$sol == "ZB20a"],
-                                                  xout = depth)$y,
-             sol == "ZB20b" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "ZB20b"],
-                                                  agem_sol$age[agem_sol$sol == "ZB20b"],
-                                                  xout = depth)$y,
-             sol == "ZB20c" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "ZB20c"],
-                                                  agem_sol$age[agem_sol$sol == "ZB20c"],
-                                                  xout = depth)$y,
-             sol == "ZB20d" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "ZB20d"],
-                                                  agem_sol$age[agem_sol$sol == "ZB20d"],
-                                                  xout = depth)$y,
-             ## sol == "La11" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "La11"],
-             ##                                     agem_sol$age[agem_sol$sol == "La11"],
-             ##                                     xout = depth)$y,
-             sol == "La10b" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "La10b"],
-                                                 agem_sol$age[agem_sol$sol == "La10b"],
-                                                 xout = depth)$y,
-             sol == "La10c" ~ Hmisc::approxExtrap(agem_sol$strat_bot[agem_sol$sol == "La10c"],
-                                                 agem_sol$age[agem_sol$sol == "La10c"],
-                                                 xout = depth)$y,
-             TRUE ~ NA_real_),
            .after = depth) |>
-    arrange(sol, detrend_type)
+    arrange(detrend_type)
 #+end_src
 
 #+RESULTS:
@@ -11755,7 +11819,7 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
     scale_x_reverse() +
     labs(x = "Age (Ma)", y = "Magnetic Susceptibility") +
     # annotate astronomical solution
-    geom_line(aes(x = age / 1e3, y = scl * 2),
+    geom_line(aes(x = age * 1e-3 - 65900, y = scl * 2),
               inherit.aes = FALSE,
               data = slns |>
                 filter(sln != "La11") |>
