@@ -8951,7 +8951,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
     ) #|>
 
   agem_indep <- agem_simple |>
-    mutate(floating_age = n * 405) # in kyr
+    mutate(age_floating = n * 405) # in kyr
 
   agem_sol <- agem_simple |>
     ## mutate(age = n * 405)
@@ -11884,7 +11884,7 @@ After applying the age model, we filter the 405 kyr and 100 kyr components to ge
 
 Note that this often crashed my laptop, so we limit the variable perturbations a little bit. (My R session runs out of memory, crashing my whole emacs session but luckily not my laptop).
 
-**** Apply age model based on the astronomical solution we wish to target
+**** Apply floating age model based on long ecc
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 14:07]
 :END:
@@ -11892,8 +11892,8 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
   smooth_ages <- smooth_pred |>
     mutate(Ma405 = findInterval(depth, agem_indep$strat_bot)) |>
     # add orbital solution ages based on the 405 kyr minima
-    mutate(age = Hmisc::approxExtrap(agem_indep$strat_bot,
-                                                  agem_indep$floating_age,
+    mutate(age_floating = Hmisc::approxExtrap(agem_indep$strat_bot,
+                                                  agem_indep$age_floating,
                                                   xout = depth)$y,
            .after = depth) |>
     arrange(detrend_type)
@@ -11907,12 +11907,12 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
   smooth_ages |>
     filter(proxy == prx, ## sol == "ZB18a",
            detrend_type == "value") |>
-    ggplot(aes(x = age / 1e3, y = value, colour = site)) +
-    facet_grid(rows = vars(sol, proxy)) +
+    ggplot(aes(x = kpg_ages$age1[[4]] + age_floating / 1e3, y = value, colour = site)) +
+    facet_grid(rows = vars(proxy)) +
     scale_x_reverse() +
     labs(x = "Age (Ma)", y = "Magnetic Susceptibility") +
     # annotate astronomical solution
-    geom_line(aes(x = age * 1e-3 - 65900, y = scl * 2),
+    geom_line(aes(x = age * 1e-3, y = scl * 2, group = sol),
               inherit.aes = FALSE,
               data = slns |>
                 filter(sln != "La11") |>
@@ -11931,18 +11931,19 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
               colour = "indianred") +
     annotate("text", x = 67, y = 32, colour = "indianred",
              label = "Ma405 cycle") +
-    geom_text(aes(x = age/1e3, y = 27, label = round(age / 1e3, 3)),
+    geom_text(aes(x = kpg_ages$age1[[4]] + age_floating / 1e3, y = 27,
+                  label = round(kpg_ages$age1[[4]] + age_floating / 1e3, 3)),
               colour = "black",
               data = smooth_ages |>
                 filter(proxy == prx, detrend_type == "value") |>
                 filter(Ma405 == 1) |>
-                distinct(sol, .keep_all = TRUE)) +
+              distinct(Ma405, .keep_all = TRUE)) +
     geom_text(aes(y = Ma405 + 20, label = Ma405),
               colour = "indianred",
               nudge_x = - .405 / 2, nudge_y = 2.5,
               data = smooth_ages |>
                 filter(proxy == prx, detrend_type == "value") |>
-                distinct(sol, Ma405, .keep_all = TRUE)) +
+                distinct(Ma405, .keep_all = TRUE)) +
     theme(legend.pos = c(.06, .41), legend.background = element_blank())
 #+end_src
 
@@ -12227,8 +12228,8 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
 #+begin_src R :results none
   filts_age <- smooth_ages |>
     nested_bandpass_filter(frequencies = my_filt_age,
-                           x = age, y = value,
-                           nest = c("proxy", "site", "detrend_type", "sol"),
+                           x = age_floating, y = value,
+                           nest = c("proxy", "site", "detrend_type", "depth_chunk"),
                            add_depth = TRUE)
 #+end_src
 
@@ -12255,23 +12256,21 @@ I don't like this and it also doesn't preserve depth anymore.
 #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_records_and_filters.png :width 2400 :height 1800 :res 300
   my_filter <- \(x) x |>
                       filter(detrend_type != "value") |>
-                      filter(target != "23 kyr") |>
-                      filter(sol == "ZB18a")
+                      filter(target != "23 kyr")
 
   filts_age |>
     my_filter() |>
     ## mutate(det = scale(value)[, 1], .by = c(site, proxy)) |>
-    ggplot(aes(x = age / 1e3, y = value, colour = detrend_type)) +
-    scale_x_reverse() +
-    facet_grid(rows = vars(proxy, sol),
+    ggplot(aes(x = age_floating / 1e3, y = value, colour = detrend_type)) +
+    facet_grid(rows = vars(proxy, depth_chunk),
                scales = "free", space = "free_x") +
-    scale_x_reverse(breaks = seq(60, 75, 1),
-                    minor_breaks = seq(60, 75, .1)) +
+    scale_x_reverse(breaks = 75 - seq(60, 75, 1),
+                    minor_breaks = 75 - seq(60, 75, .1)) +
     labs(x = "Age (Ma)", y = "Normalized proxy") +
 
     # agemodel tie-points
-    geom_vline(aes(xintercept = age / 1e3), alpha = .3,
-               data = agem_sol |> filter(sol == "ZB18a")) +
+    geom_vline(aes(xintercept = age_floating / 1e3), alpha = .3,
+               data = agem_indep) +
 
     # record
     ## geom_line(aes(group = paste(detrend_type, site),
@@ -12290,13 +12289,13 @@ I don't like this and it also doesn't preserve depth anymore.
                data = filts_age |>
                  my_filter() |>
                  filter(target == "405 kyr") |>
-                 nest(.by = c(proxy, site, detrend_type, sol, flow, fhigh)) |>
+                 nest(.by = c(proxy, site, detrend_type, depth_chunk, flow, fhigh)) |>
                  mutate(pk = map(data, \(d) d |>
-                                            select(age, filter) |>
+                                            select(age_floating, filter) |>
                                             mutate(filter = -filter) |> # we want minima rather than maxima
                                             astrochron::peak(genplot = FALSE, verbose = FALSE))) |>
                  unnest(pk) |>
-                 rename(age = Location, pk = Peak_Value) |>
+                 rename(age_floating = Location, pk = Peak_Value) |>
                  mutate(pk = -pk))
 #+end_src
 
@@ -12331,12 +12330,12 @@ I don't like this and it also doesn't preserve depth anymore.
                            proxy == "Lstar" ~ -1,
                            proxy == "MS" ~ 1)) |>
     unnest(fracs) |>
-    nest(.by = c(proxy, site, detrend_type, sol, comb, s405, s100, sign_405, sign_100)) |>
+    nest(.by = c(proxy, site, detrend_type, depth_chunk, comb, s405, s100, sign_405, sign_100)) |>
     mutate(ecc = pmap(list(data, s405, s100, sign_405, sign_100),
                       \(d, s405, s100, sign405, sign100)
                       d |>
                       construct_eccentricity(sign = sign405, weights = c(s405, s100),
-                                             id_cols = c(depth, age, value),
+                                             id_cols = c(depth, age_floating, value),
                                              f = filter))) |>
     select(-data) |>
     unnest(ecc)
@@ -12349,10 +12348,12 @@ I don't like this and it also doesn't preserve depth anymore.
     ## arrange(rev(site), rev(proxy), sol, detrend_type, filt_env, comb, age)
 #+end_src
 
-**** [#B] add the astronomical solution to the ecc curve and compute the RMSD
+**** NEXT [#B] add the astronomical solution to the ecc curve and compute the RMSD
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:51]
 :END:
+
+I've now reworked everything to work with long ecc = 405 kyr, now need to add age for K/Pg again for abs age!
 
 #+begin_src R :results none
   data_diffs_age <- data_ecc_age |>
@@ -12717,23 +12718,37 @@ Ahhh after clarification from Richard, what he recommends in stead is:
 ***** the transcluded file
 #+transclude: [[file:R/wrap_age_model.R]]  :src R
 ***** This is the latest attempt at doing things correctly.
-1. apply the agemodel from the field to the detrended record
-2. for the youngest 405 kyr tiepoint
-   1. for each tiepoint depth error
-      1. apply the new age model to the record
-      2. apply a 405 and 100 kyr filter (based on general depth filter ranges determined before)
-      3. compute "eccentricity" construct by combining the normalized filters
-      4. interpolate orbital solution to the record's timesteps
-      5. calculate SD for each timestep
-      6. calculate RMSD
-   2. filter out the lowest RMSD score, get the best tie_error for this 405 kyr minimum
-3. move on to next youngest 405 kyr minimum and repeat from step 2.
+1. input data in depth domain and age model depth long ecc minima.
+2. apply a floating long ecc agemodel
+3. linearly interpolate in age domain (closest multiple of AS timestep to median timestep of data, 1.8)
+4. bandpass filter the record for long and short ecc in the time domain
+5. construct "ecc" curve by normalizing and adding short/long ecc filters
+6. set the K/T age
+7. add age_slider uncertainty (+- 200 kyr at same timestep as data)
+8. calculate abs age from K/T age + floating age + age slider
+9. linearly interpolate AS to record abs age (note regular grid at multiple of AS timestep should minimize error here)
+10. calculate the squared difference between data ecc construct and AS ecc
+11. for each age slider, summarize to calculate root mean of squared diffs
+12. filter out the lowest RMSD from the age sliders
+13. add tiepoint uncertainty in the depth domain:
+    1. for each long ecc minimum from the field
+       1. for each tiepoint depth error (\pm4 metre, higher res near field-based depth)
+          1. apply the new age model to the record to get floating age
+          2. linearly interpolate -> we don't want to skip this, time domain changes!
+          3. bandpass filter for long and short ecc in the time domain
+          4. compute "eccentricity" construct by combining the normalized filters
+          5. get abs age by adding K/T age + best age slider from above to the floating age
+          6. interpolate AS to the record's timesteps
+          7. calculate SD for each timestep
+          8. calculate SD
+          9. summarize to calculate RMSD
+       2. filter out the lowest RMSD score, get the best tie_error for this 405 kyr minimum
+14. move on to next youngest 405 kyr minimum and repeat from step 2.
 
-This algorithm will be a bit slower, since it has to do bandpass filtering for each iteration so let's first apply it rather sparingly to only one combination of site/proxy/sol.
+This algorithm will be a bit slower, since it has to do linear interpolation and bandpass filtering for each iteration so let's first apply it rather sparingly to only one combination of site/proxy/sol.
 
 # it's useful to write to separate file, because then the debugger will jump from line to line :)
 # so we can tangle it to there and then source
-
 ***** CANC new approach after talking to Luc
 CLOSED: [2024-01-12 Fri 09:44]
 :PROPERTIES:
@@ -12788,11 +12803,11 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
       proxy == "Lstar",
       detrend_type == "lin_scl_fine",
       site == "Zumaia",
+      depth_chunk=="depth < 109.26",
       ## depth <= 115, # note sedrate switch from 17 m to 12 m.
-      comb == "1:0", # this doesn't deterimine it, I construct ecc below anyway.
-      sol == "ZB18a") |>
+      comb == "1:0") |>
     wrap_age_model(
-      agemodel = agem_sol |> filter(sol == "ZB18a"),
+      agemodel = agem_indep,
       astronomical_solution = slns |> filter(sln == "ZB18a"),
       proxy_phase = -1, # -1 for Lstar and d13C, +1 for MS
       eccentricity_weights = c(1, 0.5),
@@ -13203,7 +13218,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   mw <- function(d, s, s405, s100, sign) {
     d |>
       wrap_age_model(
-        agemodel = agem_sol |> filter(sol == s),
+        agemodel = agem_indep,
         astronomical_solution = slns |> filter(sln == s),
         proxy_phase = sign,
                tiepoint_uncertainty =

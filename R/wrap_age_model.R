@@ -2,10 +2,11 @@
 #'
 #' @param data data.frame(). The data must contain columns `depth`, `ecc`, and
 #'   `Ma405`.
-#' @param agemodel data.frame() The agemodel must contain columns `sol`, `n`,
+#' @param agemodel data.frame() The agemodel must contain columns `n`,
 #'   `strat_bot`, and `age`.
 #' @param astronomical_solution data.frame() The astronomical solution to
 #'   calculate RMSD scores against. Must have column `sln`, `age`, and `scl`.
+#' @param ... Other arguments, currently nothing just to force explicit argument names.
 #' @param tiepoint_uncertainty Numeric vector of tiepoint uncertainty
 #'   variations to try out in same units as data$depth.
 #' @param proxy_phase Factor by which to multiply the scaled and filtered
@@ -16,6 +17,8 @@
 #'   filter limits by.
 #' @param eccentricity_weights Weights for the 405 kyr and 100 kyr filter when
 #'   creating the 'eccentricity' curve.
+#' @param kpg_age The age of the K/Pg boundary to start with.
+#' @param age_slider The age in kyr to slide the record by prior to matching to the solution.
 #' @param max_error_range In case the tiepoint_uncertainty is large, this
 #'   limits which values are used to find the best value.
 #' @param RMSD_threshold If the difference in RMSD is less than this value,
@@ -29,15 +32,19 @@
 #' @details Output must be one of `"default"`, `"details"`, `"plot"`,
 #'   `"matched"`, or `"full"`.
 #' @export
-#  TODO: add example!
+# TODO: add example!
 wrap_age_model <- function(data,
                            agemodel,
                            astronomical_solution,
+                           ...,
                            tiepoint_uncertainty = seq(-4, 4, .5),
+
                            proxy_phase = 1,
                            target_periods = c("405 kyr" = 405, "100 kyr" = 110),
                            frequency_fraction = 0.3,
                            eccentricity_weights = c(1, 1),
+                           age_slider = 200,
+                           kpg_age = 65.9e3,
                            max_error_range = 2.5,
                            RMSD_threshold = 0.005,
                            genplot = FALSE,
@@ -72,13 +79,6 @@ wrap_age_model <- function(data,
       "x" = "You've supplied {.q {output}}"))
   }
 
-  if (length(unique(agemodel$sol)) > 1) {
-    cli::cli_abort(c(
-      "{.var agemodel} must contain only one unique astronomical solution in column {.var sol}.",
-      "x" = "{.var agemodel} contains {.and {unique(agemodel$sol)}}"
-    ))
-  }
-
   if (length(unique(astronomical_solution$sln)) > 1) {
     cli::cli_abort(c(
       "{.var astronomical_solution} must contain only one unique astronomical solution in column {.var sln}.",
@@ -86,13 +86,19 @@ wrap_age_model <- function(data,
     ))
   }
 
-  # can't check this in data, sometimes not passed
-  if (!(astronomical_solution$sln[[1]] == agemodel$sol[[1]])) {
-    cli::cli_abort(c(
-      "{.var sol} must be the same in {.var astronomical_solution} and {.var agemodel}",
-      "i" = "{.var sol} in {.var agemodel} = {agemodel$sol[[1]]}",
-      "i" = "{.var sln} in {.var astronomical_solution} = {astronomical_solution$sln[[1]]}"
-    ))
+  solution_timestep <- astronomical_solution$age |>
+    diff() |>
+    unique()
+
+  if (length(solution_timestep) > 1) {
+    if (dplyr::near(solution_timestep[[1]], solution_timestep[[2]])) {
+      # typically the AS has a step of 0.4
+      # calculating diffs between this results in some double precision errors
+      cli::cli_warn("The diff in the {.var astronomical_solution} timestep is not unique, but within machine precision.")
+      solution_timestep <- solution_timestep |> round(2) |> unique()
+    } else {
+      cli::cli_abort(c("{.var astronomical_solution} must have a simple linear timestep!"))
+    }
   }
 
   if (output %in% c("plot", "full") && !genplot) {
@@ -139,12 +145,104 @@ wrap_age_model <- function(data,
            fhigh = .data$f + .data$range,
            ref = "This study")
 
-  # make sure to fully initialize the whole output dataframe
+  # first calculate reference RMSD vs. age model with 0 error on the tiepoints
+  tmp <- data |>
+    dplyr::mutate(
+             age_floating = purrr::map_dbl(.data$depth,
+                                           ~ Hmisc::approxExtrap(
+                                                      agemodel$strat_bot,
+                                                      agemodel$age_floating,
+                                                      xout = .x)$y),
+                  .after = .data$depth)
+
+  # data median timestep in kyr
+  data_dt <- median(diff(tmp$age_floating))
+
+  data_dt_sd <- sd(diff(tmp$age_floating))
+  if (data_dt_sd > 0.0012) {
+    cli::cli_warn(c(
+           "The sd of the timestep after applying the age model is {data_dt_sd}.",
+           "This is larger than 0.0012 (Zumaia < 109.26 m = 0.001149)"
+         ))
+  }
+
+  # default resolution, 0.4 kyr -> 1.6 kyr
+  ## linterp_dt <- solution_timestep * 4
+
+  # round interpolation dt to nearest 0.4 interval
+  ## linterp_dt <- solution_timestep * round(data_dt / solution_timestep)
+  # for Zumaia depth < 109.26 data_dt = 2.7 ->
+  # this results in 7, so 7 * 0.4 = 2.8
+  linterp_dt <- solution_timestep * ceiling(data_dt / solution_timestep)
+
+  flt <- tmp |>
+    bandpass_filter(frequencies = my_filt_age,
+                    x = .data$age_floating, y = .data$value,
+                    linterp_dt = linterp_dt,
+                    add_depth = TRUE)
+
+  cli::cli_inform(c(
+         "nrow(tmp) = {nrow(tmp)}",
+         "nrow(flt) = {nrow(flt)}"
+       ))
+
+  ecc <- flt |>
+    # NOTE: this assumes that the frequencies tibble had column target
+    # with names `405 kyr` and `100 kyr`!
+    construct_eccentricity(id_cols = c(.data$depth,
+                                       .data$age_floating,
+                                             .data$value),
+                           f = .data$filter,
+                           # I'm now forcing sign = 1 here!
+                           sign = 1,
+                           weights = eccentricity_weights)
+
+  # ensure that 0 is part of this!
+  age_error <- seq(0, age_slider, linterp_dt)
+  age_error <- c(-rev(age_error[-1]), age_error)
+
+  # then optimize tiepoint uncertainty
+  esd <- ecc |>
+    dplyr::mutate(kpg_age = kpg_age, .after = .data$age_floating) |>
+    dplyr::mutate(age_slider = list(age_error), .after = .data$kpg_age) |>
+    tidyr::unnest(.data$age_slider) |>
+    dplyr::mutate(age = .data$kpg_age +
+                    .data$age_slider + .data$age_floating,
+                  .after = .data$age_slider) |>
+    # linearly interpolate the astronomical solution eccentricity
+    dplyr::mutate(
+             ecc_sln = stats::approx(astronomical_solution$age,
+                                     astronomical_solution$scl,
+                                     xout = .data$age)$y) |>
+    # calculate SD between ecc and ecc_sol
+    dplyr::mutate(SD = (proxy_phase * .data$ecc - .data$ecc_sln)^2,
+                  .by = age_slider)
+
+  # summarize into RMSD
+  smy <- esd |>
+    dplyr::summarize(RMSD = sqrt(mean(.data$SD)),
+                     .by = age_slider)
+
+  optimal_age_slider <- smy |>
+    # get only the best one
+    dplyr::filter(RMSD == min(RMSD)) |>
+    pull(age_slider)
+
+  if (length(optimal_age_slider) > 1) {
+    cli::cli_abort(c(
+           "Somehow {.var optimal_age_slider} has more than one element...",
+           "{optimal_age_slider}"
+         ))
+  }
+
+  # initialize the whole output dataframe
   # this will make looping less slow
   the_best_summary <- agemodel |>
     dplyr::filter(.data$n %in% tiepoints) |>
-    dplyr::select(tidyr::all_of(c("sol", "n", "strat_bot", "age"))) |>
-    dplyr::mutate(tie_err = NA_real_, # what's the best tiepoint error in m?
+    dplyr::select(tidyr::all_of(c("n", "strat_bot", "age_floating"))) |>
+    dplyr::mutate(kpg_age = kpg_age,
+                  age_slider = optimal_age_slider,
+                  tie_err = NA_real_, # what's the best tiepoint error in m?
                   RMSD_cum = NA_real_) # best RMSD score for full record
 
   the_best <- the_best_summary |>
@@ -155,16 +253,8 @@ wrap_age_model <- function(data,
     ) |>
     tidyr::unnest(cols = c(.data$optimal))
 
-  full_record <- tibble::tibble(
-    depth = numeric(),
-    age = numeric(),
-    value = numeric(),
-    `405 kyr` = numeric(),
-    `100 kyr` = numeric(),
-    ecc = numeric(),
-    ecc_sln = numeric(),
-    SD = numeric()
-  )
+  full_record <- esd |>
+    dplyr::filter(.data$age_slider == optimal_age_slider)
 
   for (tiepoint in tiepoints) {
     if (!tiepoint %in% agemodel$n) {
@@ -194,23 +284,25 @@ wrap_age_model <- function(data,
 
         # calculate age from age model for each uncertainty
         tmp <- data |>
-          dplyr::mutate(age = purrr::map_dbl(.data$depth,
+          dplyr::mutate(age_floating = purrr::map_dbl(.data$depth,
                                ~ Hmisc::approxExtrap(
                                  # note that am |> pull(depth) clocks in at 266 µs, below at 1.25 µs!
                                  am$depth,
-                                 am$age,
+                                 am$age_floating,
                                  xout = .x)$y),
                  .after = .data$depth)
 
         flt <- tmp |>
           bandpass_filter(frequencies = my_filt_age,
-                          x = .data$age, y = .data$value, add_depth = TRUE)
+                          x = .data$age_floating, y = .data$value,
+                          linterp_dt = linterp_dt,
+                          add_depth = TRUE)
 
         ecc <- flt |>
           # NOTE: this assumes that the frequencies tibble had column target
           # with names `405 kyr` and `100 kyr`!
           construct_eccentricity(id_cols = c(.data$depth,
-                                             .data$age,
+                                             .data$age_floating,
                                              .data$value),
                                  f = .data$filter,
                                  # I'm now forcing sign = 1 here!
@@ -218,6 +310,9 @@ wrap_age_model <- function(data,
                                  weights = eccentricity_weights)
 
         esd <- ecc |>
+          # get these from the no-tiepoint uncertainty run above
+          dplyr::mutate(kpg_age = kpg_age, age_slider = optimal_age_slider) |>
+          dplyr::mutate(age = .data$kpg_age + .data$age_slider + .data$age_floating) |>
           # linearly interpolate the astronomical solution eccentricity
           dplyr::mutate(
             ecc_sln = stats::approx(astronomical_solution$age,
@@ -225,11 +320,6 @@ wrap_age_model <- function(data,
                                     xout = .data$age)$y) |>
           # calculate SD between ecc and ecc_sol
           dplyr::mutate(SD = (proxy_phase * .data$ecc - .data$ecc_sln)^2)
-
-        # DEBUG
-        ## if (8 == tiepoint) {
-        ##   browser()
-        ## }
 
         # summarize into RMSD
         smy <- esd |>
@@ -243,8 +333,8 @@ wrap_age_model <- function(data,
 
         # before esd goes out scope!
         if (output %in% c("full", "matched")) {
-          if (tiepoint == dplyr::last(tiepoints) &&
-                error == dplyr::last(tiepoint_uncertainty))
+          if (tiepoint == tail(tiepoints, 1) &&
+                error == tail(tiepoint_uncertainty, 1))
             full_record <- esd
         }
 

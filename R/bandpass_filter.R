@@ -5,6 +5,10 @@
 ##'   Can contain multiple rows for multiple frequency filtering.
 ##' @param x Column name in `data` that holds the depth/age information.
 ##' @param y Column name in `data` that holds the proxy variable name.
+##' @param ... Additional parameters, yet to be determined.
+##' @param linterp If `TRUE`, linearly interpolate.
+##' @param linterp_dt Resolution to linearly interpolate to.
+##' @param window Window type for bandpass filter: 0 = rectangular, 1 = Gaussian, 2 = Cosine-tapered window (a.k.a. Tukey window).
 ##' @param add_depth Defaults to `FALSE`. If `TRUE`, find column `depth` in original and interpolate it back from age.
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
@@ -15,7 +19,13 @@
 ##'                 tibble::tibble(flow = 1, fhigh = 2, target = "group"),
 ##'                 x = a, y = c)
 ##' @export
-bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
+##' @seealso [astrochron::bandpass], [astrochron::linterp]
+bandpass_filter <- function(data, frequencies,
+                            x, y, ...,
+                            linterp = TRUE,
+                            linterp_dt = NULL,
+                            window = 0,
+                            add_depth = FALSE) {
   if (! "data.frame" %in% class(data)) {
     cli::cli_abort(c(
            "{.var data} must be a {.cls data.frame}",
@@ -36,19 +46,36 @@ bandpass_filter <- function(data, frequencies, x, y, add_depth = FALSE) {
     tidyr::unnest(.data$filt) |>
     tidyr::nest(.by = tidyr::all_of(colnames(frequencies)))
 
-  out <- out |>
-    dplyr::mutate(
-      lt = purrr::map(data, \(d) d |>
-                          dplyr::select({{x}}, {{y}}) |>
-                            astrochron::linterp(genplot = FALSE,
-                                                verbose = FALSE)),
-      bp = purrr::pmap(list(.data$lt, .data$flow, .data$fhigh), \(d, l, h)
-                d |>
-                astrochron::bandpass(flow = l, fhigh = h, win = 0,
-                                     genplot = FALSE, verbose = FALSE) |>
-                dplyr::select(filter = {{y}}))) |>
-    dplyr::select(-.data$data) |>
-    tidyr::unnest(cols = c(.data$lt, .data$bp))
+  if (linterp) {
+    out <- out |>
+      dplyr::mutate(
+               lt = purrr::map(.data$data,
+                               \(d) d |>
+                                    dplyr::select({{x}}, {{y}}) |>
+                                    astrochron::linterp(genplot = FALSE,
+                                                        verbose = FALSE,
+                                                        dt = linterp_dt)),
+               bp = purrr::pmap(list(.data$lt, .data$flow, .data$fhigh),
+                                \(d, l, h)
+                                d |>
+                                astrochron::bandpass(flow = l, fhigh = h, win = window,
+                                                     genplot = FALSE, verbose = FALSE) |>
+                                dplyr::select(filter = {{y}}))) |>
+      dplyr::select(-.data$data) |>
+      tidyr::unnest(cols = c(.data$lt, .data$bp))
+  } else {
+    out <- out |>
+      dplyr::mutate(
+               bp = purrr::pmap(list(.data$data, .data$flow, .data$fhigh),
+                                \(d, l, h)
+                                d |>
+                                astrochron::bandpass(flow = l, fhigh = h,
+                                                     win = window,
+                                                     genplot = FALSE, verbose = FALSE) |>
+                                dplyr::select(filter = {{y}}))) |>
+      dplyr::select(-.data$data) |>
+      tidyr::unnest(cols = c(.data$data, .data$bp))
+  }
 
   if (add_depth) {
     # interpolate depth back to new age scale
