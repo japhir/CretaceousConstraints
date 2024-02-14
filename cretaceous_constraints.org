@@ -12803,9 +12803,10 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
       proxy == "Lstar",
       detrend_type == "lin_scl_fine",
       site == "Zumaia",
-      depth_chunk=="depth < 109.26",
+      ## depth_chunk=="depth < 109.26",
+      depth_chunk=="full record",
       ## depth <= 115, # note sedrate switch from 17 m to 12 m.
-      comb == "1:0") |>
+      comb == "1:1") |>
     wrap_age_model(
       agemodel = agem_indep,
       astronomical_solution = slns |> filter(sln == "ZB18a"),
@@ -12897,16 +12898,17 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 #+begin_src R
   devtools::load_all()
   ## debug(wrap_age_model)
-  tst1 <- data_ecc_age |>
+  tst2 <- data_ecc_age |>
     filter(
       proxy == "Lstar",
       detrend_type == "lin_scl_fine",
       site == "Sopelana",
+      depth_chunk == "full record"
       ## depth <= 115, # note sedrate switch from 17 m to 12 m.
-      comb == "1:1", # this doesn't deterimine it, I construct ecc below anyway.
-      sol == "ZB18a") |>
+      comb == "1:1" # this doesn't deterimine it, I construct ecc below anyway.
+      ) |>
     AstronomicalSolutions::wrap_age_model(
-      agemodel = agem_sol |> filter(sol == "ZB18a"),
+      agemodel = agem_indep,
       astronomical_solution = slns |> filter(sln == "ZB18a"),
       proxy_phase = -1, # -1 for Lstar and d13C, +1 for MS
       eccentricity_weights = c(1, 1),
@@ -12991,11 +12993,13 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 [[file:imgs/Zumaia_MS_overall.png]]
 ***** COMMENT Zumaia d13C subs
 #+begin_src R
-  tst2 <- data_ecc |>
-    filter(proxy == "d13C", detrend_type == "value", comb == "1:1"## , filt_env == "filter"
+  tst3 <- data_ecc |>
+    filter(proxy == "d13C", detrend_type == "lin_scl_fine", comb == "1:1",
+           site=="Zumaia",
+           depth_chunk == "full record"
            ) |>
     wrap_age_model(
-      agem_sol |> filter(sol == "ZB18a"),
+      agem_indep,
       astronomical_solution = slns |> filter(sln == "ZB18a"),
       ## tiepoint_uncertainty = seq(-2.5, 2.5, 0.5),
       genplot = TRUE, output = "full")
@@ -13212,6 +13216,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   ## devtools::build()
   ## devtools::install() # MUST install locally for furrr to work
   ## devtools::load_all() # ok that still didn't work, doing it the dumb way
+  source("R/construct_eccentricity.R")
+  source("R/bandpass_filter.R")
   source("R/wrap_age_model.R")
   plan(multisession, workers = 4) # set up 4 cores
   message("current time: ", lubridate::now())
@@ -13225,6 +13231,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
                  c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
                    0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
         eccentricity_weights = c(s405, s100),
+        age_slider = 200,
+        kpg_age = 65.9e3,
         max_error_range = 1.6, # ~ 10% of 16m cycle
         RMSD_threshold = 0.005,
         genplot = TRUE,
@@ -13233,7 +13241,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   rolling_age_optim <-
     data_ecc_age |> # I use age because it already has sol's and combs etc.
     # the first full run for all the best-performing detrend_type
-    ## filter(detrend_type == "lin_scl_fine") |> # 315 sims
+    filter(detrend_type == "lin_scl_fine",
+           comb == "1:1") |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
@@ -13242,15 +13251,17 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 7 more
     ## filter(detrend_type == "lin_scl_fine",
            ## site == "Sopelana", comb == "1:1") |> # this adds another 14
-    filter(detrend_type == "lin_scl_fine",
-           comb == "1:1", site == "Zumaia",
-           ## depth >= 109.26) |> # this is for the lower part with a different sedrate
-           depth < 109.26) |> # this is for the upper part
+    ## filter(detrend_type == "lin_scl_fine",
+    ##        comb == "1:1", site == "Zumaia",
+    ##        ## depth >= 109.26) |> # this is for the lower part with a different sedrate
+    ##        depth < 109.26) |> # this is for the upper part
     nest(.by = c(proxy, site,
-                 detrend_type, sol, comb,
+                 detrend_type, depth_chunk, comb,
                  s405, s100,
                  sign_405, sign_100)) |>
     ## slice(1:3) |>
+    mutate(sol = list(target_astronomical_solutions)) |>
+    unnest(sol) |>
     mutate(the_best = furrr::future_pmap(
              .l = list(d = data, s = sol, s405 = s405, s100 = s100, sign = sign_405),
              .f = mw,
@@ -13267,9 +13278,12 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-01-12_rolling_age_optim_Zumaia_Lstar_hp.rds") # add highpass for 1:1 Lstar
     ## write_rds("out/2024-01-17_rolling_age_optim_Sopelana_Lstar_lin-scl-fine.rds") # add Sopelana Lstar lin_scl_fine
     ## write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_lower.rds") # different sedrate for this interval, same filters b/c time domain
-    write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_upper.rds") # upper part
+    ## write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_upper.rds") # upper part
+    write_rds("out/2024-02-14_rolling_age_optim_full_indep.rds") # independent from AS, using floating age and sliding along K/T age
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
+  rm(bandpass_filter) # rm so we can get back the one from the package
+  rm(construct_eccentricity)
 #+end_src
 
 current time: 2023-12-22 22:26:18.565137
@@ -13299,6 +13313,10 @@ current time: 2024-01-17 15:40:28.043286
 add another 21 sims for Zumaia lin_scl_fine all proxies at depth >= 109.26 b/c different sedimentation rate
 current time: 2024-01-19 11:54:41.574574
 current time: 2024-01-19 11:56:54.211265
+
+redid the whole thing after major revision of the algorithm
+current time: 2024-02-14 13:37:36.143642
+
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -13375,43 +13393,46 @@ old
 #+RESULTS:
 
 **** plot improvement after optimization after algorithm revision
-#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 1700 :height 2600 :res 300
+#+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
 
   best_age_optim |>
-    filter(site == "Zumaia") |>
+    ## filter(site == "Zumaia") |>
     ## filter(site == "Zumaia", comb == "1:1", proxy == "Lstar") |>
-    mutate(comb = factor(comb,
-                         levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                                    "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-      mutate(grp = case_when(
-             exp == "Zumaia lin_scl_fine lower-portion 1:1" ~ "depth < 109.26",
-             exp == "Zumaia lin_scl_fine upper-portion 1:1" ~ "depth >= 109.26",
-             TRUE ~ "full record",
-           )) |>
-    mutate(grp = factor(grp, levels = c("full record", "depth >= 109.26", "depth < 109.26"))) |>
-    filter(grp == "full record") |>
-    ggplot(aes(y = sol, x = RMSD, colour = detrend_type,
+    ## mutate(comb = factor(comb,
+    ##                      levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
+    ##                                 "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+    ##   mutate(grp = case_when(
+    ##          exp == "Zumaia lin_scl_fine lower-portion 1:1" ~ "depth < 109.26",
+    ##          exp == "Zumaia lin_scl_fine upper-portion 1:1" ~ "depth >= 109.26",
+    ##          TRUE ~ "full record",
+    ##        )) |>
+    ## mutate(grp = factor(grp, levels = c("full record", "depth >= 109.26", "depth < 109.26"))) |>
+    ## filter(grp == "full record") |>
+    ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
                group = paste(site, proxy, comb,
-                             detrend_type, date, exp))) +
-    labs(x = "Root Mean Square Deviation (RMSD)",
-         y = "Astronomical solution",
-         shape = "Age model",
-         linetype = "Age model") +
-    facet_grid(cols = vars(proxy), rows = vars(comb),
-               scales = "free_x", space = "free_x",
+                             detrend_type, depth_chunk))) +
+    labs(
+      x = "Astronomical solution",
+      y = "Root Mean Square Deviation (RMSD)",
+      shape = "Age model",
+      linetype = "Age model") +
+    facet_grid(cols = vars(proxy), rows = vars(site, depth_chunk,comb),
+               scales = "free_y", space = "free_y",
                ) +
-    theme(strip.text.y = element_text(size = 8)) +
-    scale_shape_manual(values = c("Field" = '●', "Optimized" = '◀')) +
-    scale_x_continuous(breaks = c(0, 1, 1.5, 2),
+    theme(## strip.text.y = element_text(size = 8),
+      axis.text.x = element_text(angle = 90, vjust = 0.5)
+          ) +
+    scale_shape_manual(values = c("Field" = '●', "Optimized" = '▼')) + # ◀
+    scale_y_continuous(breaks = c(1, 1.2, 1.4, 1.5, 2),
                        minor_breaks = seq(0,2,.1)) +
     ## theme(axis.text.y = element_text(angle = 90, size = 7)) +
-    scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    geom_point(aes(x = RMSD_start, shape = "Field"), size = 3) +
-    geom_point(aes(fill = detrend_type, shape = "Optimized"), size = 3) +
-    geom_path(aes(x = RMSD_start, linetype = "Field")) +
-    geom_path(aes(y = sol, x = RMSD, linetype = "Optimized")) +
-    ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))
-    geom_linerange(aes(xmin = RMSD_start, xmax = RMSD),
+    ## scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
+    geom_point(aes(y = RMSD_start, shape = "Field"), size = 3) +
+    geom_point(aes(colour = detrend_type, shape = "Optimized"), size = 4) +
+    geom_path(aes(y = RMSD_start, linetype = "Field")) +
+    geom_path(aes(x = sol, y = RMSD, linetype = "Optimized")) +
+    ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))+
+    geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
                    alpha = .2)
 #+end_src
 
