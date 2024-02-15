@@ -13426,6 +13426,7 @@ current time: 2024-02-15 13:32:25.06223
       read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds"),
       read_rds("out/2024-02-15_rolling_age_optim_comb.rds"), # 1:0.5
       read_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds"),
+      read_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds"),
     )
 #+end_src
 
@@ -13503,7 +13504,10 @@ limit to comb == "1:1" and don't show the lin_scl_rw.
   best_age_optim |>
     mutate(depth_chunk = factor(depth_chunk, levels = c("full record", "depth >= 109.26", "depth < 109.26"))) |>
     filter(comb == "1:1") |>
-    filter(detrend_type != "lin_scl_rw") |>
+    ## filter(detrend_type != "lin_scl_rw") |>
+    filter(detrend_type %in% c("lin_scl_fine",
+                               "lin_scl_med",
+                               "lin_scl_coarse")) |>
     filter(proxy == "Lstar") |>
     ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
                ## alpha = exp == "all after package",
@@ -14168,15 +14172,17 @@ oh no, the Sopelana results are not exporting the Matched record!
   best_age_optim |>
     filter(comb == "1:1") |>
     filter(proxy == "Lstar") |>
+    ## filter(detrend_type == "lin_scl_med") |>
     filter(detrend_type == "lin_scl_fine") |>
-    filter(str_detect(exp, "-portion") | site == "Sopelana" | exp == "all after package") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
     ggplot(aes(x = age * 1e-3,
                y = sign_405 * ecc,
                colour = site,
-               group = paste(site, sol, proxy,
-                             detrend_type, date, exp))) +
+               group = paste(sol,
+                             site, proxy,
+                             detrend_type,
+                             depth_chunk))) +
     facet_grid(rows = vars(sol)) +
     labs(x = "Age (Ma)", y = "Norm. Filter & Solution",
          colour = "") +
@@ -14202,7 +14208,6 @@ oh no, the Sopelana results are not exporting the Matched record!
     geom_line(aes(linewidth = RMSD, alpha = RMSD)) +
     geom_line(aes(y = ecc_sln, colour = "Astronomical Solution")) +
     ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
     geom_text(aes(x = age * 1e-3, y = 4,
                   label = round(RMSD, 3)),
               size = 2, show.legend = FALSE,
@@ -14210,27 +14215,24 @@ oh no, the Sopelana results are not exporting the Matched record!
               ## position = position_dodge(width = 1.2),
               data = \(x) x |>
                           filter(age == min(age),
-                                 .by = c(RMSD, site, sol, proxy, detrend_type))) +
+                                 .by = c(RMSD, site, sol, proxy, detrend_type, depth_chunk))) +
     # annotate depths of 405 kyr minima
-    geom_point(aes(x = age * 1e-3, y = -4),
+    geom_point(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4),
                shape = ".",
               data = best_age_optim |>
                 filter(comb == "1:1") |>
                 filter(proxy == "Lstar") |>
                 filter(detrend_type == "lin_scl_fine") |>
-                filter(str_detect(exp, "-portion") | site == "Sopelana") |>
-                select(-sol) |>
                 mutate(m = map(the_best, "summary")) |>
                 unnest(m)) +
-    geom_text(aes(x = age * 1e-3, y = -4.5,
+    geom_text(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4.5,
                   label = paste(strat_bot, tie_err)),
               size = 1.8,
+              show.legend = FALSE,
               data = best_age_optim |>
                 filter(comb == "1:1") |>
                 filter(proxy == "Lstar") |>
                 filter(detrend_type == "lin_scl_fine") |>
-                filter(str_detect(exp, "-portion") | site == "Sopelana") |>
-                select(-sol) |>
                 mutate(m = map(the_best, "summary")) |>
                 unnest(m))
 #+end_src
@@ -14246,47 +14248,46 @@ oh no, the Sopelana results are not exporting the Matched record!
 # #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_depth.pdf :width 9.6 :height 2
 # #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_depth.pdf :width 9.6 :height 2
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_depth.pdf :width 9.6 :height 2
-    best_age_optim |>
-      filter(comb == "1:1") |>
-      filter(proxy == "Lstar") |>
-      filter(detrend_type == "lin_scl_fine") |>
-      filter(sol == "ZB20b") |>
-      filter(str_detect(exp, "-portion") | site == "Sopelana" |
-             str_detect(exp, "all after")) |>
-      mutate(m = map(the_best, "matched")) |>
-      unnest(m) |>
-      ggplot(aes(x = depth,
-                 y = sign_405 * ecc,
-                 colour = site,
-                 group = paste(site, sol, proxy,
-                               detrend_type, date, exp))) +
-      facet_grid(rows = vars(sol)) +
-      labs(x = "Depth (m)", y = "Norm. Filter",
-           colour = "") +
-      ## theme(legend.pos = c(.64, .864),
-      ##       legend.direction = "horizontal") +
-      scale_x_reverse(breaks = seq(200, -50, -10),
-                      minor_breaks = seq(200, -50, -5)) +
-      ## scale_y_continuous(breaks = c(-4, 0, 4)) +
-      ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
-      ## scale_alpha_continuous(range = c(1, 0.2)) +
-      scale_colour_manual(values = c("Astronomical Solution" = "black",
-                                     "Zumaia" = "purple",
-                                     "Sopelana" = "skyblue"
-                                     ## "Lstar" = "purple",
-                                     ## "MS" = "skyblue",
-                                     ## "d13C" = "darkgreen"
-                                     )) +
-      geom_vline(xintercept = 0) +
-      geom_line() #+
-      ## geom_line(aes(y = value), colour = "gray")
-      ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
-      ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-      ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+  best_age_optim |>
+    filter(comb == "1:1") |>
+    filter(proxy == "Lstar") |>
+    filter(detrend_type == "lin_scl_fine") |>
+    filter(sol == "ZB20b") |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = depth,
+               ## y = sign_405 * ecc,
+               y = value,
+               colour = site,
+               group = paste(site, sol, proxy,
+                             detrend_type, depth_chunk))) +
+    facet_grid(rows = vars(sol)) +
+    labs(x = "Depth (m)", y = "Norm. Filter",
+         colour = "") +
+    ## theme(legend.pos = c(.64, .864),
+    ##       legend.direction = "horizontal") +
+    scale_x_reverse(breaks = seq(200, -50, -10),
+                    minor_breaks = seq(200, -50, -5)) +
+    ## scale_y_continuous(breaks = c(-4, 0, 4)) +
+    ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
+    ## scale_alpha_continuous(range = c(1, 0.2)) +
+    scale_colour_manual(values = c("Astronomical Solution" = "black",
+                                   "Zumaia" = "purple",
+                                   "Sopelana" = "skyblue"
+                                   ## "Lstar" = "purple",
+                                   ## "MS" = "skyblue",
+                                   ## "d13C" = "darkgreen"
+                                   )) +
+    geom_vline(xintercept = 0) +
+    geom_line() #+
+    ## geom_line(aes(y = value), colour = "gray")
+    ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
+    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia_d13C_1-1_solutions_depth.pdf]]
+[[file:imgs/Zumaia_Lstar_1-1_solutions_depth.pdf]]
 
 **** [10/11] tasks
 :PROPERTIES:
