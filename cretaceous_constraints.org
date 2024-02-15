@@ -13342,7 +13342,8 @@ old
 
 #+RESULTS:
 
-#+begin_src R
+second old
+#+begin_src R :eval never
   rolling_age_optim <-
     #read_rds("out/2023-12-22_rolling_age_optim_1-1_details.rds")
     ## read_rds("out/2024-01-02_rolling_age_optim_1-1_details.rds") # including ZB20b-d
@@ -13379,6 +13380,17 @@ old
 #+end_src
 
 #+RESULTS:
+
+#+begin_src R
+  rolling_age_optim <-
+    bind_rows(
+      read_rds("out/2024-02-14_rolling_age_optim_full_indep.rds"),
+      read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds")
+    )
+#+end_src
+
+#+RESULTS:
+
 **** identify the best fits
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:57]
