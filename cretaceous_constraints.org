@@ -9024,8 +9024,8 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================================================================================================] 436.21MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
-: ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+: indexing 405_minima.csv [===============================] 378.81MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
+: ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
 : dbl (2): strat_bot, strat_top
@@ -11959,28 +11959,21 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 ***** mtm
 #+begin_src R
   specs_age <- smooth_ages |>
-    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol"),
-                      x = age, y = value)
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                      x = age_floating, y = value)
 #+end_src
 
 #+RESULTS:
-: Error in `dplyr::mutate()`:
-: ℹ In argument: `mtm = purrr::map(.data$data, spectral_analysis, x = age, y = value)`.
-: Caused by error in `purrr::map()`:
-: ℹ In index: 1.
-: Caused by error in `seq.default()`:
-: ! invalid '(to - from)/by'
-: Run `rlang::last_trace()` to see where the error occurred.
 ***** FFT periodogram
 :PROPERTIES:
 :CREATED:  [2023-12-19 Tue 16:00]
 :END:
 #+begin_src R
   specs_fft_age <- smooth_ages |>
-    nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
     mutate(fft = map(data,
                       ~ . |>
-                        select(age, value) |>
+                        select(age_floating, value) |>
                         astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
                         astrochron::periodogram(genplot = F, verbose = F, output = 1) |>
                         as_tibble()
@@ -11991,13 +11984,6 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 #+end_src
 
 #+RESULTS:
-: Error in `mutate()`:
-: ℹ In argument: `fft = map(...)`.
-: Caused by error in `map()`:
-: ℹ In index: 1.
-: Caused by error in `seq.default()`:
-: ! invalid '(to - from)/by'
-: Run `rlang::last_trace()` to see where the error occurred.
 
 ***** MTLS
 :PROPERTIES:
@@ -12013,10 +11999,10 @@ Source the library (now installed!)
 
 #+begin_src R
   specs_mtls_age <- smooth_ages |>
-    nest(.by = c("proxy", "site", "detrend_type", "sol")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
     mutate(mtls = map(data,
                       ~ . |>
-                        select(age, value) |>
+                        select(age_floating, value) |>
                         # NOTE: no need to linearly interpolate!
                         # That's the point!
                         TSAUMN::spec.mtls(plot = FALSE) |>
@@ -12038,11 +12024,11 @@ Source the library (now installed!)
 :END:
 #+begin_src R
   smooth_ages |>
-    filter(proxy == "MS",
+    filter(proxy == "Lstar",
            site == "Zumaia",
-           detrend_type == "lin_gam_det",
-           sol == "ZB18a") |>
-    select(age, value) |>
+           detrend_type == "lin_scl_fine",
+                   depth_chunk == "depth < 109.26") |>
+    select(age_floating, value) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
     astrochron::eha(fmax = .02, ydir = -1)
 #+end_src
@@ -12051,19 +12037,19 @@ Source the library (now installed!)
 #+begin_example
 
  ----- PERFORMING EVOLUTIVE HARMONIC ANALYSIS -----
- ,* Number of data points in stratigraphic series: 1408
- ,* Stratigraphic series length (space or time): 3781.313
- ,* Sampling interval (space or time): 2.6875
+ ,* Number of data points in stratigraphic series: 1037
+ ,* Stratigraphic series length (space or time): 2797.2
+ ,* Sampling interval (space or time): 2.7
  ,* Number of data points per window: 101
- ,* Moving window size (space or time): 268.75
+ ,* Moving window size (space or time): 270
  ,* Window step points: 10
- ,* Window step (space or time): 26.875
- ,* Number of windows: 131
+ ,* Window step (space or time): 27
+ ,* Number of windows: 94
  ,* Mean value for each window will be subtracted
  ,* Linear trend for each window will be subtracted
- ,* Nyquist frequency: 0.1860465
- ,* Rayleigh frequency: 0.003684089
- ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.007368179
+ ,* Nyquist frequency: 0.1851852
+ ,* Rayleigh frequency: 0.003667033
+ ,* MTM Power spectrum bandwidth resolution (halfwidth): 0.007334067
  ,* Will use 3 DPSS tapers
  ,* Padded to 256 points
 #+end_example
@@ -12117,8 +12103,8 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
                       ## filter(detrend_type != "value") # default to show all
                       ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
                       ## filter(detrend_type == "lin_gam_det")
-                      filter(detrend_type == "lin_scl_coarse",
-                             sol == "ZB18a")
+                      filter(detrend_type == "lin_scl_fine") |>
+                      filter(depth_chunk == "depth < 109.26")
 
   # plot spectra w/ Freq on x-axis
   specs_age |>
@@ -12178,15 +12164,15 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
     # plot spectra
     # FFT periodogram
     geom_line(aes(colour = "FFT",
-                  group = paste(site, sol, proxy, detrend_type)),
+                  group = paste(site, proxy, detrend_type, depth_chunk)),
               data = specs_fft_age |>
                 my_filter()) +
     # MTM
     geom_line(aes(colour = "MTM",
-                  group = paste(site, sol, proxy, detrend_type))) +
+                  group = paste(site, proxy, detrend_type, depth_chunk))) +
     # MTLS
     geom_line(aes(colour = "MTLS",
-                  group = paste(site, sol, proxy, detrend_type)),
+                  group = paste(site, proxy, detrend_type, depth_chunk)),
               data = specs_mtls_age |>
                 my_filter())
 #+end_src
@@ -13244,8 +13230,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## filter(detrend_type == "lin_scl_fine",
     ##        comb == "1:1") |>
     # the second run, for all different detrend_types
-    filter(detrend_type != "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
-           comb == "1:1") |>
+    ## filter(detrend_type != "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
+           ## comb == "1:1") |>
+    filter(detrend_type == "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
+           comb == "1:0.5") |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
