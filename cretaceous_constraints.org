@@ -14216,25 +14216,34 @@ oh no, the Sopelana results are not exporting the Matched record!
               data = \(x) x |>
                           filter(age == min(age),
                                  .by = c(RMSD, site, sol, proxy, detrend_type, depth_chunk))) +
-    # annotate depths of 405 kyr minima
-    geom_point(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4),
-               shape = ".",
-              data = best_age_optim |>
-                filter(comb == "1:1") |>
-                filter(proxy == "Lstar") |>
-                filter(detrend_type == "lin_scl_fine") |>
-                mutate(m = map(the_best, "summary")) |>
-                unnest(m)) +
-    geom_text(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4.5,
-                  label = paste(strat_bot, tie_err)),
-              size = 1.8,
-              show.legend = FALSE,
-              data = best_age_optim |>
-                filter(comb == "1:1") |>
-                filter(proxy == "Lstar") |>
-                filter(detrend_type == "lin_scl_fine") |>
-                mutate(m = map(the_best, "summary")) |>
-                unnest(m))
+    # annotate ages of 405 kyr minima
+    geom_point(aes(x = age * 1e-3, y = -2),
+               inherit.aes = FALSE,
+               data = sln_peaks |>
+                 rename(sol = sln) |>
+                 filter(sol != "La11") |>
+                 filter(age > 65.8e3) |>
+                 filter(age < 71.4e3))
+
+    ## # annotate depths of tweaked tiepoints
+    ## geom_point(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4),
+    ##            shape = ".",
+    ##           data = best_age_optim |>
+    ##             filter(comb == "1:1") |>
+    ##             filter(proxy == "Lstar") |>
+    ##             filter(detrend_type == "lin_scl_fine") |>
+    ##             mutate(m = map(the_best, "summary")) |>
+    ##             unnest(m)) +
+    ## geom_text(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4.5,
+    ##               label = paste(strat_bot, tie_err)),
+    ##           size = 1.8,
+    ##           show.legend = FALSE,
+    ##           data = best_age_optim |>
+    ##             filter(comb == "1:1") |>
+    ##             filter(proxy == "Lstar") |>
+    ##             filter(detrend_type == "lin_scl_fine") |>
+    ##             mutate(m = map(the_best, "summary")) |>
+    ##             unnest(m))
 #+end_src
 
 #+RESULTS:
