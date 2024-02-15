@@ -12227,9 +12227,9 @@ I don't like this and it also doesn't preserve depth anymore.
 #+begin_src R :results none
   hb_prec_age <- filts_age |>
     filter(target == "23 kyr") |>
-    nest(.by = c(site, proxy, detrend_type, sol)) |>
+    nest(.by = c(site, proxy, detrend_type, depth_chunk)) |>
     mutate(hb = map(data, \(d) d |>
-                               select(age, filter) |>
+                               select(age_floating, filter) |>
                                astrochron::hilbert(genplot = FALSE, verbose = FALSE))) |>
     unnest(hb) |>
     select(-data)
@@ -12396,12 +12396,12 @@ I've now reworked everything to work with long ecc = 405 kyr, now need to add ag
   data_ecc_age |>
     ## filter(filt_env != "hilbert") |>
     filter(detrend_type != "value") |>
-    ggplot(aes(x = age * 0.001, y = ecc, colour = detrend_type)) +
-    facet_grid(rows = vars(proxy, sol),
+    ggplot(aes(x = age_floating * 0.001, y = ecc, colour = detrend_type)) +
+    facet_grid(rows = vars(proxy, depth_chunk),
                cols = vars(comb)) +
     scale_x_reverse() +
     scale_y_continuous(breaks = c(-2, 0, 2)) +
-    geom_line(aes(group = paste(proxy, site, detrend_type, sol, comb))) +
+    geom_line(aes(group = paste(proxy, site, detrend_type, depth_chunk, comb))) +
     labs(x = "Age (Ma)", y = "Filtered normalized record")
 #+end_src
 
@@ -12418,12 +12418,13 @@ For which time periods is the construction doing well and where is it failing?
 #+begin_src R :results output graphics file :file imgs/Zumaia_age_MSD-overview.png :width 800
   data_diffs_age |>
     ## filter(detrend_type != "value") |>
-    filter(detrend_type == "lin_gam_det") |>
-    ggplot(aes(x = age * 0.001,
+    filter(detrend_type == "lin_scl_fine") |>
+    ggplot(aes(x = age_floating * 0.001,
                y = squared_diff,
                ## colour = paste(site, proxy)
                )) +
-    facet_grid(cols = vars(filt_env, comb), rows = vars(proxy, sol)) +
+    facet_grid(cols = vars(filt_env, comb),
+               rows = vars(proxy, depth_chunk)) +
     ## geom_point() +
     ## geom_vline(xintercept = c(## kpg_age * 0.001, # based on 405 kyr minima in La11
     ##              66.043 + c(-1, 0, 1) * 0.043 # based on 40Ar/39Ar and U-Pb data from bentonites
