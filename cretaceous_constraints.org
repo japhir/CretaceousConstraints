@@ -13399,10 +13399,11 @@ second old
   best_age_optim <- rolling_age_optim |>
     ## pull out the best RMSD score for each
     mutate(RMSD_start = map_dbl(the_best,
-                          \(x) x$summary |>
-                               arrange(rev(RMSD_cum)) |>
+                          \(x) x$details |>
+                               filter(error == 0) |>
+                               arrange(n) |>
                                slice(1) |>
-                               pull(RMSD_cum))) |>
+                               pull(RMSD_tie))) |>
     mutate(RMSD = map_dbl(the_best,
                           \(x) x$summary |>
                                arrange(RMSD_cum) |>
