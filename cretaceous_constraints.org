@@ -13146,7 +13146,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
 
 #+RESULTS:
 
-**** [#B] plot_wrap_output
+**** plot_wrap_output
 :PROPERTIES:
 :CREATED:  [2024-01-12 Fri 13:56]
 :END:
@@ -13272,7 +13272,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_lower.rds") # different sedrate for this interval, same filters b/c time domain
     ## write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_upper.rds") # upper part
     ## write_rds("out/2024-02-14_rolling_age_optim_full_indep.rds") # independent from AS, using floating age and sliding along K/T age
-    write_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds") # all additional detrend_types
+    ## write_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds") # all additional detrend_types
+    write_rds("out/2024-02-15_rolling_age_optim_comb.rds") # all additional detrend_types
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13314,6 +13315,10 @@ current time: 2024-02-14 14:11:12.126742
 add detrend_types for Zumaia Lstar
 current time: 2024-02-14 14:49:05.541456
 current time: 2024-02-14 15:53:28.545184
+
+add some Zumaia 1:0.5 combs to show how they differ?
+current time: 2024-02-15 11:44:00.003439
+current time: 2024-02-15 11:59:07.462499
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -13374,7 +13379,8 @@ second old
   rolling_age_optim <-
     bind_rows(
       read_rds("out/2024-02-14_rolling_age_optim_full_indep.rds"),
-      read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds")
+      read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds"),
+      read_rds("out/2024-02-15_rolling_age_optim_comb.rds"),
     )
 #+end_src
 
@@ -13386,16 +13392,18 @@ second old
 :END:
 #+begin_src R
   best_age_optim <- rolling_age_optim |>
-    ## pull out the best RMSD score for each
+    # pull out the best RMSD score
+    # for error = 0, tiepoint is the first (i.e. without tweaks)
     mutate(RMSD_start = map_dbl(the_best,
                           \(x) x$details |>
                                filter(error == 0) |>
                                arrange(n) |>
                                slice(1) |>
                                pull(RMSD_tie))) |>
+    # for the last, i.e. after tweaking all the tiepoints
     mutate(RMSD = map_dbl(the_best,
                           \(x) x$summary |>
-                               arrange(RMSD_cum) |>
+                               arrange(rev(n)) |>
                                slice(1) |>
                                pull(RMSD_cum)))
 #+end_src
@@ -14332,6 +14340,8 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 :CREATED:  [2023-11-22 Wed 13:42]
 :END:
 :LOGBOOK:
+- Note taken on [2024-02-15 Thu 12:03] \\
+  this has full version in memory again, not sure if I like that in terms of speed...
 - Note taken on [2024-01-12 Fri 17:08] \\
   run the full variable tiepoints analysis with the new detrended record
 - Note taken on [2024-01-11 Thu 17:35] \\
