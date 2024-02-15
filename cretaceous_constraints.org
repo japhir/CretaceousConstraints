@@ -13241,7 +13241,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   rolling_age_optim <-
     data_ecc_age |> # I use age because it already has sol's and combs etc.
     # the first full run for all the best-performing detrend_type
-    filter(detrend_type == "lin_scl_fine",
+    ## filter(detrend_type == "lin_scl_fine",
+    ##        comb == "1:1") |>
+    # the second run, for all different detrend_types
+    filter(detrend_type != "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
            comb == "1:1") |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
@@ -13279,7 +13282,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-01-17_rolling_age_optim_Sopelana_Lstar_lin-scl-fine.rds") # add Sopelana Lstar lin_scl_fine
     ## write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_lower.rds") # different sedrate for this interval, same filters b/c time domain
     ## write_rds("out/2024-01-19_rolling_age_optim_Zumaia_lin-scl-fine_upper.rds") # upper part
-    write_rds("out/2024-02-14_rolling_age_optim_full_indep.rds") # independent from AS, using floating age and sliding along K/T age
+    ## write_rds("out/2024-02-14_rolling_age_optim_full_indep.rds") # independent from AS, using floating age and sliding along K/T age
+    write_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds") # all additional detrend_types
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13316,7 +13320,11 @@ current time: 2024-01-19 11:56:54.211265
 
 redid the whole thing after major revision of the algorithm
 current time: 2024-02-14 13:37:36.143642
+current time: 2024-02-14 14:11:12.126742
 
+add detrend_types for Zumaia Lstar
+current time: 2024-02-14 14:49:05.541456
+current time: 2024-02-14 15:53:28.545184
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
