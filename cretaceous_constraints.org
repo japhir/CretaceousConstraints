@@ -8906,10 +8906,10 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > . + indexing 18696_2.csv [====================================================================================================================] 1.47GB/s, eta:  0s                                                                                                                                                                                                 New names:
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > + + + indexing 18696_2.csv [====================================================================================================================] 1.61GB/s, eta:  0s                                                                                                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
-── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+── Column specification ──────────────────────────────────────────────────────
 Delimiter: ","
 dbl (3): depth, MS, Lstar
 
@@ -9024,7 +9024,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================] 378.81MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
+: indexing 405_minima.csv [===============================================================================================================] 199.93MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
 : ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -9351,6 +9351,7 @@ We have several ways of subtracting the long-term trends prior to doing spectral
 | ~scl~            | The scaled (or normalized = mean subtracted, divided by standard deviation) value. |
 | ~lin_scl_rw~     | Remove linear trends from red/white intervals separately, then scale the result. I think I chose wrong intervals for this so have removed it. |
 | ~lin_scl_coarse~ | Chop the record into three (33--59 m) pieces based on broad scale visual trends in L*, and detrend linearly. |
+| ~lin_scl_med~    | Same as fine below, but with coarse for depth >= 109.26 m                      |
 | ~lin_scl_fine~   | Chop the record into smaller (~9--21 m) pieces based on visual trends in L*, and detrend linearly. |
 | ~gam_scl~        | Subtract a gam from the value, then scale the result.                          |
 | ~lin_gam_scl~    | First do ~lin_scl~ from above, then do ~gam_det~. This is excessive so I removed it from the analysis. |
@@ -9736,6 +9737,31 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+RESULTS:
 
+***** fourth one, intermediate?
+:PROPERTIES:
+:CREATED:  [2024-02-15 Thu 13:40]
+:END:
+
+#+begin_src R :exports none
+  smooth_4 <- comp |>
+    # just cut the record into 10 meter slices
+    mutate(colour = findInterval(depth, c(-50, 0, 15.2, 32.8, 42.75, 58.8, 80, 91.3, 109.26, 160))) |>
+    # first calculate a lm for each slice
+    nest(.by = c(proxy, site, colour)) |>
+    # fit a line through each interval
+    mutate(
+      lim = map(data, ~ lm(value ~ depth, data = .x)),
+      # predict the value for each depth
+      lin_pred = map(lim, predict)) |>
+    select(-lim) |>
+    unnest(c(data, lin_pred)) |>
+    mutate(lin = value - lin_pred,
+           lin_scl = scale(lin)[, 1],
+           .by = c(proxy, site))
+#+end_src
+
+#+RESULTS:
+
 **** combine the trend removal dataframes into smooth_pred
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
@@ -9768,8 +9794,15 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
                rename(lin_pred_coarse = lin_pred,
                       lin_coarse = lin,
                       lin_scl_coarse = lin_scl)) |>
+    # add med linear trend
+    tidylog::left_join(
+               smooth_4 |>
+               select(-colour) |>
+               rename(lin_pred_med = lin_pred,
+                      lin_med = lin,
+                      lin_scl_med = lin_scl)) |>
     ## bind_rows(smooth_hp) |>
-    pivot_longer(c(value, scl, lin_rw, lin_gam, lin_fine, lin_coarse, lin_scl_rw, lin_scl_fine, lin_scl_coarse, gam_scl, gam_pred, lin_pred_rw, lin_pred_fine, lin_pred_coarse, lin_gam_pred, lin_gam_scl),
+    pivot_longer(c(value, scl, lin_rw, lin_gam, lin_fine, lin_med, lin_coarse, lin_scl_rw, lin_scl_fine, lin_scl_med, lin_scl_coarse, gam_scl, gam_pred, lin_pred_rw, lin_pred_fine, lin_pred_med, lin_pred_coarse, lin_gam_pred, lin_gam_scl),
                  names_to = "detrend_type", values_to = "value") |>
     # append the lowpass filter
     bind_rows(
@@ -9793,7 +9826,7 @@ this is not easy to customize, so we manually create it below.
   smooth_all |>
     arrange(detrend_type) |>
     filter(!detrend_type %in%
-           c("lin_rw", "lin_coarse", "lin_fine", "lin_gam",
+           c("lin_rw", "lin_coarse", "lin_med", "lin_fine", "lin_gam",
              "lin_gam_scl", "lin_gam_pred", "lin_gam_scl")) |>
     ggplot(aes(x = depth, y = value, colour = detrend_type,
                group = paste(proxy, site, detrend_type))) +
@@ -9815,7 +9848,7 @@ this is not easy to customize, so we manually create it below.
   smooth_pred <- smooth_all |>
     tidylog::filter(detrend_type %in%
                     c("value", "scl",
-                      "lin_scl_rw", "lin_scl_fine", "lin_scl_coarse",
+                      "lin_scl_rw", "lin_scl_fine", "lin_scl_med", "lin_scl_coarse",
                       "gam_scl", ## "lin_gam_scl"
                       "hp_scl"
                       )) |>
@@ -9837,18 +9870,19 @@ this is not easy to customize, so we manually create it below.
 
 #+RESULTS:
 #+begin_example
-filter: removed 48,049 rows (61%), 30,561 rows remaining
-filter: removed 39,359 rows (43%), 52,324 rows remaining
-# A tibble: 7 × 1
+filter: removed 56,793 rows (62%), 34,933 rows remaining
+filter: removed 44,989 rows (43%), 59,810 rows remaining
+# A tibble: 8 × 1
   detrend_type
   <chr>
 1 value
 2 scl
 3 lin_scl_rw
 4 lin_scl_fine
-5 lin_scl_coarse
-6 gam_scl
-7 hp_scl
+5 lin_scl_med
+6 lin_scl_coarse
+7 gam_scl
+8 hp_scl
 #+end_example
 
 **** NEXT show how the linear/gam detrending works
@@ -10871,7 +10905,6 @@ The filter intervals are perhaps not so good for Sopelana?
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, site, depth_chunk, target)`
 
 **** make plot of short ecc independent filters
 :PROPERTIES:
@@ -11035,7 +11068,7 @@ The filter intervals are perhaps not so good for Sopelana?
 #+end_src
 
 #+RESULTS:
-: filter: removed 52,324 rows (50%), 52,324 rows remaining
+: filter: removed 59,810 rows (50%), 59,810 rows remaining
 
 **** COMMENT hilbert transform of the precession bp filter
 :PROPERTIES:
@@ -13235,8 +13268,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
            ## comb == "1:1") |>
     ## filter(detrend_type == "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
     ##        comb == "1:0.5") |>
-    filter(detrend_type == "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
-           comb == "0.5:1") |>
+    ## filter(detrend_type == "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
+    ##        comb == "0.5:1") |>
+    filter(detrend_type == "lin_scl_med", site == "Zumaia", comb == "1:1") |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
@@ -13276,7 +13310,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-14_rolling_age_optim_full_indep.rds") # independent from AS, using floating age and sliding along K/T age
     ## write_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds") # all additional detrend_types
     ## write_rds("out/2024-02-15_rolling_age_optim_comb.rds") # all additional detrend_types
-    write_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds") # all additional detrend_types
+    ## write_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds") # all additional detrend_types
+    write_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -14339,6 +14374,8 @@ might need to have another look at other records once my ~wrap_age_model~ is fas
 :CREATED:  [2023-11-22 Wed 13:42]
 :END:
 :LOGBOOK:
+- Note taken on [2024-02-15 Thu 13:58] \\
+  deleted, re-ran from scratch, saving only pre-massive run inputs
 - Note taken on [2024-02-15 Thu 12:03] \\
   this has full version in memory again, not sure if I like that in terms of speed...
 - Note taken on [2024-01-12 Fri 17:08] \\
