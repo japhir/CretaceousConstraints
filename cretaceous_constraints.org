@@ -10243,6 +10243,7 @@ we make this plot with the raw results because it gives us more control but more
 #+begin_src R
   specs_fancy <- smooth_pred |>
     nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                             detrend = TRUE,
                              x = depth, y = value)
 #+end_src
 
@@ -10258,7 +10259,10 @@ we make this plot with the raw results because it gives us more control but more
                       ~ . |>
                         select(depth, value) |>
                         astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                        astrochron::mtmML96(genplot = F, verbose = F, output = 1, detrend = TRUE, medsmooth = 0.2) |>
+                        astrochron::mtmML96(genplot = F, verbose = F,
+                                            output = 1,
+                                            detrend = TRUE,
+                                            medsmooth = 0.2) |>
                         as_tibble() |>
                         tidyr::pivot_longer(c("AR1_90_power",
                                               "AR1_95_power",
@@ -10288,7 +10292,8 @@ we make this plot with the raw results because it gives us more control but more
                       ~ . |>
                         select(depth, value) |>
                         astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                        astrochron::lowspec(genplot = F, verbose = F, output = 1, lowspan = 3) |>
+                        astrochron::lowspec(genplot = F, verbose = F, output = 1,
+                                            lowspan = 3, detrend = TRUE) |>
                         as_tibble()
                         )) |>
     select(-data) |>
@@ -10309,7 +10314,8 @@ we make this plot with the raw results because it gives us more control but more
                       ~ . |>
                         select(depth, value) |>
                         astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                        astrochron::periodogram(genplot = F, verbose = F, output = 1) |>
+                        astrochron::periodogram(genplot = F, verbose = F, output = 1,
+                                                detrend = TRUE) |>
                         as_tibble()
                         )) |>
     select(-data) |>
@@ -10368,7 +10374,7 @@ we make this plot with the raw results because it gives us more control but more
     mutate(ls = map(data,
                       ~ . |>
                         select(depth, value) |>
-                        TSAUMN::spec.ls(plot = FALSE) |>
+                        TSAUMN::spec.ls(plot = FALSE, detrend = TRUE) |>
                         as_tibble())) |>
     select(-data) |>
     unnest(ls) |>
@@ -10396,7 +10402,7 @@ It's pretty slow.
                         select(depth, value) |>
                         # NOTE: no need to linearly interpolate!
                         # That's the point!
-                        TSAUMN::spec.mtls(plot = FALSE) |>
+                        TSAUMN::spec.mtls(plot = FALSE, detrend = TRUE) |>
                         as_tibble())) |>
     select(-data) |>
     unnest(mtls) |>
@@ -10415,12 +10421,13 @@ The blue rectangles correspond to our simplified filter intervals where we just 
 The frequency ranges need to be a little broad to encapsulate the potentially variable sedimentation rates throughout the record.
 
 Note that we flip our default faceting here, because it makes comparison between detrend_types easier.
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 3200 :height 2600 :res 300
+# #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 3200 :height 2600 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.pdf :width 9 :height 6
   my_filt <- \(d) d |>
                     ## filter(site == "Zumaia",
                     ##        depth_chunk == "depth < 109.26") |>
-                    ## filter(detrend_type == "lin_scl_med") |>
-                    filter(detrend_type == "value") |>
+                    filter(detrend_type == "lin_scl_med") |>
+                    ## filter(detrend_type == "value") |>
                     ## filter(detrend_type %in% c("value", "lin_scl_med")) |>
                     filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
                            depth_chunk == "full record") #|>
@@ -10456,7 +10463,8 @@ Note that we flip our default faceting here, because it makes comparison between
       ## ylim = c(0, 3)
       ## ylim = c(2e-5, 1.5) # linear axis
       ## ylim = c(-0.001, .016) # linear axis zoomed in
-      ylim = c(2e-6, 1) # log
+      ## ylim = c(2e-6, 1) # log for raw
+      ylim = c(1e-4, 1e-1) # log for lin_scl_fine
       ) +
     scale_y_log10() +
     annotation_logticks(sides = "l") + # remember to update if we switch back to log!
@@ -10464,7 +10472,7 @@ Note that we flip our default faceting here, because it makes comparison between
     ## scale_x_log10(
       sec.axis = sec_axis(trans = ~ 1 / .x,
                                            name = "Period (m)",
-                                           breaks = c(50, 10, 5, 3, 2, 1, 0.5))) +
+                                           breaks = c(10, 2, 0.5))) +
     labs(x = "Frequency (cycles/m)", y = "Spectral power",
          colour = "Spectral analysis type") +
     labs(fill = "Filter interval from study") +
@@ -10477,7 +10485,8 @@ Note that we flip our default faceting here, because it makes comparison between
 
     # annotate the Batenburg 2014 filters
     geom_rect(aes(xmin = flow, xmax = fhigh,
-                  ymin = 2e-6, ymax = 1e-5, # log axis
+                  ## ymin = 2e-6, ymax = 1e-5, # log axis raw
+                  ymin = 1e-5, ymax = 1e-4, # log axis raw
                   ## ymin = -.002, ymax = -.001, # linear axis
                   fill = ref),
               inherit.aes = FALSE,
@@ -10489,7 +10498,7 @@ Note that we flip our default faceting here, because it makes comparison between
               ) +
     # show our filters
     geom_rect(aes(xmin = flow, xmax = fhigh,
-                  ymin = 1e-6, ymax = 2e-6, # log axis
+                  ymin = 1e-5, ymax = 2e-5, # log axis
                   ## ymin = -0.001, ymax = 0, # linear axis
                   fill = ref),
               inherit.aes = FALSE,
@@ -10558,7 +10567,7 @@ Note that we flip our default faceting here, because it makes comparison between
 #+name: fig:spectra-depth
 #+caption: Zumaia/Sopelana spectral analysis in the depth domain. See cref:tab:detrend_types for a description of the different detrending methods. FFT = fast fourier transform, MTM = multi-taper method, MTLS = Multi-taper averaged Lomb-Scargle periodogram of unevenly spaced data.
 #+RESULTS:
-[[file:imgs/Zumaia-Sopelana_mtm.png]]
+[[file:imgs/Zumaia-Sopelana_mtm.pdf]]
 
 **** eha
 :PROPERTIES:
@@ -12115,10 +12124,20 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
 #+begin_src R
   specs_age <- smooth_ages |>
     nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                             detrend = TRUE,
                       x = age_floating, y = value)
 #+end_src
 
 #+RESULTS:
+***** lowspec
+#+begin_src R
+  specs_age_lowspec <- smooth_ages |>
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                             detrend = TRUE, lowspan = 5,
+                             method = "LOWSPEC",
+                             x = age_floating, y = value)
+#+end_src
+
 ***** FFT periodogram
 :PROPERTIES:
 :CREATED:  [2023-12-19 Tue 16:00]
@@ -12130,7 +12149,7 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
                       ~ . |>
                         select(age_floating, value) |>
                         astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                        astrochron::periodogram(genplot = F, verbose = F, output = 1) |>
+                        astrochron::periodogram(genplot = F, verbose = F, output = 1, detrend = TRUE) |>
                         as_tibble()
                         )) |>
     select(-data) |>
@@ -12160,7 +12179,7 @@ Source the library (now installed!)
                         select(age_floating, value) |>
                         # NOTE: no need to linearly interpolate!
                         # That's the point!
-                        TSAUMN::spec.mtls(plot = FALSE) |>
+                        TSAUMN::spec.mtls(plot = FALSE, detrend = TRUE) |>
                         as_tibble())) |>
     select(-data) |>
     unnest(mtls) |>
@@ -12253,13 +12272,15 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
 :PROPERTIES:
 :CREATED:  [2023-09-26 Tue 16:50]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 2400 :height 2200 :res 300
+# #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.png :width 2400 :height 2200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.pdf :width 10 :height 6
   my_filter <- \(x) x |>
                       ## filter(detrend_type != "value") # default to show all
+                      ## filter(detrend_type == "value") # default to show all
                       ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
                       ## filter(detrend_type == "lin_gam_det")
-                      filter(detrend_type == "lin_scl_fine") |>
-                      filter(depth_chunk == "depth < 109.26")
+                      filter(detrend_type == "lin_scl_fine") #|>
+                      ## filter(depth_chunk == "depth < 109.26")
 
   # plot spectra w/ Freq on x-axis
   specs_age |>
@@ -12270,27 +12291,31 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
                ## linetype = site,
                ## colour = detrend_type
                )) +
-    facet_grid(cols = vars(site), rows = vars(proxy)) +
+    facet_grid(cols = vars(site, depth_chunk), rows = vars(proxy)) +
     ## scale_linetype_manual(values = c("Zumaia" = "solid",
     ##                                  "Sopelana" = "dashed")) +
     labs(x = "Frequency (cycles/kyr)", y = "Power (-)",
          colour = "Spectral Analysis", fill = "Reference") +
-    scale_colour_manual(values = c("MTM" = "indianred","FFT" = "darkgray", "MTLS" = "purple")) +
+    scale_colour_manual(values = c("MTM" = "indianred",
+                                   "FFT" = "darkgray",
+                                   "LOWSPEC" = "orange",
+                                   "MTLS" = "purple")) +
     coord_cartesian(
       ## xlim = c(1 / 1000, 1 / 10), # for a log x axis
       ## xlim = c(0, .072),
-      ## xlim = c(0, .066), # same as new Malinverno & Meyers 2023 preprint
-      xlim = c(0, .016), # zoom in on 405 and 100 kyr ecc
+      xlim = c(0, .075), # same as new Malinverno & Meyers 2023 preprint
+      ## xlim = c(0, .016), # zoom in on 405 and 100 kyr ecc
       ## ylim = c(0, .025) # previous best
-      ylim = c(2e-5, .03) # log
+      ## ylim = c(2e-5, .03) # log
       ## ylim = c(.0001, 0.020) # log axis
+      ylim = c(2e-5, 1) # log for raw
     ) +
     scale_x_continuous(
     ## scale_x_log10(
-      breaks = seq(0, 0.070, 0.010),
-      minor_breaks = seq(0, 0.070, 0.002),
-      sec.axis = sec_axis("Period (m)", trans = ~ 1 / .,
-                          breaks = c(405, 100, 50))) +
+      breaks = seq(0, 0.10, 0.020),
+      minor_breaks = seq(0, 0.10, 0.01),
+      sec.axis = sec_axis("Period (kyr)", trans = ~ 1 / .,
+                          breaks = c(405, 100, 41, 23))) +
     ## scale_y_continuous(breaks = c(0, .01, .02)) +
     scale_y_log10() +
     annotation_logticks(sides = "l") +
@@ -12320,11 +12345,27 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
     # FFT periodogram
     geom_line(aes(colour = "FFT",
                   group = paste(site, proxy, detrend_type, depth_chunk)),
+              alpha = .4,
               data = specs_fft_age |>
                 my_filter()) +
     # MTM
+    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                    linetype = NA,
+                    group = paste(site, proxy, detrend_type, depth_chunk, .width)),
+                fill = "black",
+                alpha = .1) +
     geom_line(aes(colour = "MTM",
                   group = paste(site, proxy, detrend_type, depth_chunk))) +
+    # lowspec
+    geom_ribbon(aes(ymin = lowspec_fit, ymax = lowspec_power,
+                    linetype = NA,
+                    group = paste(site, proxy, detrend_type, depth_chunk, .width)),
+                fill = "orange",
+                alpha = .2, data = specs_age_lowspec |> my_filter()) +
+     geom_line(aes(colour = "LOWSPEC",
+                   group = paste(site, proxy, detrend_type, depth_chunk)),
+               data = specs_age_lowspec |> my_filter()) +
+
     # MTLS
     geom_line(aes(colour = "MTLS",
                   group = paste(site, proxy, detrend_type, depth_chunk)),
@@ -12335,7 +12376,7 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
 #+attr_latex: :width \linewidth
 #+caption: Zumaia/Sopelana spectral analysis after tuning each of the 405 kyr minima from the field [cite:@Batenburg2012] to 405 kyr mimima in each of the orbital solutions. Note that the d13C doesn't appear to have any spectral peak around the 100 kyr period. We show the fast fourier transform (FFT), multitaper method (MTM) and the multi-taper averaged Lomb-Scargle periodogram of (un)evenly spaced data (MTLS).
 #+RESULTS:
-[[file:imgs/Zumaia_Sopelana_spectra_filters.png]]
+[[file:imgs/Zumaia_Sopelana_spectra_filters.pdf]]
 
 **** COMMENT plot spectra with period on the x-axis
 :PROPERTIES:
