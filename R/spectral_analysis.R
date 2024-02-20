@@ -4,6 +4,7 @@
 ##' @param x Column in `data`, i.e. `depth`, `height`, or `age`.
 ##' @param y Column in `data` with variable of interest.
 ##' @param method Spectral analysis method to apply: `"MTM"` or `"LOWSPEC"`.
+##' @param ... Additional arguments to pass to spectral analysis method.
 ##' @return A [tibble::tibble()] with spectral outcome.
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
@@ -13,7 +14,7 @@
 ##' spectral_analysis(dat, x = a, y = c)
 ##' @seealso plot_spectrum
 ##' @export
-spectral_analysis <- function(data, x, y, method = "MTM") {
+spectral_analysis <- function(data, x, y, method = "MTM", ...) {
   supported_methods <- c("MTM", "LOWSPEC")
   ## if ("MTM" != method) {
   ##   cli::cli_abort(c("Only method MTM is currently supported.",
@@ -31,7 +32,7 @@ spectral_analysis <- function(data, x, y, method = "MTM") {
     out <- data |>
       dplyr::select({{x}}, {{y}}) |>
       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-      astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE) |>
+      astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE, ...) |>
       tidyr::pivot_longer(c(.data$AR1_90_power,
                             .data$AR1_95_power,
                             .data$AR1_99_power),
@@ -49,7 +50,7 @@ spectral_analysis <- function(data, x, y, method = "MTM") {
    out <- data |>
       dplyr::select({{x}}, {{y}}) |>
       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-      astrochron::lowspec(output = 1, genplot = FALSE, verbose = FALSE) |>
+      astrochron::lowspec(output = 1, genplot = FALSE, verbose = FALSE, ...) |>
       tidyr::pivot_longer(c(.data$LOWSPEC_90_power,
                             .data$LOWSPEC_95_power,
                             .data$LOWSPEC_99_power),
@@ -89,8 +90,8 @@ nested_spectral_analysis <- function(data, nest, ..., x, y) {
     dplyr::mutate(
       mtm = purrr::map(.data$data,
                        spectral_analysis,
-                       x = {{x}}, y = {{y}},
-                       ...)
+                       ...,
+                       x = {{x}}, y = {{y}})
     ) |>
     dplyr::select(-.data$data) |>
     tidyr::unnest(.data$mtm)
