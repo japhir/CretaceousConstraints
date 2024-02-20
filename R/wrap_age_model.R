@@ -181,10 +181,10 @@ wrap_age_model <- function(data,
                     linterp_dt = linterp_dt,
                     add_depth = TRUE)
 
-  cli::cli_inform(c(
-         "nrow(tmp) = {nrow(tmp)}",
-         "nrow(flt) = {nrow(flt)}"
-       ))
+  ## cli::cli_inform(c(
+  ##        "nrow(tmp) = {nrow(tmp)}",
+  ##        "nrow(flt) = {nrow(flt)}"
+  ##      ))
 
   ecc <- flt |>
     # NOTE: this assumes that the frequencies tibble had column target

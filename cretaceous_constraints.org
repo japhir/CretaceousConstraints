@@ -8906,7 +8906,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > + + + indexing 18696_2.csv [====================================================================================================================] 1.61GB/s, eta:  0s                                                                                                                                                                                                 New names:
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > . + indexing 18696_2.csv [====================================================================================================================] 1.99GB/s, eta:  0s                                                                                                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ──────────────────────────────────────────────────────
@@ -9024,7 +9024,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================================================================================================] 199.93MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
+: indexing 405_minima.csv [===============================] 378.81MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
 : ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -9092,7 +9092,7 @@ very short record, Ma405_{-3} to Ma405_{4} and a bit
 #+end_src
 
 #+RESULTS:
-: -/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            New names:
+: -/                                                                            /                                                                            -                                                                            New names:
 : • `` -> `...6`
 : • `` -> `...8`
 
@@ -9377,6 +9377,28 @@ We have several ways of subtracting the long-term trends prior to doing spectral
     select(-gam) |>
     unnest(cols = c(data, gam_pred)) |>
     mutate(det = scale(value - gam_pred)[, 1], .by = c(proxy, site))
+#+end_src
+
+#+RESULTS:
+
+**** let's try a loess with small span
+:PROPERTIES:
+:CREATED:  [2024-02-15 Thu 17:24]
+:END:
+#+begin_src R
+  smooth_loess <- comp |>
+    ## pivot_wider() |>
+    nest(.by = c(proxy, site)) |> # nest_by is different!!
+    mutate(
+      loess = map(data, ~ loess(value ~ depth, span = .15,
+                                data = .))) |>
+    mutate(
+      loess_pred = map(loess, \(x) x |> predict() |> as.vector()),
+    ) |>
+    select(-loess) |>
+    unnest(cols = c(data, loess_pred)) |>
+    mutate(det = scale(value - loess_pred)[, 1], .by = c(proxy, site)) |>
+    rename(loess_scl = det)
 #+end_src
 
 #+RESULTS:
@@ -9768,8 +9790,10 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :END:
 #+begin_src R :results none
   smooth_all <- smooth_basic |>
-    mutate(scl = scale(value)[, 1], .before = gam_pred, .by = c(proxy, site)) |>
+    mutate(scl = scale(value)[, 1],
+           .before = gam_pred, .by = c(proxy, site)) |>
     rename(gam_scl = det) |>
+    tidylog::left_join(smooth_loess) |>
     # add rw linear detrend
     tidylog::left_join(
                smooth |> # just changed to new linear detrend!
@@ -9783,6 +9807,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     # add fine linear detrend
     tidylog::left_join(
                smooth_2 |>
+               mutate(chunk = as.character(colour)) |>
                select(-colour) |>
                rename(lin_pred_fine = lin_pred,
                       lin_fine = lin,
@@ -9790,6 +9815,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     # add coarse linear detrend
     tidylog::left_join(
                smooth_3 |>
+               mutate(chunk = as.character(colour)) |>
                select(-colour) |>
                rename(lin_pred_coarse = lin_pred,
                       lin_coarse = lin,
@@ -9797,13 +9823,22 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     # add med linear trend
     tidylog::left_join(
                smooth_4 |>
+               mutate(chunk = as.character(colour)) |>
                select(-colour) |>
                rename(lin_pred_med = lin_pred,
                       lin_med = lin,
                       lin_scl_med = lin_scl)) |>
     ## bind_rows(smooth_hp) |>
-    pivot_longer(c(value, scl, lin_rw, lin_gam, lin_fine, lin_med, lin_coarse, lin_scl_rw, lin_scl_fine, lin_scl_med, lin_scl_coarse, gam_scl, gam_pred, lin_pred_rw, lin_pred_fine, lin_pred_med, lin_pred_coarse, lin_gam_pred, lin_gam_scl),
+    pivot_longer(c(value, scl,
+                   lin_rw, lin_gam, lin_fine, lin_med, lin_coarse,
+                   lin_scl_rw, lin_scl_fine, lin_scl_med, lin_scl_coarse,
+                   gam_scl, loess_scl,
+                   gam_pred,
+                   lin_pred_rw, lin_pred_fine, lin_pred_med, lin_pred_coarse,
+                   lin_gam_pred, lin_gam_scl,
+                   loess_pred),
                  names_to = "detrend_type", values_to = "value") |>
+    filter(!is.na(value)) |>
     # append the lowpass filter
     bind_rows(
       smooth_hp |>
@@ -9822,23 +9857,47 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :CREATED:  [2024-01-11 Thu 10:47]
 :END:
 this is not easy to customize, so we manually create it below.
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300 :eval never
+# #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.pdf :width 6 :height 5
   smooth_all |>
     arrange(detrend_type) |>
-    filter(!detrend_type %in%
-           c("lin_rw", "lin_coarse", "lin_med", "lin_fine", "lin_gam",
-             "lin_gam_scl", "lin_gam_pred", "lin_gam_scl")) |>
+    mutate(detrend_megatype = case_when(
+               detrend_type %in% c("value") ~ "original",
+               detrend_type %in% c("scl") ~ "scaled",
+               detrend_type %in% c("lin_pred_rw", "lin_pred_fine", "lin_pred_med", "lin_pred_coarse", "lp_0.025", "gam_pred", "loess_pred") ~ "original",
+               detrend_type %in% c("lin_rw", "lin_gam", "lin_fine", "lin_med", "lin_coarse") ~ "detrended",
+               detrend_type %in% c("lin_scl_rw", "lin_scl_fine", "lin_scl_med", "lin_scl_coarse", "gam_scl", "loess_scl") ~ "scaled"
+               )) |>
+    filter(detrend_megatype != "detrended") |>
+    filter(detrend_megatype != "scaled") |>
+    filter(!detrend_type %in% c("lin_rw", "lin_scl_rw", "lin_pred_rw")) |>
+    ## filter(detrend_megatype == "detrended and scaled") |>
     ggplot(aes(x = depth, y = value, colour = detrend_type,
                group = paste(proxy, site, detrend_type))) +
-    facet_grid(rows = vars(proxy), cols = vars(site),
+    facet_grid(rows = vars(proxy),
+               cols = vars(site),
                scales = "free", space = "free_x") +
-    scale_x_reverse(breaks = seq(0, 200, 10), minor_breaks = seq(0, 200, 2)) +
-    geom_vline(aes(xintercept = strat_bot), data = agem_simple) +
-    geom_line()
+    scale_x_reverse(breaks = seq(-20, 200, 20),
+                    minor_breaks = seq(-10, 200, 10)) +
+    ## geom_vline(aes(xintercept = strat_bot),
+    ##            data = agem_simple) +
+    geom_line(colour = "gray",
+              data = \(x) x |> filter(detrend_type == "value")) +
+    # interactive loess so we can quickly iterate
+    ## geom_smooth(colour = "red",
+    ##             method = "loess", span = 0.2,
+    ##             data = \(x) x |> filter(detrend_type == "value")) +
+    # first draw the lines so we can pass the group argument
+    geom_line(aes(group = paste(proxy, site, detrend_type, colour, chunk)),
+              data = \(x) x |>
+              filter(str_detect(detrend_type, "^lin_pred"))) +
+    geom_line(data = \(x) x |>
+                          filter(detrend_type != "value") |>
+                          filter(str_detect(detrend_type, "^lin_pred", negate = TRUE)))
 #+end_src
 
 #+RESULTS:
-[[file:imgs/Zumaia-Sopelana_detrend_types_all.png]]
+[[file:imgs/Zumaia-Sopelana_detrend_types_all.pdf]]
 
 **** create smooth_pred, a subset with only detrend types we care about
 :PROPERTIES:
@@ -9849,7 +9908,7 @@ this is not easy to customize, so we manually create it below.
     tidylog::filter(detrend_type %in%
                     c("value", "scl",
                       "lin_scl_rw", "lin_scl_fine", "lin_scl_med", "lin_scl_coarse",
-                      "gam_scl", ## "lin_gam_scl"
+                      "gam_scl", "loess_scl",
                       "hp_scl"
                       )) |>
     mutate(depth_chunk = list(c(
@@ -9870,9 +9929,9 @@ this is not easy to customize, so we manually create it below.
 
 #+RESULTS:
 #+begin_example
-filter: removed 56,793 rows (62%), 34,933 rows remaining
-filter: removed 44,989 rows (43%), 59,810 rows remaining
-# A tibble: 8 × 1
+filter: removed 49,725 rows (60%), 33,585 rows remaining
+filter: removed 42,383 rows (42%), 58,372 rows remaining
+# A tibble: 9 × 1
   detrend_type
   <chr>
 1 value
@@ -9882,14 +9941,18 @@ filter: removed 44,989 rows (43%), 59,810 rows remaining
 5 lin_scl_med
 6 lin_scl_coarse
 7 gam_scl
-8 hp_scl
+8 loess_scl
+9 hp_scl
 #+end_example
 
-**** NEXT show how the linear/gam detrending works
+**** CANC show how the linear/gam detrending works
+CLOSED: [2024-02-20 Tue 14:37]
 :PROPERTIES:
 :CREATED:  [2023-09-25 Mon 16:19]
 :END:
 :LOGBOOK:
+- Note taken on [2024-02-20 Tue 14:38] \\
+  see above
 - Note taken on [2024-01-29 Mon 13:38] \\
   i think I messed this one up when I tried to make it fancy
 :END:
@@ -10184,6 +10247,36 @@ we make this plot with the raw results because it gives us more control but more
 #+end_src
 
 #+RESULTS:
+***** mtmML96
+:PROPERTIES:
+:CREATED:  [2024-02-20 Tue 15:19]
+:END:
+#+begin_src R
+  specs_ML96 <- smooth_pred |>
+    nest(.by = c("proxy", "site", "detrend_type", "depth_chunk")) |>
+    mutate(mtmML96 = map(data,
+                      ~ . |>
+                        select(depth, value) |>
+                        astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                        astrochron::mtmML96(genplot = F, verbose = F, output = 1, detrend = TRUE, medsmooth = 0.2) |>
+                        as_tibble() |>
+                        tidyr::pivot_longer(c("AR1_90_power",
+                                              "AR1_95_power",
+                                              "AR1_99_power"),
+                                            names_to = c("AR1", ".width"),
+                                            names_pattern = "^(AR1)_(9[950])",
+                                            values_to = "ar1_power") |>
+                        dplyr::select(-.data$AR1) |>
+                        dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+                        dplyr::rename(frequency = .data$Frequency,
+                                      power = .data$Power,
+                                      harmonic_cl = .data$Harmonic_CL,
+                                      ar1_cl = .data$AR1_CL,
+                                      ar1_fit = .data$AR1_fit,
+                                      med_smooth_power = .data$Median_Smoothed_Power))) |>
+    select(-data) |>
+    unnest(cols = c(mtmML96))
+#+end_src
 ***** lowspec
 :PROPERTIES:
 :CREATED:  [2024-01-30 Tue 16:43]
@@ -10252,9 +10345,9 @@ we make this plot with the raw results because it gives us more control but more
     mutate(bt = map(data,
                       ~ . |>
                         select(depth, value) |>
-                        astrochron::linterp(dt = .5, genplot = FALSE, verbose = FALSE) |>
+                        astrochron::linterp(dt = .1, genplot = FALSE, verbose = FALSE) |>
                         pull(value) |>
-                        TSAUMN::spec.bt(deltat = .5, plot = FALSE))) |>
+                        TSAUMN::spec.bt(deltat = .1, plot = FALSE, demean = TRUE, detrend = TRUE))) |>
     select(-data) |>
     mutate(freq = map(bt, pluck, "freq"),
            spec = map(bt, pluck, "spec")) |>
@@ -10264,9 +10357,6 @@ we make this plot with the raw results because it gives us more control but more
 #+end_src
 
 #+RESULTS:
-: Registered S3 method overwritten by 'quantmod':
-:   method            from
-:   as.zoo.data.frame zoo
 
 ***** Lomb-Scargle
 :PROPERTIES:
@@ -10325,41 +10415,51 @@ The blue rectangles correspond to our simplified filter intervals where we just 
 The frequency ranges need to be a little broad to encapsulate the potentially variable sedimentation rates throughout the record.
 
 Note that we flip our default faceting here, because it makes comparison between detrend_types easier.
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 2600 :height 3200 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_mtm.png :width 3200 :height 2600 :res 300
   my_filt <- \(d) d |>
                     ## filter(site == "Zumaia",
                     ##        depth_chunk == "depth < 109.26") |>
-                    filter(detrend_type == "lin_scl_fine") |>
+                    ## filter(detrend_type == "lin_scl_med") |>
+                    filter(detrend_type == "value") |>
+                    ## filter(detrend_type %in% c("value", "lin_scl_med")) |>
                     filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
-                           depth_chunk == "full record")
+                           depth_chunk == "full record") #|>
+                    ## filter(depth_chunk == "full record") |>
+                    ## filter(site == "Zumaia")
 
   my_rect_filt <-
     \(d) d |>
                      ## filter(site == "Zumaia", depth_chunk == "depth < 109.26") |>
-      filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
-             depth_chunk == "full record")
+      ## filter((str_detect(depth_chunk, "^depth") & site == "Zumaia") |
+      ##        depth_chunk == "full record")
+        ## filter(depth_chunk == "full record") |>
+        filter(site == "Zumaia")
 
 
   specs_fancy |>
     my_filt() |>
     ggplot(aes(x = frequency, y = power,
                ## colour = detrend_type,
+               ## linetype = detrend_type,
                group = paste(detrend_type, proxy, site, depth_chunk))) +
-    facet_grid(cols = vars(proxy), rows = vars(site, depth_chunk)) +
-    ## facet_grid(rows = vars(proxy)) +
-    scale_y_log10() +
-    annotation_logticks(sides = "l") + # remember to update if we switch back to log!
+    facet_grid(cols = vars(site, depth_chunk),
+               rows = vars(proxy)
+               ## scales = "free_y", space = "free_y"
+               ) +
     coord_cartesian(
       ## xlim = c(1e-4, 0.0625) * 100 # log axis
       ## xlim = c(0, 2), # linear axis
-      xlim = c(0, .4),  # linear axis zoomed on 405 and 100 kyr
-      ## xlim = c(0, 2.1),  # linear axis
+      ## xlim = c(0, .4),  # linear axis zoomed on 405 and 100 kyr
+      xlim = c(0, 1.5),  # linear axis
       ## xlim = c(0, .1),  # linear axis zoomed on 405 and lower to find lowpass/highpass cutoff
       ## xlim = c(0, 1.5),  # linear axis zoomed on 405 and 100 kyr
       ## ylim = c(0, 3)
-      ylim = c(2e-5, 1.5) # linear axis
-      ## ylim = c(2e-5, 0.015) # log
+      ## ylim = c(2e-5, 1.5) # linear axis
+      ## ylim = c(-0.001, .016) # linear axis zoomed in
+      ylim = c(2e-6, 1) # log
       ) +
+    scale_y_log10() +
+    annotation_logticks(sides = "l") + # remember to update if we switch back to log!
     scale_x_continuous(
     ## scale_x_log10(
       sec.axis = sec_axis(trans = ~ 1 / .x,
@@ -10369,15 +10469,19 @@ Note that we flip our default faceting here, because it makes comparison between
          colour = "Spectral analysis type") +
     labs(fill = "Filter interval from study") +
     ## scale_colour_manual(values = c("MTM" = "solid","FFT" = "dotdash", "MTLS" = "longdash")) +
-    scale_colour_manual(values = c("MTM" = "indianred", "LOWSPEC" = "black",
+    scale_colour_manual(values = c("MTM" = "indianred",
+                                   "MTM ML96" = "orange",
+                                   "LOWSPEC" = "black",
                                    "FFT" = "darkgray", "MTLS" = "purple",
                                    "LS" = "lightblue", "BT" = "orange")) +
 
     # annotate the Batenburg 2014 filters
     geom_rect(aes(xmin = flow, xmax = fhigh,
-                  ymin = 3e-5, ymax = 1e-4,
+                  ymin = 2e-6, ymax = 1e-5, # log axis
+                  ## ymin = -.002, ymax = -.001, # linear axis
                   fill = ref),
               inherit.aes = FALSE,
+              show.legend = FALSE,
               ## colour = "black",
               alpha = .2,
               data = bat_filters |>
@@ -10385,11 +10489,15 @@ Note that we flip our default faceting here, because it makes comparison between
               ) +
     # show our filters
     geom_rect(aes(xmin = flow, xmax = fhigh,
-                  ymin = 1e-5, ymax = 3e-5,
+                  ymin = 1e-6, ymax = 2e-6, # log axis
+                  ## ymin = -0.001, ymax = 0, # linear axis
                   fill = ref),
               inherit.aes = FALSE,
+              show.legend = FALSE,
               alpha = .3,
               data = my_filters |>
+                filter(site == "Zumaia") |>
+                filter(depth_chunk == "full record") |>
                 my_rect_filt()) +
     ggnewscale::new_scale_fill() +
 
@@ -10398,35 +10506,49 @@ Note that we flip our default faceting here, because it makes comparison between
               data = specs_fft |> my_filt()) +
     # annotate Blackman-Tukey spectra
     # commented out because the y axis values are waaaay higher (up at 1--10)
-    geom_line(aes(colour = "BT"),
-              data = specs_bt|> my_filt()) +
+    ## geom_line(aes(colour = "BT"),
+    ##           data = specs_bt |> my_filt()) +
     geom_line(aes(colour = "LS"),
               data = specs_ls |> my_filt()) +
     # plot MTM spectra
     geom_line(aes(colour = "MTM")) +
+    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                    linetype = NA, group = paste(detrend_type, .width)),
+                show.legend = FALSE,
+                fill = "indianred", colour = NA,
+                alpha = .1) +
+
+    geom_line(aes(y = med_smooth_power, colour = "MTM ML96"),
+              linetype = "dashed",
+              data = specs_ML96 |> my_filt()) +
+    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                    linetype = NA, group = paste(detrend_type, .width)),
+                show.legend = FALSE,
+                fill = "orange", colour = NA, alpha = .1) +
+
     geom_line(aes(colour = "LOWSPEC"),
               data = specs_lowspec |> my_filt()) +
     # Lowspec ci
     geom_ribbon(aes(ymin = LOWSPEC_back,
                     ymax = LOWSPEC_99_power),
+                show.legend = FALSE,
                 alpha = .1, colour = NA, fill = "black",
                 data = specs_lowspec |> my_filt()) +
     geom_ribbon(aes(ymin = LOWSPEC_back,
                     ymax = LOWSPEC_95_power),
+                show.legend = FALSE,
                 alpha = .1, colour = NA, fill = "black",
                 data = specs_lowspec |> my_filt()) +
     geom_ribbon(aes(ymin = LOWSPEC_back,
                     ymax = LOWSPEC_90_power),
+                show.legend = FALSE,
                 alpha = .1, colour = NA, fill = "black",
                 data = specs_lowspec |> my_filt()) +
 
     # add AR1 fit and uncertainty
     ## geom_line(aes(y = AR1_fit)) +
     ## geom_line(aes(y = AR1_95_power), alpha = .3) +
-    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
-                    linetype = NA, group = paste(detrend_type, .width)),
-                fill = "indianred", colour = NA,
-                alpha = .1) +
+
     # annotate the MTLS spectra
     geom_line(aes(colour = "MTLS"),
               data = specs_mtls |> my_filt())
@@ -12158,7 +12280,7 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
       ## xlim = c(1 / 1000, 1 / 10), # for a log x axis
       ## xlim = c(0, .072),
       ## xlim = c(0, .066), # same as new Malinverno & Meyers 2023 preprint
-      xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
+      xlim = c(0, .016), # zoom in on 405 and 100 kyr ecc
       ## ylim = c(0, .025) # previous best
       ylim = c(2e-5, .03) # log
       ## ylim = c(.0001, 0.020) # log axis
