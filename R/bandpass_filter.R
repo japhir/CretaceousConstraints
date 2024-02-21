@@ -58,8 +58,12 @@ bandpass_filter <- function(data, frequencies,
                bp = purrr::pmap(list(.data$lt, .data$flow, .data$fhigh),
                                 \(d, l, h)
                                 d |>
-                                astrochron::bandpass(flow = l, fhigh = h, win = window,
-                                                     genplot = FALSE, verbose = FALSE) |>
+                                  astrochron::bandpass(flow = l, fhigh = h,
+                                                       ...,
+                                                       win = window,
+                                                       demean = TRUE,
+                                                       detrend = TRUE,
+                                                       genplot = FALSE, verbose = FALSE) |>
                                 dplyr::select(filter = {{y}}))) |>
       dplyr::select(-.data$data) |>
       tidyr::unnest(cols = c(.data$lt, .data$bp))
@@ -70,7 +74,9 @@ bandpass_filter <- function(data, frequencies,
                                 \(d, l, h)
                                 d |>
                                 astrochron::bandpass(flow = l, fhigh = h,
+                                                     ...,
                                                      win = window,
+                                                     demean = TRUE, detrend = TRUE,
                                                      genplot = FALSE, verbose = FALSE) |>
                                 dplyr::select(filter = {{y}}))) |>
       dplyr::select(-.data$data) |>
@@ -94,7 +100,13 @@ bandpass_filter <- function(data, frequencies,
 #'
 #' @inheritParams bandpass_filter
 #' @param nest character() Vector with column names in `data` to nest by.
-nested_bandpass_filter <- function(data, frequencies, x, y, nest, add_depth = FALSE) {
+nested_bandpass_filter <- function(data,
+                                   frequencies,
+                                   x, y,
+                                   nest,
+                                   ...,
+                                   window = 0,
+                                   add_depth = FALSE) {
   if (! all(nest %in% colnames(data))) {
     cli::cli_abort(c("{.var nest} must have columns that exist in {.var data}",
                      "i" = "{.var data} has column{?s} {.val {colnames(data)}}",
@@ -107,6 +119,8 @@ nested_bandpass_filter <- function(data, frequencies, x, y, nest, add_depth = FA
                \(d) d |>
                     bandpass_filter(frequencies = frequencies,
                                     x = {{x}}, y = {{y}},
+                                    ...,
+                                    window = window,
                                     add_depth = add_depth))) |>
     tidyr::unnest(.data$bp) |>
     dplyr::select(-.data$data)

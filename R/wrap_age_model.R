@@ -13,6 +13,7 @@
 #'   signal to make it in-phase with the orbital forcing.
 #' @param target_periods Vector of periods to target. Defaults to 405 and 110
 #'   kyr.
+#' @param bandpass_window Window type for bandpass filter: 0 = rectangular, 1 = Gaussian, 2 = Cosine-tapered window (a.k.a. Tukey window).
 #' @param frequency_fraction Fraction of frequency to adjust upper and lower
 #'   filter limits by.
 #' @param eccentricity_weights Weights for the 405 kyr and 100 kyr filter when
@@ -42,6 +43,7 @@ wrap_age_model <- function(data,
                            proxy_phase = 1,
                            target_periods = c("405 kyr" = 405, "100 kyr" = 110),
                            frequency_fraction = 0.3,
+                           bandpass_window = 0,
                            eccentricity_weights = c(1, 1),
                            age_slider = 200,
                            kpg_age = 65.9e3,
@@ -178,6 +180,7 @@ wrap_age_model <- function(data,
   flt <- tmp |>
     bandpass_filter(frequencies = my_filt_age,
                     x = .data$age_floating, y = .data$value,
+                    window = bandpass_window,
                     linterp_dt = linterp_dt,
                     add_depth = TRUE)
 
@@ -295,6 +298,7 @@ wrap_age_model <- function(data,
         flt <- tmp |>
           bandpass_filter(frequencies = my_filt_age,
                           x = .data$age_floating, y = .data$value,
+                          window = bandpass_window,
                           linterp_dt = linterp_dt,
                           add_depth = TRUE)
 

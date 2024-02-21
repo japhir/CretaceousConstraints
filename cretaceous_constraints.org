@@ -12138,6 +12138,8 @@ Note that this often crashed my laptop, so we limit the variable perturbations a
                              x = age_floating, y = value)
 #+end_src
 
+#+RESULTS:
+
 ***** FFT periodogram
 :PROPERTIES:
 :CREATED:  [2023-12-19 Tue 16:00]
@@ -12276,10 +12278,12 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
 #+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_filters.pdf :width 10 :height 6
   my_filter <- \(x) x |>
                       ## filter(detrend_type != "value") # default to show all
-                      ## filter(detrend_type == "value") # default to show all
+                      ## filter(detrend_type == "value") |> # only raw for signif
+                      filter(detrend_type %in% c("value", "lin_scl_med")) |> # only raw for signif
+                      filter(depth_chunk == "full record")
                       ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
                       ## filter(detrend_type == "lin_gam_det")
-                      filter(detrend_type == "lin_scl_fine") #|>
+                      ## filter(detrend_type == "lin_scl_fine") #|>
                       ## filter(depth_chunk == "depth < 109.26")
 
   # plot spectra w/ Freq on x-axis
@@ -12288,6 +12292,7 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
     ## filter(detrend_type != "value") |>
     ## plot_spectrum(group = c("sol")) # only works well for a single grouping variable
     ggplot(aes(x = frequency, y = power,
+               linetype = detrend_type
                ## linetype = site,
                ## colour = detrend_type
                )) +
@@ -12329,6 +12334,9 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
     # rectangles for target frequencies
     ## ggnewscale::new_scale_fill() +
 
+    geom_segment(aes(x = 1 / center, y = 3e-5, xend = 1 / center, yend = 6e-5),
+                 inherit.aes = FALSE,
+                 data = bat_age_filters) +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 3e-5, ymax = 6e-5, fill = ref),
               inherit.aes = FALSE,
               alpha = .3,
@@ -12336,6 +12344,9 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
     # I drew these, but then realized we're doing a uniform filter by default, mean is not relevant!
     ## geom_segment(aes(x = f, xend = f, y = 1e-5, yend = 3e-5, colour = ref),
     ##              data = my_filt_age) +
+    geom_segment(aes(x = f, y = 1e-5, xend = f, yend = 3e-5),
+                 inherit.aes = FALSE,
+                 data = my_filt_age) +
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 3e-5, fill = ref),
               inherit.aes = FALSE,
               alpha = .3,
@@ -12403,15 +12414,89 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
               data = filts_age |> distinct(proxy, flow, fhigh)) +
     labs(x = "Period (kyr)", y = "Power", colour = "Site")
 #+end_src
+**** play around with bandpass filter parameters
+:PROPERTIES:
+:CREATED:  [2024-02-21 Wed 14:36]
+:END:
+experiment with the effects of the bandpass window and frequency fraction
+
+I think the gaussian window came out nicest!
+#+begin_src R :results none
+  # after some experimentation, the same as bat
+  ## target_periods <- c("405 kyr" = 415, "100 kyr" = 100)
+  ## frequency_fraction <- 1/3
+  target_periods <- c("405 kyr" = 405, "100 kyr" = 110)
+  frequency_fraction <- 0.33
+  bandpass_window <- 0
+  my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
+                                p = target_periods) |>
+    dplyr::mutate(f = 1 / .data$p,
+                  range = frequency_fraction * .data$f,
+                  flow = .data$f - .data$range,
+                  fhigh = .data$f + .data$range,
+                  ref = "This study")
+
+  mini_data <- smooth_ages |>
+    ## filter(detrend_type == "value") |>
+    ## filter(detrend_type == "lin_scl_med") |>
+    filter(detrend_type != "value") |>
+    filter(site == "Zumaia", proxy == "Lstar",
+           depth_chunk == "full record")
+
+  filts_age_test <- mini_data |>
+    ## bandpass_filter(frequencies = my_filt_age,
+    ##                 x = age_floating, y = value,
+    ##                 window = bandpass_window,
+    ##                 padfac = 200,
+    ##                 add_depth = TRUE)
+    nested_bandpass_filter(frequencies = my_filt_age,
+                           x = age_floating, y = value,
+                           nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                           window = bandpass_window,
+                           add_depth = TRUE)
+
+  bandpass_window <- 1
+  filts_age_test_1 <- mini_data |>
+    nested_bandpass_filter(frequencies = my_filt_age,
+                           x = age_floating, y = value,
+                           nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                           window = bandpass_window,
+                           add_depth = TRUE)
+
+  bandpass_window <- 2
+  filts_age_test_2 <- mini_data |>
+    nested_bandpass_filter(frequencies = my_filt_age,
+                           x = age_floating, y = value,
+                           nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                           window = bandpass_window,
+                           add_depth = TRUE)
+
+
+
+  filts_age_test |>
+    mutate(window = "rectangular") |>
+    bind_rows(filts_age_test_1 |> mutate(window = "gaussian")) |>
+    bind_rows(filts_age_test_2 |> mutate(window = "tukey")) |>
+    construct_eccentricity(sign = -1, id_cols = c("age_floating", "depth", "value", "detrend_type", "window")) |>
+    ggplot(aes(x = age_floating * 1e-3, y = ecc,
+               colour = detrend_type,
+               linetype = window)) +
+    ## facet_grid(rows = vars(window)) +
+    scale_x_reverse() +
+    ## geom_line(aes(y = scale(value)[, 1]), alpha = .1) +
+    geom_line() +
+    labs(title = glue::glue("Zumaia Lstar freq_frac = {frequency_fraction}, bp win = {bandpass_window}"))
+#+end_src
+
+
 **** calculate bandpass filters in the time domain
 :PROPERTIES:
-:CREATED:  [2023-09-26 Tue 16:49]
-:END:
 #+begin_src R :results none
   filts_age <- smooth_ages |>
     nested_bandpass_filter(frequencies = my_filt_age,
                            x = age_floating, y = value,
                            nest = c("proxy", "site", "detrend_type", "depth_chunk"),
+                           window = 1, # gaussian window
                            add_depth = TRUE)
 #+end_src
 
@@ -12984,21 +13069,24 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
   tst1 <- data_ecc_age |>
     filter(
       proxy == "Lstar",
-      detrend_type == "lin_scl_fine",
+      detrend_type == "lin_scl_med",
       site == "Zumaia",
       ## depth_chunk=="depth < 109.26",
-      depth_chunk=="full record",
+      depth_chunk == "full record",
       ## depth <= 115, # note sedrate switch from 17 m to 12 m.
       comb == "1:1") |>
     wrap_age_model(
       agemodel = agem_indep,
-      astronomical_solution = slns |> filter(sln == "ZB18a"),
+      astronomical_solution = slns |> filter(sln == "ZB20b"),
       proxy_phase = -1, # -1 for Lstar and d13C, +1 for MS
-      eccentricity_weights = c(1, 0.5),
+      eccentricity_weights = c(1, 1),
       tiepoint_uncertainty = #seq(-20, 20, 0.5),
         c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
           0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
-      max_error_range = 4, #1.6, # 10% of 16 m 405 kyr cycle
+      target_periods = c("405 kyr" = 405, "100 kyr" = 110),
+      frequency_fraction = 0.1,
+      bandpass_window = 1,
+      max_error_range = 1.6, #1.6, # 10% of 16 m 405 kyr cycle
       RMSD_threshold = 0.005,
       genplot = TRUE, output = "full")
 
@@ -13410,9 +13498,13 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
         agemodel = agem_indep,
         astronomical_solution = slns |> filter(sln == s),
         proxy_phase = sign,
-               tiepoint_uncertainty =
-                 c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
-                   0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
+        tiepoint_uncertainty =
+          c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
+            0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
+        target_periods = c("405 kyr" = 405, "100 kyr" = 110),
+        frequency_fraction = 0.3,
+        ## bandpass_window = 0, # rectangular
+        bandpass_window = 1, # gaussian
         eccentricity_weights = c(s405, s100),
         age_slider = 200,
         kpg_age = 65.9e3,
@@ -13433,7 +13525,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ##        comb == "1:0.5") |>
     ## filter(detrend_type == "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
     ##        comb == "0.5:1") |>
-    filter(detrend_type == "lin_scl_med", site == "Zumaia", comb == "1:1") |>
+    ## filter(detrend_type == "lin_scl_med", site == "Zumaia", comb == "1:1") |>
+    filter(detrend_type == "lin_scl_med", comb == "1:1") |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
@@ -13474,7 +13567,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds") # all additional detrend_types
     ## write_rds("out/2024-02-15_rolling_age_optim_comb.rds") # all additional detrend_types
     ## write_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds") # all additional detrend_types
-    write_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds")
+    ## write_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds")
+    write_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13590,7 +13685,19 @@ current time: 2024-02-15 13:32:25.06223
       read_rds("out/2024-02-15_rolling_age_optim_comb.rds"), # 1:0.5
       read_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds"),
       read_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds"),
-    )
+      read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds"),
+
+      ) |>
+    mutate(window = "rectangular") |>
+    bind_rows(
+      read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds") |>
+      mutate(window = "gaussian")) |>
+    # turn into factors so that plotting is in the correct order
+    mutate(comb = factor(comb,
+                         levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                                    "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+    mutate(depth_chunk = factor(depth_chunk, levels = c("full record", "depth >= 109.26", "depth < 109.26")))
+
 #+end_src
 
 #+RESULTS:
@@ -13622,10 +13729,6 @@ current time: 2024-02-15 13:32:25.06223
 **** plot improvement after optimization after algorithm revision
 #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
   best_age_optim |>
-    mutate(comb = factor(comb,
-                         levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                                    "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-    mutate(depth_chunk = factor(depth_chunk, levels = c("full record", "depth >= 109.26", "depth < 109.26"))) |>
     ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
                group = paste(site, proxy, comb,
                              detrend_type, depth_chunk))) +
