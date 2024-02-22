@@ -43,7 +43,7 @@ bandpass_filter <- function(data, frequencies,
 
   out <- data |>
     dplyr::mutate(filt = list(frequencies)) |>
-    tidyr::unnest(.data$filt) |>
+    tidyr::unnest("filt") |>
     tidyr::nest(.by = tidyr::all_of(colnames(frequencies)))
 
   if (linterp) {
@@ -65,8 +65,8 @@ bandpass_filter <- function(data, frequencies,
                                                        detrend = TRUE,
                                                        genplot = FALSE, verbose = FALSE) |>
                                 dplyr::select(filter = {{y}}))) |>
-      dplyr::select(-.data$data) |>
-      tidyr::unnest(cols = c(.data$lt, .data$bp))
+      dplyr::select(-"data") |>
+      tidyr::unnest(cols = c("lt", "bp"))
   } else {
     out <- out |>
       dplyr::mutate(
@@ -79,8 +79,8 @@ bandpass_filter <- function(data, frequencies,
                                                      demean = TRUE, detrend = TRUE,
                                                      genplot = FALSE, verbose = FALSE) |>
                                 dplyr::select(filter = {{y}}))) |>
-      dplyr::select(-.data$data) |>
-      tidyr::unnest(cols = c(.data$data, .data$bp))
+      dplyr::select(-"data") |>
+      tidyr::unnest(cols = c("data", "bp"))
   }
 
   if (add_depth) {
@@ -122,6 +122,6 @@ nested_bandpass_filter <- function(data,
                                     ...,
                                     window = window,
                                     add_depth = add_depth))) |>
-    tidyr::unnest(.data$bp) |>
-    dplyr::select(-.data$data)
+    tidyr::unnest("bp") |>
+    dplyr::select(-"data")
 }

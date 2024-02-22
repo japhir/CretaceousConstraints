@@ -39,7 +39,7 @@ spectral_analysis <- function(data, x, y, method = "MTM", ...) {
                           names_to = c("AR1", ".width"),
                           names_pattern = "^(AR1)_(9[950])",
                           values_to = "ar1_power") |>
-      dplyr::select(-.data$AR1) |>
+      dplyr::select(-"AR1") |>
       dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
       dplyr::rename(frequency = .data$Frequency,
                     power = .data$Power,
@@ -57,7 +57,7 @@ spectral_analysis <- function(data, x, y, method = "MTM", ...) {
                           names_to = c("LOWSPEC", ".width"),
                           names_pattern = "^(LOWSPEC)_(9[950])",
                           values_to = "lowspec_power") |>
-      dplyr::select(-.data$LOWSPEC) |>
+      dplyr::select(-"LOWSPEC") |>
       dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
       dplyr::rename(frequency = .data$Frequency,
                     power = .data$Prewhite_power,
@@ -93,6 +93,6 @@ nested_spectral_analysis <- function(data, nest, ..., x, y) {
                        ...,
                        x = {{x}}, y = {{y}})
     ) |>
-    dplyr::select(-.data$data) |>
-    tidyr::unnest(.data$mtm)
+    dplyr::select(-"data") |>
+    tidyr::unnest("mtm")
 }

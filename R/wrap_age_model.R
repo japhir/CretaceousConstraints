@@ -208,7 +208,7 @@ wrap_age_model <- function(data,
   esd <- ecc |>
     dplyr::mutate(kpg_age = kpg_age, .after = .data$age_floating) |>
     dplyr::mutate(age_slider = list(age_error), .after = .data$kpg_age) |>
-    tidyr::unnest(.data$age_slider) |>
+    tidyr::unnest("age_slider") |>
     dplyr::mutate(age = .data$kpg_age +
                     .data$age_slider + .data$age_floating,
                   .after = .data$age_slider) |>
@@ -249,12 +249,12 @@ wrap_age_model <- function(data,
                   RMSD_cum = NA_real_) # best RMSD score for full record
 
   the_best <- the_best_summary |>
-    dplyr::select(-.data$tie_err, -.data$RMSD_cum) |>
+    dplyr::select(-c("tie_err", "RMSD_cum")) |>
     dplyr::mutate(
       optimal = list(tibble::tibble(error = tiepoint_uncertainty,
                                     RMSD_tie = NA_real_))
     ) |>
-    tidyr::unnest(cols = c(.data$optimal))
+    tidyr::unnest(cols = "optimal")
 
   full_record <- esd |>
     dplyr::filter(.data$age_slider == optimal_age_slider)
