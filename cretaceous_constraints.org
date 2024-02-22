@@ -12421,6 +12421,9 @@ see [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous
 experiment with the effects of the bandpass window and frequency fraction
 
 I think the gaussian window came out nicest!
+
+ok the .3 is fine I guess
+
 #+begin_src R :results none
   # after some experimentation, the same as bat
   ## target_periods <- c("405 kyr" = 415, "100 kyr" = 100)
@@ -12436,6 +12439,34 @@ I think the gaussian window came out nicest!
                   fhigh = .data$f + .data$range,
                   ref = "This study")
 
+  mini_data <- smooth_ages |>
+    ## filter(detrend_type == "value") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(site == "Zumaia", proxy == "Lstar",
+           depth_chunk == "full record")
+
+  # a little more manual approach
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::bandpass(flow = 0.00165, fhigh = 0.00328,
+                         win = 1,
+                         demean = TRUE, detrend = TRUE,
+                         xmax = 0.03)
+
+  f_off <- .003
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE) |>
+    astrochron::bandpass(
+                  ## flow = 0.00609, fhigh = 0.0121,
+                  flow = 1 / 110 - f_off, fhigh = 1 / 110 + f_off,
+                  win = 1,
+                  demean = TRUE, detrend = TRUE,
+                  xmax = 0.03)
+
+
+  # all-at-once stuff that I built first
   mini_data <- smooth_ages |>
     ## filter(detrend_type == "value") |>
     ## filter(detrend_type == "lin_scl_med") |>
@@ -12559,7 +12590,7 @@ I don't like this and it also doesn't preserve depth anymore.
                  nest(.by = c(proxy, site, detrend_type, depth_chunk, flow, fhigh)) |>
                  mutate(pk = map(data, \(d) d |>
                                             select(age_floating, filter) |>
-                                            mutate(filter = -filter) |> # we want minima rather than maxima
+                                            ## mutate(filter = -filter) |> # we want minima rather than maxima
                                             astrochron::peak(genplot = FALSE, verbose = FALSE))) |>
                  unnest(pk) |>
                  rename(age_floating = Location, pk = Peak_Value) |>
@@ -13526,7 +13557,13 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## filter(detrend_type == "lin_scl_fine", proxy == "Lstar", site == "Zumaia",
     ##        comb == "0.5:1") |>
     ## filter(detrend_type == "lin_scl_med", site == "Zumaia", comb == "1:1") |>
-    filter(detrend_type == "lin_scl_med", comb == "1:1") |>
+    ## filter(detrend_type == "lin_scl_med", comb == "1:1") |>
+    ## filter(detrend_type == "scl", comb == "1:1") |>
+    ## filter(!(site == "Zumaia" & proxy == "Lstar")) |>
+    filter(comb == "1:1") |>
+    ## filter(!(site == "Zumaia" & proxy == "Lstar")) |>
+    filter(site == "Sopelana" & proxy == "Lstar") |>
+    filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
@@ -13550,7 +13587,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
              .l = list(d = data, s = sol, s405 = s405, s100 = s100, sign = sign_405),
              .f = mw,
              .progress = TRUE)) |>
-    select(-data) |>
+    select(-"data") |>
     ## write_rds("out/2023-12-08_rolling_age_optim.rds") # only lin_gam_det (hilbert, 1:0.5), 20 rows
     ## write_rds("out/2023-12-08_rolling_age_optim_nld.rds") # remainder of detrend_type (no lin_gam_det, only hilbert, 1:0.5), 80 additional rows
     ## write_rds("out/2023-12-08_rolling_age_optim_combs.rds") # some additional combs
@@ -13569,7 +13606,13 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds") # all additional detrend_types
     ## write_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds")
     ## write_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds")
-    write_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds")
+    ## SOMEDAY write_rds("out/2024-02-21_rolling_age_optim_all_rectangular_addition.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds")
+    write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13620,6 +13663,31 @@ add Zumaia 0.5:1 for combleteness?
 current time: 2024-02-15 13:19:16.268525
 current time: 2024-02-15 13:32:25.06223
 
+.. some more that I didn't write down
+
+out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds
+
+all lin_scl_med 1:1 combs for both sites, now with gaussian bandpass filter windows.
+out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds
+current time: 2024-02-21 14:32:43.678088
+current time: 2024-02-21 15:15:38.131599
+
+out/2024-02-21_rolling_age_optim_scl_gaussian.rds
+current time: 2024-02-21 15:51:12.456357
+current time: 2024-02-21 16:31:49.176135
+
+adding all the other proxies and depth_chunks with rectangular window for scl
+out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds
+current time: 2024-02-21 16:40:54.723448
+current time: 2024-02-21 17:04:18.265115
+
+out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds
+current time: 2024-02-21 17:22:54.669639
+current time: 2024-02-21 17:37:30.798659
+
+out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds
+current time: 2024-02-21 17:38:51.230929
+-- put laptop to sleep
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -13686,18 +13754,22 @@ current time: 2024-02-15 13:32:25.06223
       read_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds"),
       read_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds"),
       read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds"),
-
+      read_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds"),
+      read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds"),
       ) |>
     mutate(window = "rectangular") |>
     bind_rows(
-      read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds") |>
+      bind_rows(
+        read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds"),
+        read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds"),
+        read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds"),
+        ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
     mutate(comb = factor(comb,
                          levels = c("1:0", "1:0.25", "1:0.5", "1:0.75",
                                     "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
     mutate(depth_chunk = factor(depth_chunk, levels = c("full record", "depth >= 109.26", "depth < 109.26")))
-
 #+end_src
 
 #+RESULTS:
@@ -13721,7 +13793,21 @@ current time: 2024-02-15 13:32:25.06223
                           \(x) x$summary |>
                                arrange(rev(n)) |>
                                slice(1) |>
-                               pull(RMSD_cum)))
+                               pull(RMSD_cum))) |>
+    tidylog::filter(RMSD == min(RMSD), .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window))
+#+end_src
+
+#+RESULTS:
+: filter: removed 7 rows (1%), 609 rows remaining
+
+**** single best for each site, proxy, depth_chunk, comb
+:PROPERTIES:
+:CREATED:  [2024-02-21 Wed 23:11]
+:END:
+out of all the detrend types and gaussian/rectangular filters (window)
+#+begin_src R
+  best_age_optim_one <- best_age_optim |>
+    filter(RMSD == min(RMSD), .by = c(sol, proxy, site, comb, depth_chunk))
 #+end_src
 
 #+RESULTS:
@@ -13729,13 +13815,22 @@ current time: 2024-02-15 13:32:25.06223
 **** plot improvement after optimization after algorithm revision
 #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
   best_age_optim |>
+    filter(comb == "1:1") |>
+    filter(detrend_type != "value") |>
+    ## filter(detrend_type == "lin_scl_med") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type %in% c("scl", "lin_scl_med")) |>
     ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
+               shape = window,
+               ## size = detrend_type,
                group = paste(site, proxy, comb,
-                             detrend_type, depth_chunk))) +
+                             detrend_type, depth_chunk,
+                             window))) +
     labs(
       x = "Astronomical solution",
       y = "Root Mean Square Deviation (RMSD)",
-      shape = "Age model",
+      shape = "Bandpass window",
+      alpha = "Bandpass window",
       linetype = "Age model") +
     facet_grid(cols = vars(proxy, comb), rows = vars(site, depth_chunk),
                scales = "free_y", space = "free_y",
@@ -13743,18 +13838,22 @@ current time: 2024-02-15 13:32:25.06223
     theme(## strip.text.y = element_text(size = 8),
       axis.text.x = element_text(angle = 90, vjust = 0.5)
           ) +
-    scale_shape_manual(values = c("Field" = '●', "Optimized" = '▼')) + # ◀
+    ## scale_shape_manual(values = c("Field" = '●', "Optimized" = '▼')) +
+    scale_shape_manual(values = c("gaussian" = '●',
+                                  "rectangular" = '■')) + # ▬◀
+    scale_alpha_manual(values = c("gaussian" = 1,
+                                  "rectangular" = .3)) +
+    scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
     scale_y_continuous(breaks = c(1, 1.2, 1.4, 1.5, 2),
                        minor_breaks = seq(0,2,.1)) +
-    ## theme(axis.text.y = element_text(angle = 90, size = 7)) +
-    ## scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    geom_point(aes(y = RMSD_start, shape = "Field"), size = 3) +
-    geom_point(aes(colour = detrend_type, shape = "Optimized"), size = 4) +
+    ## geom_point(aes(y = RMSD_start, shape = "Field"), size = 3) +
+    geom_point(aes(alpha = window), size = 3) +
     geom_path(aes(y = RMSD_start, linetype = "Field")) +
-    geom_path(aes(x = sol, y = RMSD, linetype = "Optimized")) +
+    geom_path(aes(x = sol, y = RMSD, alpha = window, linetype = "Optimized")) +
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))+
     geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
-                   alpha = .2)
+                   alpha = .2) ## +
+    ## geom_point(size = .3, colour = "black", data = best_age_optim_one)
 #+end_src
 
 #+RESULTS:
@@ -14434,21 +14533,35 @@ oh no, the Sopelana results are not exporting the Matched record!
 # #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
 # #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_simple.pdf :width 9.6 :height 8
 # #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_simple.pdf :width 9.6 :height 8
+#+begin_src R
+  my_filt <- \(x) x |>
+                    filter(comb == "1:1") |>
+                    filter(proxy == "Lstar") |>
+                    filter(window == "gaussian") |>
+                    filter(depth_chunk == "full record")
+
+  baoo <- best_age_optim_one |>
+    my_filt() |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m)
+#+end_src
+
+#+RESULTS:
+
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.pdf :width 9.6 :height 8
   best_age_optim |>
-    filter(comb == "1:1") |>
-    filter(proxy == "Lstar") |>
-    ## filter(detrend_type == "lin_scl_med") |>
-    filter(detrend_type == "lin_scl_fine") |>
+    my_filt() |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
     ggplot(aes(x = age * 1e-3,
                y = sign_405 * ecc,
                colour = site,
+               ## linetype = window,
                group = paste(sol,
                              site, proxy,
                              detrend_type,
-                             depth_chunk))) +
+                             depth_chunk,
+                             window))) +
     facet_grid(rows = vars(sol)) +
     labs(x = "Age (Ma)", y = "Norm. Filter & Solution",
          colour = "") +
@@ -14461,10 +14574,11 @@ oh no, the Sopelana results are not exporting the Matched record!
     scale_alpha_continuous(range = c(1, 0.2)) +
     scale_colour_manual(values = c("Astronomical Solution" = "black",
                                    "Zumaia" = "purple",
-                                   "Sopelana" = "skyblue"
+                                   "Sopelana" = "skyblue",
                                    ## "Lstar" = "purple",
                                    ## "MS" = "skyblue",
                                    ## "d13C" = "darkgreen"
+                                   "Best match" = "navyblue"
                                    )) +
     geom_vline(aes(xintercept = age1),
                colour = "darkgray",
@@ -14472,16 +14586,28 @@ oh no, the Sopelana results are not exporting the Matched record!
                  filter(sln != "La11") |>
                  rename(sol = sln)) +
     geom_line(aes(linewidth = RMSD, alpha = RMSD)) +
+    ## geom_line(aes(linewidth = RMSD, alpha = RMSD,
+    ##               colour = "Best match"),
+    ##           data = baoo) +
     geom_line(aes(y = ecc_sln, colour = "Astronomical Solution")) +
     ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-    geom_text(aes(x = age * 1e-3, y = 4,
+    geom_text(aes(x = age * 1e-3, y = 4, #y = 4 + as.integer(depth_chunk),
                   label = round(RMSD, 3)),
               size = 2, show.legend = FALSE,
-              ## nudge_y = 1.4,
-              ## position = position_dodge(width = 1.2),
-              data = \(x) x |>
-                          filter(age == min(age),
-                                 .by = c(RMSD, site, sol, proxy, detrend_type, depth_chunk))) +
+              data = best_age_optim_one |>
+                my_filt() |>
+                mutate(age = map_dbl(the_best,
+                                     \(x) mean(x$matched$age,
+                                                 na.rm = TRUE)))) +
+    geom_text(aes(x = age * 1e-3, y = 5,# + as.integer(depth_chunk),
+                  label = paste(site, depth_chunk, comb, detrend_type, window)),
+              size = 2, show.legend = FALSE,
+              data = best_age_optim_one |>
+                my_filt() |>
+                mutate(age = map_dbl(the_best,
+                                     \(x) mean(x$matched$age,
+                                                 na.rm = TRUE)))) +
+
     # annotate ages of 405 kyr minima
     geom_point(aes(x = age * 1e-3, y = -2),
                inherit.aes = FALSE,
