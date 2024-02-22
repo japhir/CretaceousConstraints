@@ -13780,6 +13780,7 @@ current time: 2024-02-21 17:38:51.230929
 :END:
 #+begin_src R
   best_age_optim <- rolling_age_optim |>
+    tidylog::filter(detrend_type != "value") |>
     # pull out the best RMSD score
     # for error = 0, tiepoint is the first (i.e. without tweaks)
     mutate(RMSD_start = map_dbl(the_best,
@@ -13794,11 +13795,13 @@ current time: 2024-02-21 17:38:51.230929
                                arrange(rev(n)) |>
                                slice(1) |>
                                pull(RMSD_cum))) |>
-    tidylog::filter(RMSD == min(RMSD), .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window))
+    tidylog::filter(RMSD == min(RMSD),
+                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window))
 #+end_src
 
 #+RESULTS:
-: filter: removed 7 rows (1%), 609 rows remaining
+: filter: removed 35 rows (6%), 581 rows remaining
+: filter: removed 7 rows (1%), 574 rows remaining
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -13816,7 +13819,6 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
   best_age_optim |>
     filter(comb == "1:1") |>
-    filter(detrend_type != "value") |>
     ## filter(detrend_type == "lin_scl_med") |>
     ## filter(detrend_type == "scl") |>
     ## filter(detrend_type %in% c("scl", "lin_scl_med")) |>
@@ -13865,6 +13867,55 @@ out of all the detrend types and gaussian/rectangular filters (window)
 :END:
 limit to comb == "1:1" and don't show the lin_scl_rw.
 
+#+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 1700 :height 1700 :res 300
+  best_age_optim |>
+    filter(comb == "1:1") |>
+    filter(detrend_type != "value") |>
+    ## filter(detrend_type == "lin_scl_med") |>
+    ## filter(detrend_type == "scl") |>
+    filter(detrend_type %in% c("scl", "lin_scl_med")) |>
+    filter(proxy == "Lstar") |>
+    ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
+               shape = window,
+               ## size = detrend_type,
+               group = paste(site, proxy, comb,
+                             detrend_type, depth_chunk,
+                             window))) +
+    labs(
+      x = "Astronomical solution",
+      y = "Root Mean Square Deviation (RMSD)",
+      shape = "Bandpass window",
+      alpha = "Bandpass window",
+      linetype = "Age model") +
+    facet_grid(cols = vars(proxy, comb), rows = vars(site, depth_chunk),
+               scales = "free_y", space = "free_y",
+               ) +
+    theme(## strip.text.y = element_text(size = 8),
+      axis.text.x = element_text(angle = 90, vjust = 0.5)
+          ) +
+    ## scale_shape_manual(values = c("Field" = '●', "Optimized" = '▼')) +
+    scale_shape_manual(values = c("gaussian" = '●',
+                                  "rectangular" = '■')) + # ▬◀
+    scale_alpha_manual(values = c("gaussian" = 1,
+                                  "rectangular" = .5)) +
+    scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
+    scale_y_continuous(breaks = c(1, 1.2, 1.4, 1.5, 2),
+                       minor_breaks = seq(0,2,.1)) +
+    ## geom_point(aes(y = RMSD_start, shape = "Field"), size = 3) +
+    geom_point(aes(alpha = window), size = 3) +
+    ## geom_path(aes(y = RMSD_start, linetype = "Field")) +
+    geom_path(aes(x = sol, y = RMSD, alpha = window, linetype = "Optimized")) #+
+    ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))+
+    ## geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
+    ##                alpha = .2) ## +
+    ## geom_point(size = .3, colour = "black", data = best_age_optim_one)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/rolling_age_overview_new.png]]
+
+
+old
 #+begin_src R :results output graphics file :file imgs/rolling_age_overview_new.png :width 1700 :height 1700 :res 300
   best_age_optim |>
     mutate(depth_chunk = factor(depth_chunk, levels = c("full record", "depth >= 109.26", "depth < 109.26"))) |>
@@ -14536,9 +14587,9 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+begin_src R
   my_filt <- \(x) x |>
                     filter(comb == "1:1") |>
-                    filter(proxy == "Lstar") |>
-                    filter(window == "gaussian") |>
-                    filter(depth_chunk == "full record")
+                    filter(proxy == "Lstar")
+                    ## filter(window == "gaussian") |>
+                    ## filter(depth_chunk == "full record")
 
   baoo <- best_age_optim_one |>
     my_filt() |>
@@ -14571,7 +14622,7 @@ oh no, the Sopelana results are not exporting the Matched record!
                     minor_breaks = seq(80, 50, -0.1)) +
     scale_y_continuous(breaks = c(-4, 0, 4)) +
     scale_linewidth_continuous(range = c(1.2, 0.3)) +
-    scale_alpha_continuous(range = c(1, 0.2)) +
+    scale_alpha_continuous(range = c(.6, 0.2)) +
     scale_colour_manual(values = c("Astronomical Solution" = "black",
                                    "Zumaia" = "purple",
                                    "Sopelana" = "skyblue",
@@ -14591,7 +14642,7 @@ oh no, the Sopelana results are not exporting the Matched record!
     ##           data = baoo) +
     geom_line(aes(y = ecc_sln, colour = "Astronomical Solution")) +
     ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-    geom_text(aes(x = age * 1e-3, y = 4, #y = 4 + as.integer(depth_chunk),
+    geom_text(aes(x = age * 1e-3, y = -5 + 10 * as.integer(depth_chunk == "full record"), #y = 4 + as.integer(depth_chunk),
                   label = round(RMSD, 3)),
               size = 2, show.legend = FALSE,
               data = best_age_optim_one |>
@@ -14599,8 +14650,8 @@ oh no, the Sopelana results are not exporting the Matched record!
                 mutate(age = map_dbl(the_best,
                                      \(x) mean(x$matched$age,
                                                  na.rm = TRUE)))) +
-    geom_text(aes(x = age * 1e-3, y = 5,# + as.integer(depth_chunk),
-                  label = paste(site, depth_chunk, comb, detrend_type, window)),
+    geom_text(aes(x = age * 1e-3, y = -6 + 12 * as.integer(depth_chunk == "full record"),# + as.integer(depth_chunk),
+                  label = paste(detrend_type, window)),
               size = 2, show.legend = FALSE,
               data = best_age_optim_one |>
                 my_filt() |>
