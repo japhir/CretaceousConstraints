@@ -13781,6 +13781,7 @@ current time: 2024-02-21 17:38:51.230929
 #+begin_src R
   best_age_optim <- rolling_age_optim |>
     tidylog::filter(detrend_type != "value") |>
+    tidylog::filter(!(depth_chunk == "depth >= 109.26" & detrend_type == "lin_scl_fine" & sol == "ZB20a")) |>
     # pull out the best RMSD score
     # for error = 0, tiepoint is the first (i.e. without tweaks)
     mutate(RMSD_start = map_dbl(the_best,
@@ -13801,7 +13802,8 @@ current time: 2024-02-21 17:38:51.230929
 
 #+RESULTS:
 : filter: removed 35 rows (6%), 581 rows remaining
-: filter: removed 7 rows (1%), 574 rows remaining
+: filter: removed 5 rows (1%), 576 rows remaining
+: filter: removed 7 rows (1%), 569 rows remaining
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -14587,7 +14589,10 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+begin_src R
   my_filt <- \(x) x |>
                     filter(comb == "1:1") |>
-                    filter(proxy == "Lstar")
+                    filter(proxy == "Lstar") |>
+                    # I think I may have re-run the ZB20a < 109 lin_scl_fine
+                    tidylog::distinct(sol, site, proxy, depth_chunk, comb, window,
+                             .keep_all = TRUE)
                     ## filter(window == "gaussian") |>
                     ## filter(depth_chunk == "full record")
 
@@ -14629,7 +14634,7 @@ oh no, the Sopelana results are not exporting the Matched record!
                                    ## "Lstar" = "purple",
                                    ## "MS" = "skyblue",
                                    ## "d13C" = "darkgreen"
-                                   "Best match" = "navyblue"
+                                   "Best match" = "green"
                                    )) +
     geom_vline(aes(xintercept = age1),
                colour = "darkgray",
@@ -14638,10 +14643,48 @@ oh no, the Sopelana results are not exporting the Matched record!
                  rename(sol = sln)) +
     geom_line(aes(linewidth = RMSD, alpha = RMSD)) +
     ## geom_line(aes(linewidth = RMSD, alpha = RMSD,
-    ##               colour = "Best match"),
+    ##               colour = "Best match"
+    ##               ),
     ##           data = baoo) +
-    geom_line(aes(y = ecc_sln, colour = "Astronomical Solution")) +
+
+    # annotate astronomical solution
+    geom_line(aes(x = age * 1e-3, y = scl, group = sol,
+                  colour = "Astronomical Solution"),
+              inherit.aes = FALSE,
+              data = slns |>
+                filter(sln != "La11") |>
+                filter(age > 65800) |>
+                filter(age < 71500) |>
+                rename(sol = sln)) +
+    # this has some ugly dups
+    ## geom_line(aes(y = ecc_sln, colour = "Astronomical Solution"),
+    ##           data = \(x) x |>
+    ##                       distinct(sol, proxy, comb, age, depth_chunk, ecc_sln, .keep_all = TRUE) |>
+    ##                       filter(depth_chunk == "full record",
+    ##                              proxy == "Lstar",
+    ##                              comb == "1:1")) +
     ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+
+    # annotate best fit scores
+    geom_errorbarh(aes(xmin = lwr * 1e-3,
+                       xmax = upr * 1e-3,
+                       y = -7 + 14 * as.integer(depth_chunk == "full record")),
+                   height = 1, alpha = .2,
+                   data = best_age_optim_one |>
+                     my_filt() |>
+                     mutate(
+                       age = map_dbl(the_best,
+                                     \(x) mean(x$matched$age,
+                                               na.rm = TRUE)),
+                       lwr = map_dbl(the_best,
+                                     \(x) min(x$matched$age,
+                                              na.rm = TRUE)),
+                       upr = map_dbl(the_best,
+                                     \(x) max(x$matched$age,
+                                              na.rm = TRUE)))) +
+    ## geom_line(aes(y = -7 + 14 * as.integer(depth_chunk == "full record")),
+    ##           linewidth = 1, alpha = .05,
+    ##           data = \(x) x |> distinct(sol, proxy, site, depth_chunk, age, .keep_all = TRUE)) +
     geom_text(aes(x = age * 1e-3, y = -5 + 10 * as.integer(depth_chunk == "full record"), #y = 4 + as.integer(depth_chunk),
                   label = round(RMSD, 3)),
               size = 2, show.legend = FALSE,
