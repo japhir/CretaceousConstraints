@@ -9899,6 +9899,25 @@ this is not easy to customize, so we manually create it below.
 #+RESULTS:
 [[file:imgs/Zumaia-Sopelana_detrend_types_all.pdf]]
 
+**** define consistent colours for detrend_type
+:PROPERTIES:
+:CREATED:  [2024-02-23 Fri 14:13]
+:END:
+#+begin_src R
+  detrend_colours <- c(
+    "scl" = "#483737", # !
+    "gam_scl" = "#d40000",
+    "hp_scl" = "#0088aa",
+    "lin_scl_rw" = "indianred",
+    "lin_scl_fine" = "#ff9955",
+    "lin_scl_med" = "#aa4400",
+    "lin_scl_coarse" = "#803300",
+    "value" = "red"
+  )
+#+end_src
+
+#+RESULTS:
+
 **** create smooth_pred, a subset with only detrend types we care about
 :PROPERTIES:
 :CREATED:  [2024-01-11 Thu 10:48]
@@ -9906,11 +9925,15 @@ this is not easy to customize, so we manually create it below.
 #+begin_src R
   smooth_pred <- smooth_all |>
     tidylog::filter(detrend_type %in%
-                    c("value", "scl",
+                    c(## "value",
+                      "scl",
                       "lin_scl_rw", "lin_scl_fine", "lin_scl_med", "lin_scl_coarse",
                       "gam_scl", "loess_scl",
                       "hp_scl"
                       )) |>
+    mutate(detrend_type = factor(detrend_type,
+                                 levels = names(detrend_colours) #c("scl", "gam_scl", "hp_scl", "lin_scl_fine", "lin_scl_med", "lin_scl_coarse")
+                                 )) |>
     mutate(depth_chunk = list(c(
              "full record", "depth < 109.26", "depth >= 109.26"))) |>
     unnest(depth_chunk) |>
@@ -9929,20 +9952,18 @@ this is not easy to customize, so we manually create it below.
 
 #+RESULTS:
 #+begin_example
-filter: removed 49,725 rows (60%), 33,585 rows remaining
-filter: removed 42,383 rows (42%), 58,372 rows remaining
-# A tibble: 9 × 1
+filter: removed 61,165 rows (67%), 30,561 rows remaining
+filter: removed 39,359 rows (43%), 52,324 rows remaining
+# A tibble: 7 × 1
   detrend_type
-  <chr>
-1 value
-2 scl
-3 lin_scl_rw
-4 lin_scl_fine
-5 lin_scl_med
-6 lin_scl_coarse
-7 gam_scl
-8 loess_scl
-9 hp_scl
+  <fct>
+1 scl
+2 lin_scl_rw
+3 lin_scl_fine
+4 lin_scl_med
+5 lin_scl_coarse
+6 gam_scl
+7 hp_scl
 #+end_example
 
 **** CANC show how the linear/gam detrending works
@@ -13560,10 +13581,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## filter(detrend_type == "lin_scl_med", comb == "1:1") |>
     ## filter(detrend_type == "scl", comb == "1:1") |>
     ## filter(!(site == "Zumaia" & proxy == "Lstar")) |>
-    filter(comb == "1:1") |>
     ## filter(!(site == "Zumaia" & proxy == "Lstar")) |>
-    filter(site == "Sopelana" & proxy == "Lstar") |>
-    filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
+    ## filter(site == "Sopelana" & proxy == "Lstar") |>
+    ## filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
     # the second run, which adds some of the other detrend_types for the main case
     ## filter(!detrend_type %in% c("lin_scl_fine", "gam_scl", "value"),
     ##        proxy == "Lstar", site == "Zumaia", comb == "1:1") |> # 28 more
@@ -13583,6 +13603,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## slice(1:3) |>
     mutate(sol = list(target_astronomical_solutions)) |>
     unnest(sol) |>
+    anti_join(rolling_age_optim) |>
+    filter(comb == "1:1") |>
     mutate(the_best = furrr::future_pmap(
              .l = list(d = data, s = sol, s405 = s405, s100 = s100, sign = sign_405),
              .f = mw,
@@ -13612,7 +13634,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds")
     ## SOMEDAY write_rds("out/2024-02-21_rolling_age_optim_all_rectangular_addition.rds")
     ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds")
-    write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds")
+    ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds")
+    write_rds("out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13688,6 +13711,13 @@ current time: 2024-02-21 17:37:30.798659
 out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds
 current time: 2024-02-21 17:38:51.230929
 -- put laptop to sleep
+finished after
+
+I used anti_join to find the rows I hadn't done yet, 245 rows
+out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds
+current time: 2024-02-24 15:13:23.862064
+
+out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -13756,6 +13786,7 @@ current time: 2024-02-21 17:38:51.230929
       read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds"),
       read_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds"),
       read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds"),
+      read_rds("out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds"),
       ) |>
     mutate(window = "rectangular") |>
     bind_rows(
@@ -13763,6 +13794,7 @@ current time: 2024-02-21 17:38:51.230929
         read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds"),
         read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds"),
         read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds"),
+        read_rds("out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds"),
         ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
