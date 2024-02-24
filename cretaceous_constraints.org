@@ -13555,8 +13555,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
             0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
         target_periods = c("405 kyr" = 405, "100 kyr" = 110),
         frequency_fraction = 0.3,
-        ## bandpass_window = 0, # rectangular
-        bandpass_window = 1, # gaussian
+        bandpass_window = 0, # rectangular
+        ## bandpass_window = 1, # gaussian
         eccentricity_weights = c(s405, s100),
         age_slider = 200,
         kpg_age = 65.9e3,
@@ -13635,7 +13635,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## SOMEDAY write_rds("out/2024-02-21_rolling_age_optim_all_rectangular_addition.rds")
     ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds")
     ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds")
-    write_rds("out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds")
+    ## write_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds")
+    write_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13716,8 +13717,11 @@ finished after
 I used anti_join to find the rows I hadn't done yet, 245 rows
 out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds
 current time: 2024-02-24 15:13:23.862064
+current time: 2024-02-24 18:59:27.583944
 
 out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds
+current time: 2024-02-24 21:19:54.827457
+
 **** load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -13786,7 +13790,7 @@ out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds
       read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds"),
       read_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds"),
       read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds"),
-      read_rds("out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds"),
+      read_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds"),
       ) |>
     mutate(window = "rectangular") |>
     bind_rows(
@@ -13794,7 +13798,7 @@ out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds
         read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds"),
         read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds"),
         read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds"),
-        read_rds("out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds"),
+        read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds"),
         ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
