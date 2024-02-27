@@ -13555,8 +13555,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
             0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
         target_periods = c("405 kyr" = 405, "100 kyr" = 110),
         frequency_fraction = 0.3,
-        bandpass_window = 0, # rectangular
-        ## bandpass_window = 1, # gaussian
+        ## bandpass_window = 0, # rectangular
+        bandpass_window = 1, # gaussian
         eccentricity_weights = c(s405, s100),
         age_slider = 200,
         kpg_age = 65.9e3,
@@ -13603,8 +13603,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## slice(1:3) |>
     mutate(sol = list(target_astronomical_solutions)) |>
     unnest(sol) |>
-    anti_join(rolling_age_optim) |>
-    filter(comb == "1:1") |>
+    ## anti_join(rolling_age_optim) |>
     mutate(the_best = furrr::future_pmap(
              .l = list(d = data, s = sol, s405 = s405, s100 = s100, sign = sign_405),
              .f = mw,
@@ -13636,7 +13635,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds")
     ## write_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds")
     ## write_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds")
-    write_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds")
+    ## write_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds")
+    write_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds")
+    write_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(bandpass_filter) # rm so we can get back the one from the package
@@ -13717,10 +13718,18 @@ finished after
 I used anti_join to find the rows I hadn't done yet, 245 rows
 out/2024-02-21_rolling_age_optim_all_remainder_gaussian.rds
 current time: 2024-02-24 15:13:23.862064
+-- crash and restart
 current time: 2024-02-24 18:59:27.583944
 
 out/2024-02-21_rolling_age_optim_all_remainder_rectangular.rds
 current time: 2024-02-24 21:19:54.827457
+-- crash
+restart current time: 2024-02-24 23:20:43.677337
+current time: 2024-02-25 00:46:06.913805
+
+out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds
+current time: 2024-02-25 11:53:47.724441
+current time: 2024-02-25 12:49:15.223617
 
 **** load cached results
 :PROPERTIES:
@@ -13799,6 +13808,7 @@ current time: 2024-02-24 21:19:54.827457
         read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds"),
         read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds"),
         read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds"),
+      read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"),
         ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
@@ -13812,8 +13822,12 @@ current time: 2024-02-24 21:19:54.827457
 #+end_src
 
 #+RESULTS:
-: Warning message:
-: There was 1 warning in `mutate()`.
+: Warning messages:
+: 1: There was 1 warning in `mutate()`.
+: ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type), names(detrend_colours))`.
+: Caused by warning:
+: ! 1 unknown level in `f`: loess_scl
+: 2: There was 1 warning in `mutate()`.
 : ℹ In argument: `comb = fct_relevel(...)`.
 : Caused by warning:
 : ! 6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
@@ -13841,18 +13855,16 @@ current time: 2024-02-24 21:19:54.827457
                                pull(RMSD_cum))) |>
     # I may have accidentally included multiple copies of the same sim?
     tidylog::filter(RMSD == min(RMSD),
-                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window)) |>
+                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window)) #|>
     # lin_scl_med at < 109 m is identical to lin_scl_fine
-    tidylog::filter(!(detrend_type == "lin_scl_med" & depth_chunk == "depth < 109.26")) |>
+    ## tidylog::filter(!(detrend_type == "lin_scl_med" & depth_chunk == "depth < 109.26")) |>
     # lin_scl_med at >= 109 m is identical to lin_scl_coarse
-    tidylog::filter(!(detrend_type == "lin_scl_med" & depth_chunk == "depth >= 109.26"))
+    ## tidylog::filter(!(detrend_type == "lin_scl_med" & depth_chunk == "depth >= 109.26"))
 #+end_src
 
 #+RESULTS:
-: filter: removed 35 rows (6%), 581 rows remaining
-: filter: removed 7 rows (1%), 574 rows remaining
-: filter: removed 42 rows (7%), 532 rows remaining
-: filter: removed 42 rows (8%), 490 rows remaining
+: filter: removed 154 rows (12%), 1,078 rows remaining
+: filter: removed 7 rows (1%), 1,071 rows remaining
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
