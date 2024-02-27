@@ -13596,6 +13596,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ##        comb == "1:1", site == "Zumaia",
     ##        ## depth >= 109.26) |> # this is for the lower part with a different sedrate
     ##        depth < 109.26) |> # this is for the upper part
+    filter(comb == "1:1") |>
+    filter(proxy == "Lstar") |>
+    filter(site == "Zumaia") |>
+    filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
     nest(.by = c(proxy, site,
                  detrend_type, depth_chunk, comb,
                  s405, s100,
@@ -13884,6 +13888,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.pdf :width 8 :height 5
   best_age_optim |>
     filter(comb == "1:1") |>
+    ## filter(proxy == "Lstar") |>
     ## filter(detrend_type == "lin_scl_med") |>
     ## filter(detrend_type == "scl") |>
     ## filter(detrend_type %in% c("scl", "lin_scl_med")) |>
@@ -14038,6 +14043,64 @@ old
 #+caption: Best RMSD scores for different astronomical solutions (x-axis), sites (column panels), detrend types (colours), and proxies (row panels) in different ~comb~'s (shape, linetype). This analysis relies on iteratively shifting the tiepoints by small increments up to \pm4 m and calculating the RMSD for the whole record at each iteration to decide which tiepoint error gives the best fit. *NOTE:* Zumaia d13C records are not correct, they miss a 405 kyr cycle!
 #+RESULTS:
 [[file:imgs/rolling_age_overview_new.png]]
+
+**** show only the best matches
+:PROPERTIES:
+:CREATED:  [2024-02-26 Mon 11:38]
+:END:
+#+begin_src R :results output graphics file :file imgs/rolling_age_overview_best.pdf :width 5 :height 5
+  best_age_optim_one |>
+    filter(comb == "1:1") |>
+    ## filter(detrend_type != "value") |>
+    ## filter(detrend_type == "lin_scl_med") |>
+    ## filter(detrend_type == "scl") |>
+    ## filter(detrend_type %in% c("scl", "lin_scl_med") |
+    ##        (depth_chunk == "depth < 109.26" & detrend_type == "lin_scl_fine") |
+    ##        (depth_chunk == "depth >= 109.26" & detrend_type == "lin_scl_coarse")) |>
+    filter(proxy == "Lstar") |>
+    ## filter(site == "Zumaia" & depth_chunk == "full record") |>
+    ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
+               shape = window,
+               ## size = detrend_type,
+               group = paste(site, proxy, comb,
+                             detrend_type, depth_chunk,
+                             window))) +
+    labs(
+      x = "Astronomical solution",
+      y = "Root Mean Square Deviation (RMSD)",
+      shape = "Bandpass window",
+      alpha = "Bandpass window") +
+    facet_grid(cols = vars(## proxy,
+                           ## window## , comb
+                           ),
+               rows = vars(site, depth_chunk),
+               scales = "free_y", space = "free_y",
+               ) +
+    theme(## strip.text.y = element_text(size = 8),
+      axis.text.x = element_text(angle = 90, vjust = 0.5)
+          ) +
+    scale_colour_manual(values = detrend_colours) +
+    ## scale_shape_manual(values = c("Field" = '●', "Optimized" = '▼')) +
+    ## scale_shape_manual(values = c("gaussian" = '●',
+    ##                               "rectangular" = '■')) + # ▬◀
+    scale_shape_manual(values = c("gaussian" = "circle",
+                                  "rectangular" = "square")) +
+    ## scale_alpha_manual(values = c("gaussian" = 1,
+    ##                               "rectangular" = .5)) +
+    scale_y_continuous(breaks = c(1, 1.2, 1.4, 1.5, 2),
+                       minor_breaks = seq(0,2,.1)) +
+    ## geom_point(aes(y = RMSD_start), size = 0.7) +
+    ## geom_path(aes(y = RMSD_start, linetype = "Field")) +
+    geom_line(aes(x = sol, y = RMSD, group = "all"), colour = "gray")  +
+    geom_point(size = 1)
+    ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))+
+    ## geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
+    ##                alpha = .2) ## +
+    ## geom_point(size = .3, colour = "black", data = best_age_optim_one)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/rolling_age_overview_best.pdf]]
 
 **** COMMENT rerun the best fits with detailed output
 :PROPERTIES:
