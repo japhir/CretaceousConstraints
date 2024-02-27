@@ -9789,76 +9789,100 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :CREATED:  [2023-09-28 Thu 14:26]
 :END:
 #+begin_src R :results none
-  smooth_all <- smooth_basic |>
-    mutate(scl = scale(value)[, 1],
-           .before = gam_pred, .by = c(proxy, site)) |>
-    rename(gam_scl = det) |>
-    tidylog::left_join(smooth_loess) |>
-    # add rw linear detrend
-    tidylog::left_join(
-               smooth |> # just changed to new linear detrend!
-               rename(
-                 lin_scl_rw = lin_scl,
-                 lin_pred_rw = lin_pred,
-                 lin_rw = lin,
-                 lin_gam_pred = gam_pred,
-                 lin_gam = gam,
-                 lin_gam_scl = det)) |>
-    # add fine linear detrend
-    tidylog::left_join(
-               smooth_2 |>
-               mutate(chunk = as.character(colour)) |>
-               select(-colour) |>
-               rename(lin_pred_fine = lin_pred,
-                      lin_fine = lin,
-                      lin_scl_fine = lin_scl)) |>
-    # add coarse linear detrend
-    tidylog::left_join(
-               smooth_3 |>
-               mutate(chunk = as.character(colour)) |>
-               select(-colour) |>
-               rename(lin_pred_coarse = lin_pred,
-                      lin_coarse = lin,
-                      lin_scl_coarse = lin_scl)) |>
-    # add med linear trend
-    tidylog::left_join(
-               smooth_4 |>
-               mutate(chunk = as.character(colour)) |>
-               select(-colour) |>
-               rename(lin_pred_med = lin_pred,
-                      lin_med = lin,
-                      lin_scl_med = lin_scl)) |>
-    ## bind_rows(smooth_hp) |>
-    pivot_longer(c(value, scl,
-                   lin_rw, lin_gam, lin_fine, lin_med, lin_coarse,
-                   lin_scl_rw, lin_scl_fine, lin_scl_med, lin_scl_coarse,
-                   gam_scl, loess_scl,
-                   gam_pred,
-                   lin_pred_rw, lin_pred_fine, lin_pred_med, lin_pred_coarse,
-                   lin_gam_pred, lin_gam_scl,
-                   loess_pred),
-                 names_to = "detrend_type", values_to = "value") |>
-    filter(!is.na(value)) |>
-    # append the lowpass filter
-    bind_rows(
-      smooth_hp |>
-      select(proxy, site, depth = depth_linterp, value = lowpass) |>
-      mutate(detrend_type = "lp_0.025")
-    ) |>
-    # which is subtracted to calculate the highpass
-    bind_rows(
-      smooth_hp |>
-      select(proxy, site, depth = depth_linterp, value = highpass) |>
-      mutate(detrend_type = "hp_scl")
-    )
+    smooth_all <- smooth_basic |>
+      mutate(scl = scale(value)[, 1],
+             .before = gam_pred, .by = c(proxy, site)) |>
+      rename(gam_scl = det) |>
+      tidylog::left_join(smooth_loess) |>
+      # add rw linear detrend
+      tidylog::left_join(
+                 smooth |> # just changed to new linear detrend!
+                 rename(
+                   lin_scl_rw = lin_scl,
+                   lin_pred_rw = lin_pred,
+                   lin_rw = lin,
+                   lin_gam_pred = gam_pred,
+                   lin_gam = gam,
+                   lin_gam_scl = det)) |>
+      # add fine linear detrend
+      tidylog::left_join(
+                 smooth_2 |>
+                 ## mutate(chunk_fine = paste0("fine_", colour)) |>
+                 select(-colour) |>
+                 rename(lin_pred_fine = lin_pred,
+                        lin_fine = lin,
+                        lin_scl_fine = lin_scl)) |>
+      # add coarse linear detrend
+      tidylog::left_join(
+                 smooth_3 |>
+                 ## mutate(chunk_coarse = paste0("coarse_", colour)) |>
+                 select(-colour) |>
+                 rename(lin_pred_coarse = lin_pred,
+                        lin_coarse = lin,
+                        lin_scl_coarse = lin_scl)) |>
+      # add med linear trend
+      tidylog::left_join(
+                 smooth_4 |>
+                 ## mutate(chunk_med = paste0("med_", colour)) |>
+                 select(-colour) |>
+                 rename(lin_pred_med = lin_pred,
+                        lin_med = lin,
+                        lin_scl_med = lin_scl)) |>
+      ## bind_rows(smooth_hp) |>
+      pivot_longer(c(
+        value, scl,
+        lin_rw, lin_gam, lin_fine, lin_med, lin_coarse,
+        lin_scl_rw, lin_scl_fine, lin_scl_med, lin_scl_coarse,
+        gam_scl, loess_scl,
+        gam_pred,
+        lin_pred_rw, lin_pred_fine, lin_pred_med, lin_pred_coarse,
+        lin_gam_pred, lin_gam_scl,
+        loess_pred),
+        names_to = "detrend_type", values_to = "value") |>
+      filter(!is.na(value)) |>
+      # append the lowpass filter
+      bind_rows(
+        smooth_hp |>
+        select(proxy, site, depth = depth_linterp, value = lowpass) |>
+        mutate(detrend_type = "lp_0.025")
+      ) |>
+      # which is subtracted to calculate the highpass
+      bind_rows(
+        smooth_hp |>
+        select(proxy, site, depth = depth_linterp, value = highpass) |>
+        mutate(detrend_type = "hp_scl")
+      )
 #+end_src
+**** define consistent colours for detrend_type
+:PROPERTIES:
+:CREATED:  [2024-02-23 Fri 14:13]
+:END:
+#+begin_src R
+  detrend_colours <- c(
+    "scl" = "#483737", # !
+    "gam_scl" = "#89a02c",
+    "loess_scl" = "#008000",
+    "hp_scl" = "#0088aa",
+    "lin_scl_rw" = "#d40000",
+    "lin_scl_fine" = "#ff9955",
+    "lin_scl_med" = "#aa4400",
+    "lin_scl_coarse" = "#803300",
+    "value" = "#ff0000"
+  )
+#+end_src
+
+#+RESULTS:
+
 **** create a quick plot of all the detrend types
 :PROPERTIES:
 :CREATED:  [2024-01-11 Thu 10:47]
 :END:
 this is not easy to customize, so we manually create it below.
 # #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300
-#+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.pdf :width 6 :height 5
+# #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.pdf :width 6 :height 5
+#+begin_src R
+  cairo_pdf("imgs/Zumaia-Sopelana_detrend_types_all.pdf",
+            width = 6, height = 5)
   smooth_all |>
     arrange(detrend_type) |>
     mutate(detrend_megatype = case_when(
@@ -9870,13 +9894,26 @@ this is not easy to customize, so we manually create it below.
                )) |>
     filter(detrend_megatype != "detrended") |>
     filter(detrend_megatype != "scaled") |>
-    filter(!detrend_type %in% c("lin_rw", "lin_scl_rw", "lin_pred_rw")) |>
+    ## filter(!detrend_type %in% c("lin_scl_rw", "lin_pred_rw")) |>
+    ## filter(detrend_type %in% c("lin_pred_coarse", "value")) |>
+    ## filter(detrend_type %in% c("lin_pred_rw","lin_pred_fine", "lin_pred_med","lin_pred_coarse", "value")) |>
+    ## filter(!detrend_type %in% c("lin_rw", "lin_scl_rw", "lin_pred_rw")) |>
     ## filter(detrend_megatype == "detrended and scaled") |>
     ggplot(aes(x = depth, y = value, colour = detrend_type,
                group = paste(proxy, site, detrend_type))) +
     facet_grid(rows = vars(proxy),
                cols = vars(site),
-               scales = "free", space = "free_x") +
+               scales = "free", space = "free_x",
+               labeller = labeller(proxy = c("d13C" = "δ¹³C",
+                                             "MS" = "MS",
+                                             "Lstar" = "L*")),
+               switch = "y") +
+    labs(x = "Depth (m)", y = "") +
+    scale_colour_manual(values =
+                          setNames(detrend_colours,
+                                   c("scl", "gam_pred", "loess_pred", "lp_0.025",
+                                     "lin_pred_rw", "lin_pred_fine", "lin_pred_med", "lin_pred_coarse",
+                                     "value"))) +
     scale_x_reverse(breaks = seq(-20, 200, 20),
                     minor_breaks = seq(-10, 200, 10)) +
     ## geom_vline(aes(xintercept = strat_bot),
@@ -9888,35 +9925,21 @@ this is not easy to customize, so we manually create it below.
     ##             method = "loess", span = 0.2,
     ##             data = \(x) x |> filter(detrend_type == "value")) +
     # first draw the lines so we can pass the group argument
-    geom_line(aes(group = paste(proxy, site, detrend_type, colour, chunk)),
+    geom_line(aes(group = paste(proxy, site, detrend_type, colour)),
               data = \(x) x |>
               filter(str_detect(detrend_type, "^lin_pred"))) +
-    geom_line(data = \(x) x |>
+    geom_line(alpha = .5,
+              data = \(x) x |>
                           filter(detrend_type != "value") |>
                           filter(str_detect(detrend_type, "^lin_pred", negate = TRUE)))
+  dev.off()
 #+end_src
 
 #+RESULTS:
+: X11cairo
+:        2
+
 [[file:imgs/Zumaia-Sopelana_detrend_types_all.pdf]]
-
-**** define consistent colours for detrend_type
-:PROPERTIES:
-:CREATED:  [2024-02-23 Fri 14:13]
-:END:
-#+begin_src R
-  detrend_colours <- c(
-    "scl" = "#483737", # !
-    "gam_scl" = "#d40000",
-    "hp_scl" = "#0088aa",
-    "lin_scl_rw" = "indianred",
-    "lin_scl_fine" = "#ff9955",
-    "lin_scl_med" = "#aa4400",
-    "lin_scl_coarse" = "#803300",
-    "value" = "red"
-  )
-#+end_src
-
-#+RESULTS:
 
 **** create smooth_pred, a subset with only detrend types we care about
 :PROPERTIES:
@@ -10001,7 +10024,8 @@ we make this plot with the raw results because it gives us more control but more
                group = paste(site, proxy))) +
     facet_grid(rows = vars(proxy),
                scales = "free_y") +
-    scale_colour_brewer(type = "qual") +
+    ## scale_colour_brewer(type = "qual") +
+    scale_colour_manual(values = detrend_colours) +
     scale_size_manual(values = c("FALSE" = 1, "TRUE" = 1.3)) +
     coord_cartesian(xlim = c(178, 0)) +
     labs(x = "Depth (m)", y = "Proxy value", colour = "", size = "Well-defined") +
@@ -14369,9 +14393,7 @@ Here we use the new "optimal" age models and apply them to the raw data, then we
 :END:
 oh no, the Sopelana results are not exporting the Matched record!
 #+begin_src R
-  smooth_optim_age_value <- best_age_optim |>
-    tidylog::filter(RMSD == min(RMSD),
-                    .by = c(proxy, site, sol, comb)) |>
+  smooth_optim_age_value <- best_age_optim_one |>
     tidylog::filter(proxy == "Lstar", site == "Zumaia", comb == "1:1") |>
     ## distinct(site, proxy)
     mutate(data = map(the_best, \(x) x$matched)) |>
@@ -14380,8 +14402,7 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+end_src
 
 #+RESULTS:
-: filter: removed 70 rows (26%), 203 rows remaining
-: filter: removed 196 rows (97%), 7 rows remaining
+: filter: removed 99 rows (79%), 26 rows remaining
 
 ***** mtm
 :PROPERTIES:
