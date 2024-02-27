@@ -14410,18 +14410,25 @@ oh no, the Sopelana results are not exporting the Matched record!
 :END:
 #+begin_src R
   specs_optim_age <- smooth_optim_age_value |>
-    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol", "comb"),
+    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol", "comb", "window"),
                       x = age, y = value)
 #+end_src
 
 #+RESULTS:
+: Warning message:
+: There were 2 warnings in `dplyr::mutate()`.
+: The first warning was:
+: ℹ In argument: `mtm = purrr::map(.data$data, spectral_analysis, ..., x = age, y = value)`.
+: Caused by warning in `regularize.values()`:
+: ! collapsing to unique 'x' values
+: ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.
 ***** FFT periodogram
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:06]
 :END:
 #+begin_src R
   specs_fft_optim_age <- smooth_optim_age_value |>
-    nest(.by = c("proxy", "site", "detrend_type", "sol", "comb")) |>
+    nest(.by = c("proxy", "site", "detrend_type", "sol", "comb", "window")) |>
     mutate(fft = map(data,
                       ~ . |>
                         select(age, value) |>
@@ -14435,6 +14442,13 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+end_src
 
 #+RESULTS:
+: Warning message:
+: There were 2 warnings in `mutate()`.
+: The first warning was:
+: ℹ In argument: `fft = map(...)`.
+: Caused by warning in `regularize.values()`:
+: ! collapsing to unique 'x' values
+: ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.
 
 ***** MTLS
 :PROPERTIES:
@@ -14445,7 +14459,7 @@ oh no, the Sopelana results are not exporting the Matched record!
     ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
 
     specs_mtls_optim_age <- smooth_optim_age_value |>
-      nest(.by = c("proxy", "site", "detrend_type", "sol", "comb")) |>
+      nest(.by = c("proxy", "site", "detrend_type", "sol", "comb", "window")) |>
       mutate(mtls = map(data,
                         ~ . |>
                           select(age, value) |>
@@ -14902,7 +14916,64 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_simple.pdf]]
 
-**** simplified plot of filters, raw data vs depth
+**** COMMENT simplified plot of filters
+:PROPERTIES:
+:CREATED:  [2024-02-26 Mon 13:07]
+:END:
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_depth_ecc.pdf :width 9.6 :height 2
+  best_age_optim |>
+    filter(comb == "1:1") |>
+    filter(proxy == "Lstar") |>
+    filter(sol == "ZB20b") |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m) |>
+    ggplot(aes(x = age * 1e-3,
+               y = ecc,
+               colour = site,
+               group = paste(site, sol, proxy,
+                             detrend_type, depth_chunk))) +
+    facet_grid(rows = vars(sol)) +
+    labs(x = "Age (Ma)", y = "Norm. Filtered proxy",
+         colour = "") +
+    ## theme(legend.pos = c(.64, .864),
+    ##       legend.direction = "horizontal") +
+    scale_colour_manual(values = detrend_colours) +
+    scale_x_reverse(breaks = seq(80, 50, -1),
+                    minor_breaks = seq(80, 50, -0.1)) +
+    ## scale_y_continuous(breaks = c(-4, 0, 4)) +
+    ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
+    ## scale_alpha_continuous(range = c(1, 0.2)) +
+    ## scale_colour_manual(values = c("Astronomical Solution" = "black",
+    ##                                "Zumaia" = "purple",
+    ##                                "Sopelana" = "skyblue"
+    ##                                ## "Lstar" = "purple",
+    ##                                ## "MS" = "skyblue",
+    ##                                ## "d13C" = "darkgreen"
+    ##                                )) +
+    ## geom_vline(xintercept = 0) +
+    # annotate field-based long ecc minima
+    # uncertainty
+    ## geom_segment(aes(x = strat_bot - 1.6, xend = strat_bot + 1.6,
+    ##                  y = -4, yend = -4),
+    ##              inherit.aes = FALSE,
+    ##              data = agem_simple) +
+    ## # points themselves
+    ## geom_point(aes(x = strat_bot, y = -4),
+    ##            inherit.aes = FALSE,
+    ##            data = agem_simple) +
+    ## geom_line(aes(y = ) +
+    geom_line(aes(colour = detrend_type,
+                  group = paste(sol, proxy, site, depth_chunk, detrend_type, site, window)))
+    ## geom_line(aes(y = value), colour = "gray")
+    ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
+    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Lstar_1-1_solutions_depth_ecc.pdf]]
+
+**** simplified plot of raw data vs depth
 :PROPERTIES:
 :CREATED:  [2024-01-15 Mon 15:22]
 :END:
@@ -14913,7 +14984,6 @@ oh no, the Sopelana results are not exporting the Matched record!
   best_age_optim |>
     filter(comb == "1:1") |>
     filter(proxy == "Lstar") |>
-    filter(detrend_type == "lin_scl_fine") |>
     filter(sol == "ZB20b") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
@@ -14924,7 +14994,7 @@ oh no, the Sopelana results are not exporting the Matched record!
                group = paste(site, sol, proxy,
                              detrend_type, depth_chunk))) +
     facet_grid(rows = vars(sol)) +
-    labs(x = "Depth (m)", y = "Norm. Filter",
+    labs(x = "Depth (m)", y = "Detrended proxy",
          colour = "") +
     ## theme(legend.pos = c(.64, .864),
     ##       legend.direction = "horizontal") +
@@ -14942,8 +15012,18 @@ oh no, the Sopelana results are not exporting the Matched record!
     ##                                ## "d13C" = "darkgreen"
     ##                                )) +
     geom_vline(xintercept = 0) +
-    geom_point(aes(x = strat_bot, y = -4), data = agem_sol) +
-    geom_line()
+    # annotate field-based long ecc minima
+    # uncertainty
+    geom_segment(aes(x = strat_bot - 1.6, xend = strat_bot + 1.6,
+                     y = -4, yend = -4),
+                 inherit.aes = FALSE,
+                 data = agem_simple) +
+    # points themselves
+    geom_point(aes(x = strat_bot, y = -4),
+               inherit.aes = FALSE,
+               data = agem_simple) +
+    ## geom_line(aes(y = ) +
+    geom_line(aes(colour = detrend_type))
     ## geom_line(aes(y = value), colour = "gray")
     ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
     ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
