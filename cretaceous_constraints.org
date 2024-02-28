@@ -13987,12 +13987,8 @@ current time: 2024-02-25 12:49:15.223617
 #+end_src
 
 #+RESULTS:
-: Warning messages:
-: 1: There was 1 warning in `mutate()`.
-: ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type), names(detrend_colours))`.
-: Caused by warning:
-: ! 1 unknown level in `f`: loess_scl
-: 2: There was 1 warning in `mutate()`.
+: Warning message:
+: There was 1 warning in `mutate()`.
 : ℹ In argument: `comb = fct_relevel(...)`.
 : Caused by warning:
 : ! 6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
@@ -14262,6 +14258,54 @@ old
 
 #+RESULTS:
 [[file:imgs/rolling_age_overview_best.pdf]]
+
+**** recompute RMSD for the full stack
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 13:55]
+:END:
+#+begin_src R :results output graphics file :file imgs/full_RMSD_scores.pdf :width 8 :height 5
+  cutoff <- best_age_optim |>
+    filter(site == "Sopelana") |>
+    mutate(match = map(the_best, "matched")) |>
+    unnest(match) |>
+    summarize(max_age_sopelana = min(age),
+              .by = c(proxy, detrend_type, depth_chunk, comb, sol, window))
+
+  best_age_optim |>
+    mutate(match = map(the_best, "matched")) |>
+    unnest(match) |>
+    left_join(cutoff) |>
+    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
+                    (site == "Zumaia" & age < max_age_sopelana)) |>
+    ## filter(proxy == "Lstar", comb == "1:1") |>
+    ## ggplot(aes(x = age * 1e-3, y = ecc, colour = site)) +
+    ## facet_grid(rows = vars(sol)) +
+    ## scale_x_reverse() +
+    ## geom_line(aes(group = paste(site, sol, detrend_type, window, comb)))
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, detrend_type, comb, sol, window)) |>
+    filter(comb == "1:1") |>
+    ## filter(proxy == "Lstar") |>
+    ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
+    ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
+    ggplot(aes(x = sol, y = RMSD, col = detrend_type, shape = window)) +
+    labs(x = "Astronomical Solution", shape = "Bandpass Filter type") +
+    facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
+    scale_colour_manual(values = detrend_colours) +
+    scale_shape_manual(values = c("gaussian" = "circle",
+                                  "rectangular" = "square")) +
+    geom_line(aes(group = paste(detrend_type, proxy, comb, window)),
+              alpha = .1) +
+    geom_point(alpha = .05) +
+    geom_line(aes(group = proxy), colour = "gray",
+              data = \(x) x |>
+                          filter(RMSD == min(RMSD), .by = c(sol, proxy))) +
+    geom_point(data = \(x) x |>
+                           filter(RMSD == min(RMSD), .by = c(sol, proxy)))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_scores.pdf]]
 
 **** COMMENT rerun the best fits with detailed output
 :PROPERTIES:
