@@ -485,6 +485,22 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
 
 #+RESULTS:
 
+*** use my package to get the solutions
+#+begin_src R :eval never
+  full_slns <- bind_rows(
+    snvecR::get_solution("La10b") |> rename(age = Time_ka, ecc = ecc_LA10b) |> mutate(sol = "La10b"),
+    snvecR::get_solution("La10c") |> rename(age = Time_ka, ecc = ecc_LA10c) |> mutate(sol = "La10c"),
+    snvecR::get_solution("ZB18a-300") |> mutate(sol = "ZB18a"),
+    snvecR::get_solution("ZB20a") |> mutate(sol = "ZB20a"),
+    snvecR::get_solution("ZB20b") |> mutate(sol = "ZB20b"),
+    snvecR::get_solution("ZB20c") |> mutate(sol = "ZB20c"),
+    snvecR::get_solution("ZB20d") |> mutate(sol = "ZB20d"),
+  ) |> write_rds("out/full_slns.rds")
+#+end_src
+
+#+begin_src R
+  full_slns <- read_rds("out/full_slns.rds")
+#+end_src
 ** spectral analysis on astronomical solutions
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 10:56]
@@ -599,6 +615,19 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 
 #+RESULTS:
 
+#+begin_src R :eval never
+  sln_filters_vln <- full_slns |>
+    nested_bandpass_filter(frequencies = tibble(target = "2 Myr", p = 2000, f = 1 / p, range = 0.6 * f, flow = f - range, fhigh = f + range, ref = "This study"),
+                           x = age, y = ecc, nest = "sol") |>
+    write_rds("out/sln_filters_vln.rds")
+#+end_src
+
+#+begin_src R
+  sln_filters_vln <- read_rds("out/sln_filters_vln.rds")
+#+end_src
+
+#+RESULTS:
+
 ** get 405 kyr minima ages for each solution
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:36]
@@ -687,6 +716,79 @@ filter: removed 384,014 rows (67%), 192,007 rows remaining
  ,* Number of peaks >= -0.03 : 59
 #+end_example
 
+** get 2 Myr minima ages for each solution
+#+begin_src R :results output
+  sln_peaks_vln <- sln_filters_vln |>
+    mutate(filter = -filter) |> # we want MINIMA rather than maxima
+    nest(.by = sol) |>
+    mutate(pk = map(data, ~ .x |>
+                            select(age, filter) |>
+                            astrochron::peak(genplot = FALSE) |>
+                            as_tibble() |>
+                            select(age = Location, peak_value = Peak_Value))) |>
+    unnest(pk) |>
+    select(-data)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 249001
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 129
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 249001
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 129
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 187500
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 152
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 187500
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 148
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 187500
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 150
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 187500
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 158
+
+ ,* No filtering of peaks applied.
+
+----- FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
+ ,* Number of data points= 187500
+ ,* Number of columns= 2
+ ,* Identifying maxima of peaks
+ ,* Number of peaks identified= 155
+
+ ,* No filtering of peaks applied.
+#+end_example
+
 ** K/Pg (K/T) boundary ages
 :PROPERTIES:
 :CREATED:  [2023-11-10 Fri 13:40]
@@ -726,13 +828,26 @@ In this study we focus on those astronomical solutions that showed the best comp
     ggplot(aes(x = age / 1000, y = ecc)) +
     # double-check that linear interpolation went ok
     ## geom_line(linewidth = 1.2, alpha = .3, data = slns) +
-    geom_line(linewidth = 1.2, alpha = .3) +
+    scale_colour_manual(values = c("100 kyr" = "orange",
+                                   "405 kyr" = "navyblue",
+                                   "2 Myr" = "darkgreen")) +
+    geom_line(alpha = .3) +
     geom_line(aes(y = filter, colour = target),
+              alpha = .6,
               linewidth = 1) +
+    geom_line(aes(y = filter, colour = target),
+              alpha = .6,
+              linewidth = 2,
+              data = sln_filters_vln |>
+                filter(sln != "La11")) +
     geom_point(aes(x = age / 1000, y = 0), colour = "indianred",
                data = sln_peaks |> filter(sln != "La11")) +
-    geom_vline(aes(xintercept = age1), data = kpg_ages |> filter(sln != "La11")) +
-    geom_vline(aes(xintercept = age2), data = kpg_ages |> filter(sln != "La11")) +
+    geom_point(aes(x = age / 1000, y = 0), colour = "gold", size = 3,
+               data = sln_peaks_vln |> filter(sln != "La11")) +
+    geom_vline(aes(xintercept = age1),
+               data = kpg_ages |> filter(sln != "La11")) +
+    geom_vline(aes(xintercept = age2),
+               data = kpg_ages |> filter(sln != "La11")) +
     # add agem_sol points, if they're available!
     ## geom_point(aes(y = 0), colour = "black", data = agem_sol |> rename(sln = sol)) +
     coord_cartesian(xlim = c(66 + 13*.405, 65)) +
@@ -744,6 +859,28 @@ In this study we focus on those astronomical solutions that showed the best comp
 #+caption: Example time slice of the different astronomical solutions with 405 kyr and 100 kyr filters (frequencies \pm40%, e.g. 0.6 * 1/405 to 1.4 * 1/405).
 #+RESULTS:
 [[file:imgs/orbital_solutions.png]]
+
+* plot the difference between VLN ages
+:PROPERTIES:
+:CREATED:  [2024-02-27 Tue 16:47]
+:END:
+#+begin_src R :results output graphics file :file imgs/VLN_ages.png :width 4600 :height 1200 :res 300
+  sln_peaks_vln |>
+    mutate(diffs = (age - lag(age)) * 1e-3, .by = sol) |>
+    ggplot(aes(x = -age * 1e-3, y = diffs, colour = sol)) +
+    scale_x_continuous(breaks = seq(-300, 0, 20),
+                    minor_breaks = seq(-300, 0, 10)) +
+    scale_colour_brewer(type = "qual", palette = 3) +
+    ## facet_grid(rows = vars(sol)) +
+    labs(x = "Simulated Time (Myr)",
+         y = "Interval between min in 2-Myr ecc filter (Myr)",
+         colour = "Astronomical Solution") +
+    geom_line() +
+    geom_point()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/VLN_ages.png]]
 
 * COMMENT reproduce Ma et al., 2017 steps
 :PROPERTIES:
