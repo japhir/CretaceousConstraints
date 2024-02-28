@@ -14591,25 +14591,148 @@ oh no, the Sopelana results are not exporting the Matched record!
 :END:
 #+begin_src R
   specs_optim_age <- smooth_optim_age_value |>
-    nested_spectral_analysis(nest = c("proxy", "site", "detrend_type", "sol", "comb", "window"),
+    nested_spectral_analysis(nest = c("proxy", "site",  "depth_chunk", "detrend_type", "sol", "comb", "window"),
                       x = age, y = value)
 #+end_src
 
 #+RESULTS:
-: Warning message:
-: There were 2 warnings in `dplyr::mutate()`.
-: The first warning was:
-: ℹ In argument: `mtm = purrr::map(.data$data, spectral_analysis, ..., x = age, y = value)`.
-: Caused by warning in `regularize.values()`:
-: ! collapsing to unique 'x' values
-: ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.
+
+***** mtm with more tapers
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 15:21]
+:END:
+#+begin_src R
+  specs_optim_age_tap_10 <- smooth_optim_age_value |>
+    nested_spectral_analysis(nest = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window"),
+                             x = age, y = value,
+                             ntap = 10)
+#+end_src
+
+#+RESULTS:
+
+***** mtm with a power law
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 15:29]
+:END:
+#+begin_src R
+  specs_optim_age_pl <- smooth_optim_age_value |>
+    nest(.by = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window")) |>
+    mutate(mtm = map(data,
+                     ~ . |>
+                       select(age, value) |>
+                       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                       astrochron::mtmPL(genplot = FALSE,
+                                         verbose = FALSE,
+                                         output = 1,
+                                         demean = TRUE, detrend = TRUE) |>
+                       as_tibble() |>
+                       tidyr::pivot_longer(c(.data$PowerLaw_90_power,
+                                             .data$PowerLaw_95_power,
+                                             .data$PowerLaw_99_power),
+                                           names_to = c("PL", ".width"),
+                                           names_pattern = "^(PowerLaw)_(9[950])",
+                                           values_to = "powerlaw_power") |>
+                       dplyr::select(-"PL") |>
+                       dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+        dplyr::rename(frequency = .data$Frequency,
+                      power = .data$Power,
+                      harmonic_cl = .data$Harmonic_CL,
+                      powerlaw_cl = .data$PowerLaw_CL,
+                      powerlaw_fit = .data$PowerLaw_fit)
+                     )) |>
+    select(-data) |>
+    unnest(cols = c(mtm))
+#+end_src
+
+#+RESULTS:
+
+***** mtmML96
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 16:02]
+:END:
+#+begin_src R
+  specs_optim_age_ML96 <- smooth_optim_age_value |>
+    nest(.by = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window")) |>
+    mutate(mtm = map(data,
+                     ~ . |>
+                       select(age, value) |>
+                       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                       astrochron::mtmML96(genplot = FALSE,
+                                           verbose = FALSE,
+                                           output = 1,
+                                           demean = TRUE, detrend = TRUE) |>
+                       as_tibble() |>
+                       tidyr::pivot_longer(c(.data$AR1_90_power,
+                                             .data$AR1_95_power,
+                                             .data$AR1_99_power),
+                                           names_to = c("AR1", ".width"),
+                                           names_pattern = "^(AR1)_(9[950])",
+                                           values_to = "ar1_power") |>
+                       dplyr::select(-"AR1") |>
+                       dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+                       dplyr::rename(frequency = .data$Frequency,
+                                     power = .data$Power,
+                                     harmonic_cl = .data$Harmonic_CL,
+                                     ar1_cl = .data$AR1_CL,
+                                     ar1_fit = .data$AR1_fit)
+                     )) |>
+    select(-data) |>
+    unnest(cols = c(mtm))
+#+end_src
+
+***** mtmAR
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 16:11]
+:END:
+#+begin_src R
+  specs_optim_age_AR <- smooth_optim_age_value |>
+    nest(.by = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window")) |>
+    mutate(mtm = map(data,
+                     ~ . |>
+                       select(age, value) |>
+                       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                       astrochron::mtmAR(genplot = FALSE,
+                                           verbose = FALSE,
+                                           output = 1,
+                                           demean = TRUE, detrend = TRUE) |>
+                       as_tibble() ## |>
+                       ## tidyr::pivot_longer(c(.data$AR1_90_power,
+                       ##                       .data$AR1_95_power,
+                       ##                       .data$AR1_99_power),
+                       ##                     names_to = c("AR1", ".width"),
+                       ##                     names_pattern = "^(AR1)_(9[950])",
+                       ##                     values_to = "ar1_power") |>
+                       ## dplyr::select(-"AR1") |>
+                       ## dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+                       ## dplyr::rename(frequency = .data$Frequency,
+                       ##               power = .data$Power,
+                       ##               harmonic_cl = .data$Harmonic_CL,
+                       ##               ar1_cl = .data$AR1_CL,
+                       ##               ar1_fit = .data$AR1_fit)
+                     )) |>
+    select(-data) |>
+    unnest(cols = c(mtm))
+#+end_src
+***** LOWSPEC
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 15:49]
+:END:
+#+begin_src R
+  specs_optim_age_lowspec <- smooth_optim_age_value |>
+    nested_spectral_analysis(nest = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window"),
+                             x = age, y = value,
+                             method = "LOWSPEC")
+#+end_src
+
+#+RESULTS:
+
 ***** FFT periodogram
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:06]
 :END:
 #+begin_src R
   specs_fft_optim_age <- smooth_optim_age_value |>
-    nest(.by = c("proxy", "site", "detrend_type", "sol", "comb", "window")) |>
+    nest(.by = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window")) |>
     mutate(fft = map(data,
                       ~ . |>
                         select(age, value) |>
@@ -14623,13 +14746,6 @@ oh no, the Sopelana results are not exporting the Matched record!
 #+end_src
 
 #+RESULTS:
-: Warning message:
-: There were 2 warnings in `mutate()`.
-: The first warning was:
-: ℹ In argument: `fft = map(...)`.
-: Caused by warning in `regularize.values()`:
-: ! collapsing to unique 'x' values
-: ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.
 
 ***** MTLS
 :PROPERTIES:
@@ -14640,7 +14756,7 @@ oh no, the Sopelana results are not exporting the Matched record!
     ## source("https://github.com/jrevenaugh/TSAUMN2/raw/main/R/mtm_plots.R")
 
     specs_mtls_optim_age <- smooth_optim_age_value |>
-      nest(.by = c("proxy", "site", "detrend_type", "sol", "comb", "window")) |>
+      nest(.by = c("proxy", "site", "depth_chunk", "detrend_type", "sol", "comb", "window")) |>
       mutate(mtls = map(data,
                         ~ . |>
                           select(age, value) |>
@@ -14654,19 +14770,23 @@ oh no, the Sopelana results are not exporting the Matched record!
   #+end_src
 
   #+RESULTS:
+  : Registered S3 method overwritten by 'quantmod':
+  :   method            from
+  :   as.zoo.data.frame zoo
 
 **** plot spectra
 :PROPERTIES:
 :CREATED:  [2023-12-20 Wed 15:04]
 :END:
-#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_optimal.png :width 2400 :height 2600 :res 300
+#+begin_src R :results output graphics file :file imgs/Zumaia_Sopelana_spectra_optimal.png :width 2400 :height 2200 :res 300
   my_filter <- \(x) x |>
                       ## filter(detrend_type != "value") # default to show all
                       ## filter(detrend_type == "scl") # only one so we can see different spectral analysis
                       filter(site == "Zumaia") |>
                       filter(proxy == "Lstar") |>
                       filter(comb == "1:1") |>
-                      filter(detrend_type == "lin_scl_fine") # only one so we can see different spectral analysis
+                      ## filter(detrend_type == "lin_scl_fine") # only one so we can see different spectral analysis
+                      filter(detrend_type == "scl")
 
   # plot spectra w/ Freq on x-axis
   specs_optim_age |>
@@ -14678,7 +14798,8 @@ oh no, the Sopelana results are not exporting the Matched record!
                ## colour = detrend_type
                )) +
     labs(x = "Frequency (cycles/kyr)", y = "Power (-)",
-         colour = "Spectral Analysis") +
+         colour = "Spectral Analysis",
+         fill = "Spectral Analysis") +
     facet_grid(rows = vars(proxy, sol)) + # no sopelana any more :(
     ## scale_linetype_manual(values = c("Zumaia" = "solid",
     ##                                  "Sopelana" = "dashed")) +
@@ -14689,7 +14810,7 @@ oh no, the Sopelana results are not exporting the Matched record!
       ## xlim = c(0, .015), # zoom in on 405 and 100 kyr ecc
       ## ylim = c(0, .025) # previous best
       ## ylim = c(0, .010) # previous best
-      ylim = c(.00005, 0.055) # log axis
+      ylim = c(.00001, 0.055) # log axis
     ) +
     scale_x_continuous(
     ## scale_x_log10(
@@ -14697,38 +14818,94 @@ oh no, the Sopelana results are not exporting the Matched record!
                           breaks = c(405, 100, 50, 20, 10))) +
     ## scale_y_continuous(breaks = c(0, .01, .02)) +
     scale_y_log10() +
+    scale_colour_manual(values = c("FFT" = "gray",
+                                   "MTM" = "indianred",
+                                   "MTM ML96" = "red",
+                                   "MTM AR" = "blue",
+                                   "PL" = "purple",
+                                   "MTLS" = "skyblue",
+                                   "LOWSPEC" = "darkgreen")) +
+    scale_fill_manual(values = c("AR1" = "gray",
+                                 "PL" = "purple",
+                                 "ML96" = "red",
+                                 "LOWSPEC" = "darkgreen")) +
     ## annotation_logticks(sides = "l") +
     ## # plot AR1 fits/confidence levels
-    ## ## geom_line(aes(y = AR1_power, group = paste(site, detrend_type, sol, .width))) +
-    ## ## geom_line(aes(y = Harmonic_CL)) +
-    ## geom_ribbon(aes(ymin = AR1_fit, ymax = AR1_power,
-    ##                 linetype = NA, fill = detrend_type,
-    ##                 group = paste(detrend_type, site, sol, proxy, .width)),
-    ##               alpha = .1) +
+    ## geom_line(aes(y = ar1_power,
+    ##               group = paste(site, detrend_type, sol, .width))) +
+    ## geom_line(aes(y = Harmonic_CL)) +
+    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                    linetype = NA, fill = "AR1",#fill = detrend_type,
+                    group = paste(detrend_type, site, sol, proxy, .width)),
+                  alpha = .1) +
+    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                    linetype = NA, fill = "AR1",#fill = detrend_type,
+                    group = paste(detrend_type, site, sol, proxy, .width)),
+                alpha = .3,
+                data = specs_optim_age_tap_10 |> my_filter()) +
+    geom_ribbon(aes(ymin = powerlaw_fit, ymax = powerlaw_power,
+                    linetype = NA, fill = "PL",#fill = detrend_type,
+                    group = paste(detrend_type, site, sol, proxy, .width)),
+                alpha = .1,
+                data = specs_optim_age_pl |>
+                  my_filter()) +
+    geom_ribbon(aes(ymin = ar1_fit, ymax = ar1_power,
+                    linetype = NA, fill = "ML96",#fill = detrend_type,
+                    group = paste(detrend_type, site, sol, proxy, .width)),
+                alpha = .1,
+                data = specs_optim_age_ML96 |>
+                  my_filter()) +
+    geom_ribbon(aes(ymin = lowspec_fit, ymax = lowspec_power,
+                    linetype = NA, fill = "LOWSPEC",
+                    group = paste(detrend_type, site, sol, proxy, .width)),
+                alpha = .1,
+                data = specs_optim_age_lowspec |>
+                  my_filter()) +
     # rectangles for target frequencies
     ## ggnewscale::new_scale_fill() +
-    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
-              inherit.aes = FALSE,
-              alpha = .1,
-              data = bat_age_filters |> filter(proxy == "Lstar")) +
-    geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
-              inherit.aes = FALSE,
-              alpha = .1,
-              data = my_filt_age) +
+    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+    ##           inherit.aes = FALSE,
+    ##           alpha = .1,
+    ##           data = bat_age_filters |> filter(proxy == "Lstar")) +
+    ## geom_rect(aes(xmin = flow, xmax = fhigh, ymin = 1e-5, ymax = 1, fill = ref),
+    ##           inherit.aes = FALSE,
+    ##           alpha = .1,
+    ##           data = my_filt_age) +
     # plot spectra
     # FFT periodogram
-    geom_line(aes(colour = "FFT",
-                  group = paste(site, sol, proxy, detrend_type)),
-              data = specs_fft_optim_age |>
-                my_filter()) +
+    ## geom_line(aes(colour = "FFT",
+    ##               group = paste(site, sol, proxy, detrend_type)),
+    ##           data = specs_fft_optim_age |>
+    ##             my_filter()) +
     # MTM
     geom_line(aes(colour = "MTM",
                   group = paste(site, sol, proxy, detrend_type))) +
+    # same as above
+    ## geom_line(aes(colour = "MTM",
+    ##               group = paste(site, sol, proxy, detrend_type)),
+    ##           data = specs_optim_age_tap_10 |> my_filter()) +
+    # same as above
+    ## geom_line(aes(colour = "MTMML96",
+    ##               group = paste(site, sol, proxy, detrend_type)),
+    ##           data = specs_optim_age_ML96 |> my_filter()) +
+    geom_line(aes(y = Median_Smoothed_Power, colour = "MTM ML96",
+                  group = paste(site, sol, proxy, detrend_type)),
+              data = specs_optim_age_ML96 |> my_filter()) +
+    ## geom_line(aes(x = Frequency, y = `MTM/AR`, colour = "MTM AR",
+    ##               group = paste(site, sol, proxy, detrend_type)),
+    ##           data = specs_optim_age_AR |> my_filter()) +
+    # same as above
+    ## geom_line(aes(colour = "PL",
+    ##               group = paste(site, sol, proxy, detrend_type)),
+    ##           data = specs_optim_age_pl |> my_filter()) +
+    geom_line(aes(colour = "LOWSPEC",
+                  group = paste(site, sol, proxy, detrend_type)),
+              data = specs_optim_age_lowspec |> my_filter()) +
     # MTLS
     geom_line(aes(colour = "MTLS",
                   group = paste(site, sol, proxy, detrend_type)),
               data = specs_mtls_optim_age |>
-                my_filter())
+              my_filter())
 #+end_src
 
 #+attr_latex: :width \linewidth
@@ -14948,6 +15125,8 @@ oh no, the Sopelana results are not exporting the Matched record!
   my_filt <- \(x) x |>
                     filter(comb == "1:1") |>
                     filter(proxy == "Lstar") |>
+                    ## filter(proxy == "MS") |>
+                    ## filter(proxy == "d13C") |>
                     # I think I may have re-run the ZB20a < 109 lin_scl_fine
                     tidylog::distinct(sol, site, proxy, depth_chunk, comb,
                                       detrend_type, window,
