@@ -7598,9 +7598,20 @@ ok the .3 is fine I guess
   # seems like it's parametrized at 95% CI?
   # hmm just 2*range doesn't cut it
   # I use
-  flw <- my_filt_age$f[[2]] - my_filt_age$f[[2]] * 0.33 * 3
-  fhw <- my_filt_age$f[[2]] + my_filt_age$f[[2]] * 0.33 * 3
+  ## flw <- my_filt_age$f[[2]] - my_filt_age$f[[2]] * 0.33 * 3
+  ## fhw <- my_filt_age$f[[2]] + my_filt_age$f[[2]] * 0.33 * 3
 
+  x11(title = "rectangular")
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::bandpass(flow = fl, fhigh = fh,
+                         win = 0, padfac = 5, alpha = 1,
+                         demean = TRUE, detrend = TRUE,
+                         genplot = TRUE, verbose = FALSE,
+                         xmax = 0.03)
+
+  x11(title = "gaussian")
   mini_data |>
     select(age_floating, value) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
@@ -7609,6 +7620,52 @@ ok the .3 is fine I guess
                          demean = TRUE, detrend = TRUE,
                          genplot = TRUE, verbose = FALSE,
                          xmax = 0.03)
+
+
+  # but stephen told me he prefers the taner filter now
+  x11(title = "taner 1e3")
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::taner(flow = fl, fhigh = fh,
+                      roll = 1e3,
+                      padfac = 5,
+                      demean = TRUE, detrend = TRUE,
+                      genplot = TRUE, verbose = FALSE,
+                      xmax = 0.03)
+
+  x11(title = "taner 1e6")
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::taner(flow = fl, fhigh = fh,
+                      roll = 1e6,
+                      padfac = 5,
+                      demean = TRUE, detrend = TRUE,
+                      genplot = TRUE, verbose = FALSE,
+                      xmax = 0.03)
+
+  x11(title = "taner 1e10")
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::taner(flow = fl, fhigh = fh,
+                      roll = 1e10,
+                      padfac = 5,
+                      demean = TRUE, detrend = TRUE,
+                      genplot = TRUE, verbose = FALSE,
+                      xmax = 0.03)
+
+  x11(title = "taner 1e12")
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::taner(flow = fl, fhigh = fh,
+                      roll = 1e12,
+                      padfac = 5,
+                      demean = TRUE, detrend = TRUE,
+                      genplot = TRUE, verbose = FALSE,
+                      xmax = 0.03)
 
   # a little more manual approach
   mini_data |>
