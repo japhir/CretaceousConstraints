@@ -120,6 +120,9 @@ This filters out all the frequencies in dataframe ~freqs~.
 
 #+transclude: [[file:R/bandpass_filter.R]]  :src R
 
+*** taner_filter
+#+transclude: [[file:R/taner_filter.R]]  :src R
+
 *** construct_eccentricity
 :PROPERTIES:
 :CREATED:  [2023-12-21 Thu 16:35]
@@ -501,6 +504,9 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
 #+begin_src R
   full_slns <- read_rds("out/full_slns.rds")
 #+end_src
+
+#+RESULTS:
+
 ** spectral analysis on astronomical solutions
 :PROPERTIES:
 :CREATED:  [2023-12-22 Fri 10:56]
@@ -628,6 +634,90 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 
 #+RESULTS:
 
+** taner filter on astronomical solutions
+:PROPERTIES:
+:CREATED:  [2024-03-20 Wed 14:48]
+:END:
+#+begin_src R :eval never
+  sln_taner_filters <- slns |>
+    nested_taner_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
+                        x = age, y = ecc,
+                        padfac = 5,
+                        roll = 1e12,
+                        xmax = 0.03,
+                        genplot = FALSE, verbose = FALSE,
+                        nest = "sln") |>
+    write_rds("out/sln_taner_filters.rds")
+#+end_src
+
+#+begin_src R
+  sln_taner_filters <- read_rds("out/sln_taner_filters.rds")
+#+end_src
+
+#+begin_src R :eval never
+  sln_taner_filters_vln <- full_slns |>
+    nested_taner_filter(frequencies = tibble(target = "2 Myr",
+                                             p = 2000,
+                                             f = 1 / p,
+                                             range = 0.6 * f,
+                                             flow = f - range,
+                                             fhigh = f + range,
+                                             ref = "This study"),
+                        x = age, y = ecc,
+                        roll = 1e12,
+                        genplot = FALSE, verbose = FALSE,
+                        nest = "sol") |>
+    write_rds("out/sln_taner_filters_vln.rds")
+#+end_src
+
+#+begin_src R
+  sln_taner_filters_vln <-   read_rds("out/sln_taner_filters_vln.rds")
+#+end_src
+
+** COMMENT geom_area slow
+:PROPERTIES:
+:CREATED:  [2024-03-20 Wed 15:29]
+:END:
+#+begin_src R
+  library(ggplot2)
+  library(tibble)
+
+  dat <- tibble(
+    x = 1:1e4,
+    y = rnorm(seq_along(x)) + 5
+  )
+
+  dat |>
+    ggplot() +
+    geom_area(aes(x = x, y = y), position = "identity")
+
+  dat |>
+    ggplot() +
+    geom_ribbon(aes(x = x, ymin = 0, ymax = y))
+
+  # they seem identical
+  res <- bench::mark(
+    area = dat |>
+      ggplot() +
+      geom_area(aes(x = x, y = y)),
+    ribbon = dat |>
+      ggplot() +
+      geom_ribbon(aes(x = x, ymin = 0, ymax = y)),
+    check = FALSE)
+
+  # until you actually print them!
+  res <- bench::mark(
+    area = dat |>
+      ggplot() +
+      geom_area(aes(x = x, y = y)) |> print(), # sloooww
+    ribbon = dat |>
+      ggplot() +
+      geom_ribbon(aes(x = x, ymin = 0, ymax = y)) |> print(), # fast
+    check = FALSE)
+
+  # geom_area seems to get many more gc/sec?
+  res
+#+end_src
 ** get 405 kyr minima ages for each solution
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:36]
@@ -723,7 +813,21 @@ filter: removed 384,014 rows (67%), 192,007 rows remaining
     nest(.by = sol) |>
     mutate(pk = map(data, ~ .x |>
                             select(age, filter) |>
-                            astrochron::peak(genplot = FALSE) |>
+                            astrochron::peak(genplot = FALSE, verbose = FALSE) |>
+                            as_tibble() |>
+                            select(age = Location, peak_value = Peak_Value))) |>
+    unnest(pk) |>
+    select(-data)
+#+end_src
+
+
+#+begin_src R
+  sln_taner_peaks_vln <- sln_taner_filters_vln |>
+    mutate(filter = -ecc) |> # we want MINIMA rather than maxima
+    nest(.by = sol) |>
+    mutate(pk = map(data, ~ .x |>
+                            select(age, filter) |>
+                            astrochron::peak(genplot = FALSE, verbose = FALSE) |>
                             as_tibble() |>
                             select(age = Location, peak_value = Peak_Value))) |>
     unnest(pk) |>
@@ -731,63 +835,6 @@ filter: removed 384,014 rows (67%), 192,007 rows remaining
 #+end_src
 
 #+RESULTS:
-#+begin_example
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 249001
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 129
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 249001
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 129
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 187500
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 152
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 187500
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 148
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 187500
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 150
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 187500
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 158
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 187500
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 155
-
- ,* No filtering of peaks applied.
-#+end_example
 
 ** SOME filter g3 g2 and combine?
 :LOGBOOK:
@@ -831,38 +878,44 @@ These depend on the AS you choose! Got these from table 4 of [cite:@ZeebeLourens
 :END:
 In this study we focus on those astronomical solutions that showed the best compatibility with the Walvis Ridge datasets for the Paleocene [cite:@ZeebeLourens2022EPSL].. This includes La10b, La10c, ZB18a, and ZB20a (cref:fig:astronomical-solutions).
 
-#+begin_src R :results output graphics file :file imgs/orbital_solutions.png :width 2400 :height 2200 :res 300 :exports both
+#+begin_src R :results output graphics file :file imgs/orbital_solutions.png :width 2400 :height 1200 :res 300 :exports both
   sln_filters |>
     filter(sln != "La11") |>
     filter(target != "23 kyr") |>
+    ## filter(sln == "ZB18a") |>
     ggplot(aes(x = age / 1000, y = ecc)) +
+    labs(x = "Age (Ma)", y = "Eccentricity (-)") +
+    facet_grid(rows = vars(sln)) +
+    coord_cartesian(xlim = c(66 + 13*.405, 65)) +
     # double-check that linear interpolation went ok
     ## geom_line(linewidth = 1.2, alpha = .3, data = slns) +
     scale_colour_manual(values = c("100 kyr" = "orange",
                                    "405 kyr" = "navyblue",
                                    "2 Myr" = "darkgreen")) +
-    geom_line(alpha = .3) +
+    geom_line(alpha = .3, colour = "black") +
     geom_line(aes(y = filter, colour = target),
               alpha = .6,
               linewidth = 1) +
-    geom_line(aes(y = filter, colour = target),
-              alpha = .6,
-              linewidth = 2,
-              data = sln_filters_vln |>
-                filter(sln != "La11")) +
-    geom_point(aes(x = age / 1000, y = 0), colour = "indianred",
-               data = sln_peaks |> filter(sln != "La11")) +
-    geom_point(aes(x = age / 1000, y = 0), colour = "gold", size = 3,
-               data = sln_peaks_vln |> filter(sln != "La11")) +
-    geom_vline(aes(xintercept = age1),
-               data = kpg_ages |> filter(sln != "La11")) +
-    geom_vline(aes(xintercept = age2),
-               data = kpg_ages |> filter(sln != "La11")) +
+    ## geom_line(aes(y = filter, colour = target),
+    ##           alpha = .6,
+    ##           linewidth = 2,
+    ##           data = sln_filters_vln |>
+    ##             filter(sln != "La11")) #+
+    ## contrast to taner filter
+    geom_line(aes(y = ecc, group = target),
+              linewidth = .1,
+              data = sln_taner_filters |> filter (sln != "La11"))
+    #
+    ## geom_point(aes(x = age / 1000, y = 0), colour = "indianred",
+    ##            data = sln_peaks |> filter(sln != "La11")) +
+    ## geom_point(aes(x = age / 1000, y = 0), colour = "gold", size = 3,
+    ##            data = sln_peaks_vln |> filter(sln != "La11")) +
+    ## geom_vline(aes(xintercept = age1),
+    ##            data = kpg_ages |> filter(sln != "La11")) +
+    ## geom_vline(aes(xintercept = age2),
+    ##            data = kpg_ages |> filter(sln != "La11"))
     # add agem_sol points, if they're available!
     ## geom_point(aes(y = 0), colour = "black", data = agem_sol |> rename(sln = sol)) +
-    coord_cartesian(xlim = c(66 + 13*.405, 65)) +
-    labs(x = "Age (Ma)", y = "Eccentricity (-)") +
-    facet_grid(rows = vars(sln))
 #+end_src
 
 #+name: fig:astronomical-solutions
@@ -875,7 +928,8 @@ In this study we focus on those astronomical solutions that showed the best comp
 :CREATED:  [2024-02-27 Tue 16:47]
 :END:
 #+begin_src R :results output graphics file :file imgs/VLN_ages.png :width 4600 :height 1200 :res 300
-  sln_peaks_vln |>
+  ## sln_peaks_vln |>
+  sln_taner_peaks_vln |>
     mutate(diffs = (age - lag(age)) * 1e-3, .by = sol) |>
     ggplot(aes(x = -age * 1e-3, y = diffs, colour = sol)) +
     scale_x_continuous(breaks = seq(-300, 0, 20),
@@ -886,6 +940,9 @@ In this study we focus on those astronomical solutions that showed the best comp
          y = "Interval between min in 2-Myr ecc filter (Myr)",
          colour = "Astronomical Solution") +
     geom_line() +
+    # how you filter has quite the influence
+    ## geom_line(data = sln_peaks_vln |>
+    ##             mutate(diffs = (age - lag(age)) * 1e-3, .by = sol)) +
     geom_point()
 #+end_src
 
@@ -9189,7 +9246,7 @@ old
 :PROPERTIES:
 :CREATED:  [2024-02-26 Mon 11:38]
 :END:
-#+begin_src R :results output graphics file :file imgs/rolling_age_overview_best.pdf :width 5 :height 5
+#+begin_src R :results output graphics file :file imgs/rolling_age_overview_best.pdf :width 6 :height 5
   pl_best <- best_age_optim_one |>
     filter(comb == "1:1") |>
     ## filter(detrend_type != "value") |>
@@ -9198,7 +9255,7 @@ old
     ## filter(detrend_type %in% c("scl", "lin_scl_med") |
     ##        (depth_chunk == "depth < 109.26" & detrend_type == "lin_scl_fine") |
     ##        (depth_chunk == "depth >= 109.26" & detrend_type == "lin_scl_coarse")) |>
-    filter(proxy == "Lstar") |>
+    ## filter(proxy == "Lstar") |>
     ## filter(site == "Zumaia" & depth_chunk == "full record") |>
     ggplot(aes(x = sol, y = RMSD, colour = detrend_type,
                shape = window,
@@ -9211,7 +9268,7 @@ old
       y = "Root Mean Square Deviation (RMSD)",
       shape = "Bandpass window",
       alpha = "Bandpass window") +
-    facet_grid(cols = vars(## proxy,
+    facet_grid(cols = vars(proxy
                            ## window## , comb
                            ),
                rows = vars(site, depth_chunk),
@@ -9232,12 +9289,31 @@ old
                        minor_breaks = seq(0,2,.1)) +
     ## geom_point(aes(y = RMSD_start), size = 0.7) +
     ## geom_path(aes(y = RMSD_start, linetype = "Field")) +
-    geom_line(aes(x = sol, y = RMSD, group = "all"), colour = "gray")  +
-    geom_point(size = 1)
+    geom_line(aes(x = sol, y = RMSD, group = "all"),
+              size = .5,
+              colour = "black")  +
+    geom_point(size = 1) +
+    ## geom_point(data = best_age_optim |> filter(comb == "1:1", proxy == "Lstar", window == "rectangular", detrend_type == "lin_scl_med"))
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))+
     ## geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
     ##                alpha = .2) ## +
-    ## geom_point(size = .3, colour = "black", data = best_age_optim_one)
+    geom_line(size = .3, alpha = .2,
+              data = best_age_optim |> filter(## proxy == "Lstar",
+                                              comb == "1:1")) +
+    geom_point(size = .3, alpha = .2,
+               data = best_age_optim |> filter(## proxy == "Lstar",
+                                               comb == "1:1")) +
+    geom_line(size = .5,
+              data = best_age_optim |> filter(#proxy == "Lstar",
+                                              comb == "1:1",
+                                              detrend_type == "lin_scl_med",
+                                              window == "rectangular")) +
+    geom_point(size = .3,
+              data = best_age_optim |> filter(#proxy == "Lstar",
+                                              comb == "1:1",
+                                              detrend_type == "lin_scl_med",
+                                              window == "rectangular"))
+
   pl_best
 #+end_src
 
@@ -10566,25 +10642,28 @@ I should:
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_depth.pdf]]
 
-**** simple plot of raw/detrended data in time domain
+**** +simple+ plot of filtered data in time domain
 :PROPERTIES:
 :CREATED:  [2024-03-20 Wed 09:13]
 :END:
 
-#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_age.pdf :width 9.6 :height 2
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_age.pdf :width 15 :height 10
   best_age_optim |>
     filter(comb == "1:1") |>
-    filter(proxy == "Lstar") |>
     ## filter(sol == "ZB20b") |>
     mutate(m = map(the_best, "matched")) |>
     unnest(m) |>
+    ## filter(detrend_type == "lin_scl_med") |>
+    ## filter(window == "rectangular") |>
     ggplot(aes(x = age * 1e-3,
                ## y = sign_405 * ecc,
                y = value,
-               colour = site,
+               ## colour = paste(site, depth_chunk),
+               colour = detrend_type,
+               ## linetype = window,
                group = paste(site, sol, proxy,
                              detrend_type, depth_chunk))) +
-    facet_grid(rows = vars(sol)) +
+    facet_grid(rows = vars(sol), cols = vars(proxy), scales = "free_x", space = "free_x") +
     labs(x = "Age (Ma)", y = "Detrended proxy",
          colour = "") +
     ## theme(legend.pos = c(.64, .864),
@@ -10614,19 +10693,56 @@ I should:
     ##            inherit.aes = FALSE,
     ##            data = agem_simple) +
     ## geom_line(aes(colour = detrend_type), alpha = .05) +
+    ## geom_line(aes(y = `405 kyr` + 6,
+    ##               alpha = .05,
+    ##               group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window))) +
+    ## geom_line(aes(y = `100 kyr` + 4,
+    ##               alpha = .05,
+    ##               group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window))) +
+    ## geom_line(aes(y = scale(ecc)[, 1],
+    ##               alpha = .05,
+    ##               group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window))) +
+    # only the best get a thicker line
     geom_line(aes(y = `405 kyr` + 6,
-                  colour = detrend_type,
-                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window))) +
+                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)),
+              data = best_age_optim_one |>
+                filter(comb == "1:1") |>
+                mutate(m = map(the_best, "matched")) |>
+                unnest(m)) +
     geom_line(aes(y = `100 kyr` + 4,
-                  colour = detrend_type,
-                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window))) +
+                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)),
+              data = best_age_optim_one |>
+                filter(comb == "1:1") |>
+                mutate(m = map(the_best, "matched")) |>
+                unnest(m)) +
     geom_line(aes(y = scale(ecc)[, 1],
-                  colour = detrend_type,
-                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)))
-    ## geom_line(aes(y = value), colour = "gray")
-    ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
-    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-    ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)),
+              data = best_age_optim_one |>
+                filter(comb == "1:1") |>
+                mutate(m = map(the_best, "matched")) |>
+                unnest(m)) +
+    # now show single detrend type and window here in thick line
+    geom_line(aes(y = `405 kyr` + 6,
+                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)),
+              data = best_age_optim |>
+                filter(comb == "1:1") |>
+                filter(detrend_type == "lin_scl_med", window == "rectangular") |>
+                mutate(m = map(the_best, "matched")) |>
+                unnest(m)) +
+    geom_line(aes(y = `100 kyr` + 4,
+                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)),
+              data = best_age_optim |>
+                filter(comb == "1:1") |>
+                filter(detrend_type == "lin_scl_med", window == "rectangular") |>
+                mutate(m = map(the_best, "matched")) |>
+                unnest(m)) +
+    geom_line(aes(y = scale(ecc)[, 1],
+                  group = paste(detrend_type, sol, proxy, site, comb, depth_chunk, window)),
+              data = best_age_optim |>
+                filter(comb == "1:1") |>
+                filter(detrend_type == "lin_scl_med", window == "rectangular") |>
+                mutate(m = map(the_best, "matched")) |>
+                unnest(m))
 #+end_src
 
 #+RESULTS:
