@@ -43,7 +43,8 @@ wrap_age_model <- function(data,
                            proxy_phase = 1,
                            target_periods = c("405 kyr" = 405, "100 kyr" = 110),
                            frequency_fraction = 0.3,
-                           bandpass_window = 0,
+                           ## bandpass_window = 0,
+                           taner_roll = 1e10,
                            eccentricity_weights = c(1, 1),
                            age_slider = 200,
                            kpg_age = 65.9e3,
@@ -178,11 +179,13 @@ wrap_age_model <- function(data,
   linterp_dt <- solution_timestep * ceiling(data_dt / solution_timestep)
 
   flt <- tmp |>
-    bandpass_filter(frequencies = my_filt_age,
-                    x = .data$age_floating, y = .data$value,
-                    window = bandpass_window,
-                    linterp_dt = linterp_dt,
-                    add_depth = TRUE)
+    taner_filter(frequencies = my_filt_age,
+                 x = .data$age_floating, y = .data$value,
+                 add_depth = TRUE,
+                 genplot = FALSE, verbose = FALSE,
+                 ## xmax = 0.03, # if genplot = TRUE
+                 padfac = 3,
+                 roll = taner_roll)
 
   ## cli::cli_inform(c(
   ##        "nrow(tmp) = {nrow(tmp)}",
@@ -296,11 +299,13 @@ wrap_age_model <- function(data,
                  .after = .data$depth)
 
         flt <- tmp |>
-          bandpass_filter(frequencies = my_filt_age,
+          # I think this is a hidden badly-written for-loop!
+          taner_filter(frequencies = my_filt_age,
                           x = .data$age_floating, y = .data$value,
-                          window = bandpass_window,
-                          linterp_dt = linterp_dt,
-                          add_depth = TRUE)
+                       add_depth = TRUE,
+                       genplot = FALSE, verbose = FALSE,
+                       roll = taner_roll,
+                       linterp_dt = linterp_dt)
 
         ecc <- flt |>
           # NOTE: this assumes that the frequencies tibble had column target

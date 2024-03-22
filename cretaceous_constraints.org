@@ -7616,7 +7616,7 @@ ok the .3 is fine I guess
     select(age_floating, value) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
     astrochron::bandpass(flow = fl, fhigh = fh,
-                         win = 1, padfac = 5, alpha = 1,
+                         win = 1, padfac = 5, alpha = 3,
                          demean = TRUE, detrend = TRUE,
                          genplot = TRUE, verbose = FALSE,
                          xmax = 0.03)
@@ -7666,6 +7666,18 @@ ok the .3 is fine I guess
                       demean = TRUE, detrend = TRUE,
                       genplot = TRUE, verbose = FALSE,
                       xmax = 0.03)
+
+  x11(title = "taner 1e20")
+  mini_data |>
+    select(age_floating, value) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::taner(flow = fl, fhigh = fh,
+                      roll = 1e20,
+                      padfac = 5,
+                      demean = TRUE, detrend = TRUE,
+                      genplot = TRUE, verbose = FALSE,
+                      xmax = 0.03)
+
 
   # a little more manual approach
   mini_data |>
@@ -8381,7 +8393,7 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
     filter(
       proxy == "Lstar",
       detrend_type == "lin_scl_med",
-      site == "Zumaia",
+      ## site == "Zumaia",
       ## depth_chunk=="depth < 109.26",
       depth_chunk == "full record",
       ## depth <= 115, # note sedrate switch from 17 m to 12 m.
@@ -8396,7 +8408,8 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
           0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
       target_periods = c("405 kyr" = 405, "100 kyr" = 110),
       frequency_fraction = 0.1,
-      bandpass_window = 1,
+      ## bandpass_window = 1,
+      taner_roll = 1e10,
       max_error_range = 1.6, #1.6, # 10% of 16 m 405 kyr cycle
       RMSD_threshold = 0.005,
       genplot = TRUE, output = "full")
@@ -8473,6 +8486,29 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
 
 #+RESULTS:
 [[file:imgs/Zumaia_MS_overall.png]]
+
+new nice overview plot
+#+begin_src R :results output graphics file :file imgs/tst1_output_plot.png :width 900 :height 500
+  tst1$matched |>
+    ggplot(aes(x = age * 1e-3, y = value)) +
+    scale_x_reverse() +
+    labs(x = "Age (Ma)", y = "Scaled Value") +
+    geom_ribbon(aes(ymin = -20,
+                    ymax = SD - 20),
+                position = "identity", fill = "red", alpha = .7) +
+    geom_line(alpha = .3) +
+    geom_line(aes(y = `100 kyr`), colour = "orange") +
+    geom_line(aes(y = `405 kyr`), colour = "blue") +
+    geom_ribbon(aes(ymin = ecc_sln - 4, ymax = -ecc - 4),
+                position = "identity", fill = "red",
+                alpha = .2) +
+    geom_line(aes(y = -ecc - 4), colour = "brown", linewidth = 1) +
+    geom_line(aes(y = ecc_sln - 4), linewidth = 1)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/tst1_output_plot.png]]
+
 ***** [#A] Sopelana tests
 :PROPERTIES:
 :CREATED:  [2024-01-17 Wed 14:24]
@@ -8484,12 +8520,12 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
     filter(
       proxy == "Lstar",
       detrend_type == "lin_scl_fine",
-      site == "Sopelana",
+      ## site == "Sopelana",
       depth_chunk == "full record"
       ## depth <= 115, # note sedrate switch from 17 m to 12 m.
       comb == "1:1" # this doesn't deterimine it, I construct ecc below anyway.
       ) |>
-    AstronomicalSolutions::wrap_age_model(
+    wrap_age_model(
       agemodel = agem_indep,
       astronomical_solution = slns |> filter(sln == "ZB18a"),
       proxy_phase = -1, # -1 for Lstar and d13C, +1 for MS

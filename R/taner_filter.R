@@ -1,20 +1,37 @@
 taner_filter <- function(data, frequencies, x, y, ...,
                          ## linterp = TRUE,
-                         ## linterp_dt = NULL,
-                         roll = 1e3) {
-  data |>
+                         linterp_dt = NULL,
+                         roll = 1e3,
+                         add_depth = FALSE) {
+  # linterp by default!
+  out <- data |>
     mutate(filt = list(frequencies)) |>
     unnest("filt") |>
     nest(.by = all_of(colnames(frequencies))) |>
     mutate(lt = purrr::map(data, \(d) d |> dplyr::select({{x}}, {{y}}) |>
-                                      astrochron::linterp(genplot = FALSE, verbose = FALSE)),
+                                        astrochron::linterp(genplot = FALSE,
+                                                            verbose = FALSE,
+                                                            dt = linterp_dt)),
            bp = purrr::pmap(list(lt, flow, fhigh),
                             \(d, l, h)
-                            astrochron::taner(d, flow = l, fhigh = h,
-                                              roll = roll,
-                                              ...))) |>
-    select(-"lt", -"data") |>
-    unnest(cols = c("bp"))
+                            d |>
+                              astrochron::taner(flow = l, fhigh = h,
+                                                roll = roll,
+                                                ...) |>
+                              dplyr::select(filter = {{y}}))) |>
+    select(-"data") |>
+    unnest(cols = c("lt", "bp"))
+
+  # interpolate depth back to new age scale
+  if (add_depth) {
+    out <- out |>
+      dplyr::mutate(depth = stats::approx(data |> dplyr::pull({{x}}),
+                                          data$depth,
+                                          out |> dplyr::pull({{x}}))$y,
+                    .before = {{x}})
+  }
+
+  out
 }
 
 nested_taner_filter <- function(data, frequencies, x, y, nest, ...) {
