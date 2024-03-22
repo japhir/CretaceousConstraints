@@ -24,7 +24,6 @@
 \usepackage{glossaries}
 %\makeglossaries % not needed if we don't want to print them at the end
 
-
 \newcommand{\appr}{\raise.17ex\hbox{$\scriptstyle\sim$}} % approximately symbol
 
 \newcommand{\rez}{\textcolor{magenta}}
@@ -292,42 +291,46 @@ Site descriptions for Zumaia and Sopelana.
 We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements~\cite{Batenburg2012,Batenburg2014}.
 
 We have also looked at sites in table \cref{tab:sites}, but limit ourselves to analysis of Zumaia and Sopelana.
+\ijk{Argue for why we picked these 2 field sites: clearest cyclicity, continuous, high-res, well-established}
 
 
 \begin{table}
     \centering
+    \caption{\label{tab:sites}
+        Overview of sites considered for study, sorted from younger to older, shorter to longer.
+        Gubbio consists of Contessa Highway (Danian) and Bottaccione (Maastrichtian).
+        \ijk{Rough first draft of table! See \TeX{} file for notes in comments.}
+    }
     \begin{tabular}{llccl}
         Site & Proxy & Ma\textsubscript{405}x & Age (Ma) & Reference \\
+        % the ages and Ma405 cycles are pretty rough estimates from figures/raw data
         \hline
-        208-1262 & a*, d13C, d18O & - & 58--53 & \citeA{ZeebeLourens2019} \\ % should probably cite OG study but won't show in final table here anyway
-        198-1209 & a* & - & 66--56 Ma & \citeA{ZeebeLourens2022EPSL}\\
+         % should probably cite original study but won't show in final table here anyway
+        208-1262 & a*, d13C, d18O & - & 58--53 & \citeA{ZeebeLourens2019} \\
+        198-1209 & a*/b* & - & 66--56 Ma & \citeA{ZeebeLourens2022EPSL}\\
+        % Frits says it has a 200 kyr cycle that is unique to this interval!
         Hendaye & photos & - & 66--64 & Hilgen, personal comm.\\
         Gubbio & MS, \ce{CaCO3}, d13C, d18O & - & 67--62.5 & \citeA{Sinnesael2016} \\
         208-1267 & color, Fe & - & 69.1--56.0 & \citeA{Westerhold2008,Batenburg2018} \\
         208-1267 & MS & 1--6/7 & 68.6--66 & \citeA{Husson2011} fig. 3 and 4. \\
         208-1267 & \ce{CaCO3} & - & 50-47.8 & \citeA{Sexton2011}\\ % too young
         342-U1403 & d18O, ln(Fe/Ca) & 1--7 & 68.8--66 & \citeA{Batenburg2018}\\ % low sedrate of ~1 cm / kyr
-        Zumaia & CaCO3 & -3--4 & & \citeA{tenKateSprenger1993}\\ % too short?
+        Zumaia & \ce{CaCO3} & \(-\)3--3 & 67.5--65.5 & \citeA{tenKateSprenger1993}\\ % too short?
         Zumaia & MS, d13C, L* & 1--9 & 70--66 & \citeA{Batenburg2012} \\
-        Sopelana & MS, L* & 9--13 & - & \citeA{Batenburg2014}\\
+        Sopelana & MS, L* & 9--13 & 71.1--69.6 & \citeA{Batenburg2014}\\
         Gubbio & d13C, MS & 1--12 & 76--66 & \citeA{Voigt2012}\\ % low-res
-        % Gubbio & MS & - & OAE-2 & \citeA{Kitch2023}\\ % low-res
-        198-1210B & d13C, d18O,XRF Ba & 2--12 & 71.5--66.25 & \citeA{Jung2012,Kim2022}\\ % some low-res intervals in crucial parts? higher res around 68 Ma
+        % Gubbio & Ca isotopes & - & OAE-2 & \citeA{Kitch2022}\\ % low-res, old, wrong proxy
+        198-1210B & d13C, d18O, XRF Ba & 2--12 & 71.5--66.25 & \citeA{Jung2012,Kim2022}\\ % some low-res intervals in crucial parts? higher res around 68 Ma, Kim2022 pretty high res but only d13C
         74-525A & grayscale & 6--8.5 & 69--67.8 & \citeA{Husson2011}\\ % have emailed requesting data, but has left academia
-        207-1258B & L* etc. & 8--14 & - & \citeA{Husson2011}\\ % can reproduce by getting data from JANUS database
-        % taner filters not so nice, some big core gaps
         122-762C & grayscale & 8--17+ & 77.5--69 & \citeA{Husson2011,Thibault2012}\\ % Thibault has published most data!
         % the above may be useful to look at, some core gaps but high amplitude short ecc in Ma405_8 and Ma405_10!
-        Gubbio & d13C, d18O & - & 84.2--72.1 & \citeA{Sabatino2018}\\
-        %Gubbio & d13C, d18O & - & 84.2--72.1 & \citeA{Voigt2012}\\
+        207-1258A & MS & 8--14 & - & \citeA{Husson2011}\\ % can reproduce by getting data from JANUS database
+        % taner filters not so nice, some big core gaps
+        Gubbio & d13C, d18O & - & 84.2--72.1 & \citeA{Voigt2012}\\
+        Gubbio & d13C & - & 84.2--72.1 & \citeA{Sabatino2018}\\ % high-res
         Furlo & color, d13C, d18O & - & 96--90 & \citeA{Batenburg2016}\\ % too old for us, but cool for future?
         Levant Platform & TOC, d13C, d18O & - & 96.2--90.9 & \citeA{Wendler2014}\\
     \end{tabular}
-    \caption{\label{tab:sites}
-        Overview of sites considered for study, sorted from younger to older, shorter to longer.
-        Gubbio consists of Contessa Highway (Danian) section and Bottaccione (Maastrichtian) section.
-    }
-
 \end{table}
 
 \subsection{Age Model}\label{sec:agemodel}
@@ -383,7 +386,7 @@ a linear trend $x \times t$.} \\
 We use bandpass filtering to extract the long and short eccentricity cycles (rectangular and Gaussian windows targeting \qtylist{405;110}{\kiloyear} periods, frequencies of \qtylist{0.00247;0.00909}{cycles\per\kiloyear}\textpm\qty{30}{\percent}, zero-padded with 5 times the number of datapoints).
 
 \rez{you could pad more 5x, 10x, any difference?}
-\ijk{I didn't read the docs correctly, defaults to 5. I quickly tried out 5, 10, 15, 100 tapers and no diff for 405 and 100 kyr filters.}
+\ijk{I didn't read the docs correctly, defaults to 5. I quickly tried out 5, 10, 15, 100 times and no diff for 405 and 100 kyr filters.}
 
 \subsection{Finding the Best Fit}\label{sec:algorithm}
 
@@ -393,6 +396,7 @@ After linearly interpolating to a timestep that is a multiple of the timestep of
 The filtered signals are added and scaled (or normalized: we subtract the mean and divide by the standard deviation) to construct an artificial ``eccentricity'' curve.
 The scaled astronomical solutions are then interpolated/subset to the same timesteps as the data, and the squared differences are summarized by calculating the \gls{RMSD}:
 
+\ijk{do you think this is needed or leave it out?}
 \begin{equation}
     \text{RMSD} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(e_{i} - f_{i})^{2}}
 \end{equation}
@@ -411,7 +415,7 @@ This is repeated until all tie-points have been adjusted, resulting in the overa
 
 \ijk{something about spectral analysis? For now just rely on original study that showed this?}
 
-\ijk{introduce Ma405 numbering from~\cite{Husson2014}}.
+\ijk{introduce Ma\(_{405}\)X numbering from~\cite{Husson2011}---nvm this was already done in \citeA{Westerhold2008}.}
 
 % talk about all the nitty-gritty details of parameter perturbations?
 % - proxy (show the same pattern?)
@@ -421,7 +425,7 @@ This is repeated until all tie-points have been adjusted, resulting in the overa
 % - window (gaussian/rectangular)
 % - comb (I only show 1:1, but 1:0.5 and 0.5:1 both outperform the rest)
 We performed our analysis for the proxies \gls{L*}, \gls{d13C}, and \gls{MS}, but  focus on \gls{L*} in the main manuscript.
-The \gls{d13C} proxy is more sensitive to lower frequency orbital forcing~\cite{Zeebe2017,Kocken2019loscar} and shows long eccentricity forcing clearly but the short eccentricity is less well-expressed.
+The \gls{d13C} proxy is more sensitive to lower frequency orbital forcing~\cite{Zeebe2017,Kocken2019loscar} and shows long eccentricity forcing clearly but the short eccentricity is less clearly expressed.
 For \gls{MS} it is unclear how it relates to the climate forcing, %Richard doesn't trust/understand it.
 while \gls{L*} likely corresponds to changes in the lithology that have been driven by carbonate--clay alternations, which are in turn driven by changes in wetness and climate.
 We argue that the color reflectance record most directly reflects the orbital forcing.
@@ -435,15 +439,6 @@ Furthermore, changing the parameters of the bandpass filter has a strong effect:
 See \cref{fig:rolling-rmsd-improvement} for a comparison of \gls{RMSD} scores across all detrend types, bandpass filter windows, different proxies, and whether or not we performed our tie-point adjustments (\cref{sec:algorithm}).
 See also \cref{fig:rolling-age-MS,fig:rolling-age-d13C} for the fits against the astronomical solutions in the time domain.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_detrend_types_all.pdf}
-  \caption{\label{fig:detrend}
-    \textbf{Zumaia and Sopelana trend removal strategies.}
-    The raw data (gray) and the lines that were fit through (coloured lines), which were subtracted from the record. See \cref{tab:detrend_types} for descriptions.
-    % TODO: remove a few of the lin_pred_xxx's
-  }
-\end{figure}
 
 % first describe simple "what is the best RMSD-scoring solution?"
 \subsection{Comparison of RMSD scores}
@@ -454,11 +449,11 @@ The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.9\textwidth]{full_RMSD_scores.pdf}
+    \includegraphics[width=0.6\textwidth]{full_RMSD_scores.pdf}
     \caption{\label{fig:full-RMSD}
-        \gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.
-        Colours show which detrending strategy was used (see \cref{tab:detrend_types}), while circles indicate a gaussian filter and squares show a rectangular filter.
-        Faint lines represent detrend types that scored worse.
+        \gls{RMSD} scores of compilation of Zumaia and Sopelana \gls{L*} record against several orbital solutions.
+        % Colours show which detrending strategy was used (see \cref{tab:detrend_types}), while circles indicate a gaussian filter and squares show a rectangular filter.
+        %Faint lines represent detrend types that scored worse.
         Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
         % TODO: remove low-scoring lower opacity lines?
     }
@@ -478,8 +473,14 @@ The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a 
     \textbf{Best \gls{RMSD} scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
     Same as \cref{fig:full-RMSD}, but separated by site and depth interval.
     The two bottom panels show results for the upper and lower parts of the Zumaia record analyzed separately because of the change in sedimentation rate and lithology.
-    % TODO: link to full figure
-    % TODO: merge with next figure?
+}
+\end{figure}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.7\textwidth]{cumulative_rRMSD.pdf}
+  \caption{\label{fig:cum-rmsd}
+    \textbf{Cumulative \gls{RMSD} scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
 }
 \end{figure}
 
@@ -648,64 +649,74 @@ We suggest that future studies generate new astronomical solutions with similar 
 \appendix
 % this template also turns the open research section into an appendix...
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_detrend_types_all.pdf}
+  \caption{\label{fig:detrend}
+    \textbf{Zumaia and Sopelana trend removal strategies.}
+    The raw data (gray) and the lines that were fit through (coloured lines), which were subtracted from the record. See \cref{tab:detrend_types} for descriptions.
+    % TODO: remove a few of the lin_pred_xxx's
+  }
+\end{figure}
+
 \section{Alternative Combinations and Proxies}
 
 We show some more combinations of \cref{fig:rolling-rmsd-improvement} in \cref{fig:rolling-rmsd-improvement}.
 We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:rolling-age-MS}) and for \gls{d13C} (\cref{fig:rolling-age-d13C}).
 
-\begin{figure}[htb]
-  \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm_raw.pdf}
-  \caption{\label{fig:spectral-depth}
-    \textbf{Spectral analysis in the depth domain.}
-    % Do I need refs for all of these?
-    \ijk{In the end probably show analysis only in time-domain?}
-    BT = Blackman-Tukey,
-    FFT = Fast Fourier Transform,
-    LOWSPEC = Robust Locally-Weighted Regression Spectral Background Estimation \cite{Meyers2012},
-    LS = Lomb-Scargle,
-    MTLS = Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly
-spaced data \cite{Springford2020},
-    MTM = Multitaper method \cite{Thomson1982}.
-    Shaded intervals for the MTM and LOWSPEC indicate AR1 fit and AR1-power and LOWSPEC fit and power confidence levels.
-  }
-\end{figure}
-
-\begin{figure}[htb]
-  \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm.pdf}
-  \caption{\label{fig:spectral-depth}
-    \textbf{Spectral analysis in the depth domain.}
-    % Do I need refs for all of these?
-    \ijk{This is the same as above but after linear detrending with \texttt{lin\_scl\_fine}.}
-    BT = Blackman-Tukey,
-    FFT = Fast Fourier Transform,
-    LOWSPEC = Robust Locally-Weighted Regression Spectral Background Estimation \cite{Meyers2012},
-    LS = Lomb-Scargle,
-    MTLS = Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly
-spaced data \cite{Springford2020},
-    MTM = Multitaper method \cite{Thomson1982}.
-    Shaded intervals for the MTM and LOWSPEC indicate AR1 fit and AR1-power and LOWSPEC fit and power confidence levels.
-  }
-\end{figure}
-
-
-\begin{figure}[htb]
-  \centering \includegraphics[width=\textwidth]{Zumaia_Sopelana_spectra_filters_raw.pdf}
-  \caption{\label{fig:spectral-age-raw}
-    \textbf{Spectral analysis in the time domain.}
-    % Do I need refs for all of these?
-    \ijk{This is raw values, only linear detrend}
-    % BT = Blackman-Tukey,
-    FFT = Fast Fourier Transform,
-    LOWSPEC = Robust Locally-Weighted Regression Spectral Background Estimation \cite{Meyers2012},
-    % LS = Lomb-Scargle,
-    MTLS = Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly
-spaced data \cite{Springford2020},
-    MTM = Multitaper method \cite{Thomson1982}.
-    Shaded intervals for the MTM and LOWSPEC indicate AR1 fit and AR1-power and LOWSPEC fit and power confidence levels.
-  }
-\end{figure}
-
-
+% \begin{figure}[htb]
+%   \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm_raw.pdf}
+%   \caption{\label{fig:spectral-depth}
+%     \textbf{Spectral analysis in the depth domain.}
+%     % Do I need refs for all of these?
+%     \ijk{In the end probably show analysis only in time-domain?}
+%     BT = Blackman-Tukey,
+%     FFT = Fast Fourier Transform,
+%     LOWSPEC = Robust Locally-Weighted Regression Spectral Background Estimation \cite{Meyers2012},
+%     LS = Lomb-Scargle,
+%     MTLS = Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly
+% spaced data \cite{Springford2020},
+%     MTM = Multitaper method \cite{Thomson1982}.
+%     Shaded intervals for the MTM and LOWSPEC indicate AR1 fit and AR1-power and LOWSPEC fit and power confidence levels.
+%   }
+% \end{figure}
+%
+% \begin{figure}[htb]
+%   \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm.pdf}
+%   \caption{\label{fig:spectral-depth}
+%     \textbf{Spectral analysis in the depth domain.}
+%     % Do I need refs for all of these?
+%     \ijk{This is the same as above but after linear detrending with \texttt{lin\_scl\_fine}.}
+%     BT = Blackman-Tukey,
+%     FFT = Fast Fourier Transform,
+%     LOWSPEC = Robust Locally-Weighted Regression Spectral Background Estimation \cite{Meyers2012},
+%     LS = Lomb-Scargle,
+%     MTLS = Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly
+% spaced data \cite{Springford2020},
+%     MTM = Multitaper method \cite{Thomson1982}.
+%     Shaded intervals for the MTM and LOWSPEC indicate AR1 fit and AR1-power and LOWSPEC fit and power confidence levels.
+%   }
+% \end{figure}
+%
+%
+% \begin{figure}[htb]
+%   \centering \includegraphics[width=\textwidth]{Zumaia_Sopelana_spectra_filters_raw.pdf}
+%   \caption{\label{fig:spectral-age-raw}
+%     \textbf{Spectral analysis in the time domain.}
+%     % Do I need refs for all of these?
+%     \ijk{This is raw values, only linear detrend}
+%     % BT = Blackman-Tukey,
+%     FFT = Fast Fourier Transform,
+%     LOWSPEC = Robust Locally-Weighted Regression Spectral Background Estimation \cite{Meyers2012},
+%     % LS = Lomb-Scargle,
+%     MTLS = Multi-taper Averaged Lomb-Scargle periodogram of (un)evenly
+% spaced data \cite{Springford2020},
+%     MTM = Multitaper method \cite{Thomson1982}.
+%     Shaded intervals for the MTM and LOWSPEC indicate AR1 fit and AR1-power and LOWSPEC fit and power confidence levels.
+%   }
+% \end{figure}
+%
+%
 \begin{figure}[htb]
   \centering \includegraphics[width=1.2\textwidth]{new_rolling_improvement.pdf}
   \caption{\label{fig:rolling-rmsd-improvement}
