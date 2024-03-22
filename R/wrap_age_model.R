@@ -195,9 +195,9 @@ wrap_age_model <- function(data,
   ecc <- flt |>
     # NOTE: this assumes that the frequencies tibble had column target
     # with names `405 kyr` and `100 kyr`!
-    construct_eccentricity(id_cols = c(.data$depth,
-                                       .data$age_floating,
-                                             .data$value),
+    construct_eccentricity(id_cols = c("depth",
+                                       "age_floating",
+                                       "value"),
                            f = .data$filter,
                            # I'm now forcing sign = 1 here!
                            sign = 1,
@@ -296,7 +296,7 @@ wrap_age_model <- function(data,
                                  am$depth,
                                  am$age_floating,
                                  xout = .x)$y),
-                 .after = .data$depth)
+                 .after = "depth")
 
         flt <- tmp |>
           # I think this is a hidden badly-written for-loop!
@@ -310,9 +310,9 @@ wrap_age_model <- function(data,
         ecc <- flt |>
           # NOTE: this assumes that the frequencies tibble had column target
           # with names `405 kyr` and `100 kyr`!
-          construct_eccentricity(id_cols = c(.data$depth,
-                                             .data$age_floating,
-                                             .data$value),
+          construct_eccentricity(id_cols = c("depth",
+                                             "age_floating",
+                                             "value"),
                                  f = .data$filter,
                                  # I'm now forcing sign = 1 here!
                                  sign = 1,
