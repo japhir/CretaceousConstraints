@@ -1,6 +1,6 @@
 #+title: Cretaceous Constraints
 #+author: Ilja J. Kocken
-#+PROPERTY: header-args:R  :session *R:2023-05-19_cretaceous_constraints* :exports results :results output :eval no-export
+#+PROPERTY: header-args:R  :session *R:2023-05-19_cretaceous_constraints* :exports output :results output :eval no-export
 #+options: TOC:3 broken-links:ignore H:4
 #+startup: overview
 #+SELECT_TAGS: export
@@ -41,9 +41,10 @@ Hi Richard, this doc is getting quite big, so here are some links to jump throug
                   ## strip.text.x = element_text(size = 7.5),
                   panel.grid = element_blank(),
                   panel.border = element_blank(),
-                  axis.line = element_line(),
+                  axis.line = element_line(linewidth = .2),
                   strip.background = element_blank(),
-                  strip.placement = "outside"))
+                  ## strip.placement = "outside"
+                  ))
   plan(multisession, workers = 4) # set up 4 cores
 #+end_src
 
@@ -4973,17 +4974,15 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+RESULTS:
 
-**** create a quick plot of all the detrend types
+**** [#B] create a quick plot of all the detrend types
 :PROPERTIES:
 :CREATED:  [2024-01-11 Thu 10:47]
 :END:
 this is not easy to customize, so we manually create it below.
 # #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300
 # #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.pdf :width 6 :height 5
-#+begin_src R
-  cairo_pdf("imgs/Zumaia-Sopelana_detrend_types_all.pdf",
-            width = 6, height = 5)
-  smooth_all |>
+#+begin_src R :results output graphics file :file imgs/detrend.png :width 800 :height 450
+  pl_detrend <- smooth_all |>
     arrange(detrend_type) |>
     mutate(detrend_megatype = case_when(
                detrend_type %in% c("value") ~ "original",
@@ -4994,50 +4993,66 @@ this is not easy to customize, so we manually create it below.
                )) |>
     filter(detrend_megatype != "detrended") |>
     filter(detrend_megatype != "scaled") |>
+    filter(detrend_type %in% c("gam_pred", #"lin_pred_coarse",
+                               "lin_pred_med", "lp_0.025", "value")) |>
+    filter(proxy == "Lstar") |>
     ## filter(!detrend_type %in% c("lin_scl_rw", "lin_pred_rw")) |>
     ## filter(detrend_type %in% c("lin_pred_coarse", "value")) |>
     ## filter(detrend_type %in% c("lin_pred_rw","lin_pred_fine", "lin_pred_med","lin_pred_coarse", "value")) |>
     ## filter(!detrend_type %in% c("lin_rw", "lin_scl_rw", "lin_pred_rw")) |>
     ## filter(detrend_megatype == "detrended and scaled") |>
-    ggplot(aes(x = depth, y = value, colour = detrend_type,
+    ggplot(aes(x = depth, y = value,
                group = paste(proxy, site, detrend_type))) +
-    facet_grid(rows = vars(proxy),
-               cols = vars(site),
-               scales = "free", space = "free_x",
-               labeller = labeller(proxy = c("d13C" = "δ¹³C",
-                                             "MS" = "MS",
-                                             "Lstar" = "L*")),
-               switch = "y") +
-    labs(x = "Depth (m)", y = "") +
-    scale_colour_manual(values =
+    theme(legend.position = c(.9, .7), legend.location = "inside") +
+    ## facet_grid(rows = vars(proxy),
+    ##            ## cols = vars(site),
+    ##            ## scales = "free", space = "free_x",
+    ##            labeller = labeller(proxy = c("d13C" = "δ¹³C",
+    ##                                          "MS" = "MS",
+    ##                                          "Lstar" = "L*")),
+    ##            switch = "y") +
+    labs(x = "Depth (m)", y = "L*") +
+    coord_cartesian(xlim = c(183, 0)) +
+    scale_x_reverse(breaks = seq(-20, 200, 20),
+                    minor_breaks = seq(-10, 200, 10)) +
+    scale_colour_manual(name = "",
+                        values = c("Zumaia" = "purple",
+                                   "Sopelana" = "orange",
+                                   "Solution" = "black")) +
+    geom_vline(aes(xintercept = strat_bot, colour = site),
+               alpha = .2,
+               data = agem_simple) +
+    geom_line(aes(colour = site),
+              alpha = .3,
+              data = \(x) x |> filter(detrend_type == "value")) +
+    ggnewscale::new_scale_color() +
+    scale_color_manual(values =
                           setNames(detrend_colours,
                                    c("scl", "gam_pred", "loess_pred", "lp_0.025",
                                      "lin_pred_rw", "lin_pred_fine", "lin_pred_med", "lin_pred_coarse",
                                      "value"))) +
-    scale_x_reverse(breaks = seq(-20, 200, 20),
-                    minor_breaks = seq(-10, 200, 10)) +
-    ## geom_vline(aes(xintercept = strat_bot),
-    ##            data = agem_simple) +
-    geom_line(colour = "gray",
-              data = \(x) x |> filter(detrend_type == "value")) +
     # interactive loess so we can quickly iterate
     ## geom_smooth(colour = "red",
     ##             method = "loess", span = 0.2,
     ##             data = \(x) x |> filter(detrend_type == "value")) +
     # first draw the lines so we can pass the group argument
-    geom_line(aes(group = paste(proxy, site, detrend_type, colour)),
+    geom_line(aes(colour = detrend_type, group = paste(proxy, site, detrend_type, colour)),
               data = \(x) x |>
               filter(str_detect(detrend_type, "^lin_pred"))) +
-    geom_line(alpha = .5,
+    geom_line(aes(colour = detrend_type),#alpha = .5,
               data = \(x) x |>
                           filter(detrend_type != "value") |>
                           filter(str_detect(detrend_type, "^lin_pred", negate = TRUE)))
-  dev.off()
+
+    ## cairo_pdf("imgs/Zumaia-Sopelana_detrend_types_all.pdf",
+  ##           width = 9.6, height = 2)
+
+  pl_detrend
+  ## dev.off()
 #+end_src
 
 #+RESULTS:
-: X11cairo
-:        2
+[[file:imgs/detrend.png]]
 
 [[file:imgs/Zumaia-Sopelana_detrend_types_all.pdf]]
 
@@ -8898,7 +8913,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
-  rm(bandpass_filter) # rm so we can get back the one from the package
+  rm(taner_filter) # rm so we can get back the one from the package
   rm(construct_eccentricity)
 #+end_src
 
@@ -8996,6 +9011,9 @@ current time: 2024-03-21 15:36:10.811143
 
 so expect 40 minutes for the remainder of proxies
 
+write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
+> current time: 2024-03-21 16:51:29.667351
+> current time: 2024-03-21 17:15:04.751889
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -9097,15 +9115,15 @@ so expect 40 minutes for the remainder of proxies
 new runs after changing to a taner filter currently with roll = 1e10.
 #+begin_src R
   rolling_age_optim <-
-    ## bind_rows(
-      read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |>
-
-    ## )
-      mutate(detrend_type = as_factor(detrend_type) |>
+    bind_rows(
+      read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds"),
+      read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
+    ) |>
+    mutate(detrend_type = as_factor(detrend_type) |>
              fct_relevel(names(detrend_colours))) |>
     mutate(comb = as_factor(comb) |>
              fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                           "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+                           x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
     mutate(depth_chunk = as_factor(depth_chunk) |>
              fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
 #+end_src
@@ -9153,6 +9171,8 @@ new runs after changing to a taner filter currently with roll = 1e10.
 #+end_src
 
 #+RESULTS:
+: filter: no rows removed
+: filter: no rows removed
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -9270,8 +9290,9 @@ limit to comb == "1:1" and don't show the lin_scl_rw.
     ## scale_alpha_manual(values = c("gaussian" = 1,
     ##                               "rectangular" = .5)) +
     ## scale_linetype_manual(values = c("Field" = "dashed", "Optimized" = "solid")) +
-    scale_y_continuous(breaks = c(1, 1.2, 1.4, 1.5, 2),
-                       minor_breaks = seq(0,2,.1)) +
+    scale_y_continuous(breaks = c(0.9, 1.1, 1, 1.2, 1.3, 1.4, 1.5, 2),
+                       ## minor_breaks = seq(0,2,.1)
+    ) +
     ## geom_point(aes(y = RMSD_start), size = 0.7) +
     ## geom_path(aes(y = RMSD_start, linetype = "Field")) +
     geom_point(## aes(alpha = window),
@@ -9345,7 +9366,7 @@ old
     ## filter(detrend_type %in% c("scl", "lin_scl_med") |
     ##        (depth_chunk == "depth < 109.26" & detrend_type == "lin_scl_fine") |
     ##        (depth_chunk == "depth >= 109.26" & detrend_type == "lin_scl_coarse")) |>
-    ## filter(proxy == "Lstar") |>
+    filter(proxy == "Lstar") |>
     ## filter(site == "Zumaia" & depth_chunk == "full record") |>
     ggplot(aes(x = sol, y = RMSD, #colour = detrend_type,
                ## shape = window,
@@ -9360,9 +9381,9 @@ old
       ## shape = "Bandpass window",
       ## alpha = "Bandpass window"
     ) +
-    facet_grid(cols = vars(proxy
-                           ## window## , comb
-                           ),
+    facet_grid(## cols = vars(proxy
+               ##             ## window## , comb
+               ##             ),
                rows = vars(site, depth_chunk),
                scales = "free_y", space = "free_y",
                ) +
@@ -9382,25 +9403,26 @@ old
     ## geom_point(aes(y = RMSD_start), size = 0.7) +
     ## geom_path(aes(y = RMSD_start, linetype = "Field")) +
     geom_line(aes(x = sol, y = RMSD, group = "all"),
-              linewidth = .5,
+              ## linewidth = .5,
+              alpha = .3,
               colour = "black")  +
-    geom_point(size = 1) +
+    geom_point() #+
     ## geom_point(data = best_age_optim |> filter(comb == "1:1", proxy == "Lstar", window == "rectangular", detrend_type == "lin_scl_med"))
     ## geom_segment(arrow=arrow(type = "closed", length = unit(0.1, "inches")))+
     ## geom_linerange(aes(ymin = RMSD_start, ymax = RMSD),
     ##                alpha = .2) ## +
-    geom_line(linewidth = .3, alpha = .2,
-              data = best_age_optim |> filter(## proxy == "Lstar",
-                                              comb == "1:1")) +
-    geom_point(size = .3, alpha = .2,
-               data = best_age_optim |> filter(## proxy == "Lstar",
-                                               comb == "1:1")) +
-    geom_line(linewidth = .5,
-              data = best_age_optim |> filter(#proxy == "Lstar",
-                                              comb == "1:1",
-                                              detrend_type == "lin_scl_med"## ,
-                                              ## window == "rectangular"
-                                       ))
+    ## geom_line(linewidth = .3, alpha = .2,
+    ##           data = best_age_optim |> filter(proxy == "Lstar",
+    ##                                           comb == "1:1")) +
+    ## geom_point(size = .3, alpha = .2,
+    ##            data = best_age_optim |> filter(proxy == "Lstar",
+    ##                                            comb == "1:1")) ## +
+    ## geom_line(linewidth = .5,
+    ##           data = best_age_optim |> filter(proxy == "Lstar",
+    ##                                           comb == "1:1",
+    ##                                           detrend_type == "lin_scl_med"## ,
+    ##                                           ## window == "rectangular"
+    ##                                    ))
   pl_best
 #+end_src
 
@@ -9449,16 +9471,17 @@ old
 
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol)`
-: filter: removed 8,353 rows (41%), 11,889 rows remaining
+: filter: removed 16,988 rows (37%), 28,659 rows remaining
 
 **** simple plot of RMSD vs solution
 #+begin_src R :results output graphics file :file imgs/full_RMSD_scores.pdf :width 4 :height 2
   pl_rmsd_full <- overall_best |>
     filter(comb == "1:1") |>
-    ## filter(proxy == "Lstar") |>
+    filter(proxy == "Lstar") |>
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
-    ggplot(aes(x = sol, y = RMSD, #col = detrend_type## , shape = window
+    ggplot(aes(x = sol, y = RMSD,
+               ## colour = proxy#col = detrend_type## , shape = window
                )) +
     labs(x = "Astronomical Solution"## , shape = "Bandpass Filter type"
          ) +
@@ -9466,15 +9489,20 @@ old
     ## scale_colour_manual(values = detrend_colours) +
     ## scale_shape_manual(values = c("gaussian" = "circle",
     ##                               "rectangular" = "square")) +
-    geom_line(aes(group = paste(detrend_type, proxy, comb## , window
-                                )),
-              alpha = .1) +
-    geom_point(alpha = .05) +
-    geom_line(aes(group = proxy), colour = "gray",
+    ## geom_line(aes(group = paste(detrend_type, proxy, comb## , window
+    ##                             )),
+    ##           alpha = .1) +
+    ## geom_point(alpha = .05) +
+    geom_line(aes(group = proxy, ## colour = proxy
+                  ), alpha = .3,
               data = \(x) x |>
                           filter(RMSD == min(RMSD), .by = c(sol, proxy))) +
     geom_point(data = \(x) x |>
-                           filter(RMSD == min(RMSD), .by = c(sol, proxy)))
+                           filter(RMSD == min(RMSD), .by = c(sol, proxy))) +
+    theme(legend.position = c(.15, .9),
+          legend.location = "inside",
+          legend.background = element_blank(),
+          legend.key.height = unit(1, "mm"))
 
   pl_rmsd_full
 #+end_src
@@ -9482,12 +9510,12 @@ old
 #+RESULTS:
 [[file:imgs/full_RMSD_scores.pdf]]
 
-**** simple plot of records vs. solutions
+**** [#B] simple plot of records vs. solutions
 :PROPERTIES:
 :CREATED:  [2024-03-08 Fri 14:19]
 :END:
 #+begin_src R :results output graphics file :file imgs/sol_SD.pdf :width 7 :height 7
-  overall_sd |>
+  pl_age_matches <- overall_sd |>
     tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
     filter(proxy == "Lstar") |>
     ## mutate(rRMSD = sqrt(cumsum(SD)),
@@ -9497,7 +9525,10 @@ old
     facet_grid(rows = vars(sol)) +
     scale_x_reverse(breaks = seq(66, 73, 1)) +
     scale_y_continuous(breaks = seq(-4, 4, 4)) +
-    scale_colour_manual(name = "", values = c("Proxy" = "purple", "Solution" = "black")) +
+    scale_colour_manual(name = "",
+                        values = c("Zumaia" = "purple",
+                                   "Sopelana" = "orange",
+                                   "Solution" = "black")) +
     # attempt to get it in the plot itself somewhere
     theme(legend.position = c(.9, .99),
           legend.location = "inside",
@@ -9507,14 +9538,22 @@ old
           panel.border = element_blank(),
           axis.line = element_line()
           ) +
-    labs(x = "Age (Ma)", y = "Norm. Scaled Proxy") +
+    labs(x = "Age (Ma)", y = "Scaled Proxy/Solution") +
     ## geom_ribbon(aes(ymin = ecc_sln, ymax = -ecc), fill = "red", alpha = .3) +
     ## geom_line(aes(y = dt * 50)) +
     ## geom_ribbon(aes(ymin = min(scale(SD)[, 1]) - 8,
     ##                 ymax = scale(SD)[, 1] - 8),
     ##             fill = "black", alpha = .3) +
-    geom_line(aes(y = -ecc, group = site, colour = "Proxy")) +
+    geom_vline(aes(xintercept = age * 1e-3, colour = site),
+               alpha = .15,
+               data = \(d) d |>
+                      distinct(proxy, site, sol, detrend_type, depth_chunk, the_best) |>
+                      mutate(summary = map(the_best, "summary")) |>
+                      unnest(summary) |>
+                      mutate(age = kpg_age + age_floating + age_slider)) +
+    geom_line(aes(y = -ecc, group = site, colour = site)) +
     geom_line(aes(y = ecc_sln, colour = "Solution"))
+  pl_age_matches
 #+end_src
 
 #+RESULTS:
@@ -10511,10 +10550,10 @@ https://github.com/AndyBunn/dplR/issues/9
                     ## filter(proxy == "d13C") |>
                     # I think I may have re-run the ZB20a < 109 lin_scl_fine
                     tidylog::distinct(sol, site, proxy, depth_chunk, comb,
-                                      detrend_type, window,
-                             .keep_all = TRUE)
+                                      detrend_type, #window,
+                             .keep_all = TRUE) |>
                     ## filter(window == "gaussian") |>
-                    ## filter(depth_chunk == "full record")
+                    filter(depth_chunk == "full record")
 
   baoo <- best_age_optim_one |>
     my_filt() |>
@@ -10526,21 +10565,34 @@ https://github.com/AndyBunn/dplR/issues/9
 : distinct: no rows removed
 
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.pdf :width 9.6 :height 8
-  best_age_optim |>
+  another <- best_age_optim |>
   ## rolling_age_optim |>
     my_filt() |>
     mutate(m = map(the_best, "matched")) |>
-    unnest(m) |>
+    unnest(m)
+
+  another_crit <- another |>
+    filter(site == "Sopelana") |>
+    summarize(min_age = min(age),
+              .by = c(proxy, sol))
+
+  another <- another |>
+    tidylog::left_join(another_crit) |>
+    tidylog::filter(!(site == "Zumaia" & age > min_age))
+
+  another |>
     ggplot(aes(x = age * 1e-3,
                y = sign_405 * ecc,
                ## colour = site,
-               colour = detrend_type,
+               ## colour = detrend_type,
+               ## colour = paste(site, depth_chunk),
                ## linetype = window,
                group = paste(sol,
                              site, proxy,
                              detrend_type,
-                             depth_chunk,
-                             window))) +
+                             depth_chunk## ,
+                             ## window
+                             ))) +
     facet_grid(rows = vars(sol)) +
     labs(x = "Age (Ma)", y = "Norm. Filter & Solution",
          colour = "") +
@@ -10549,10 +10601,10 @@ https://github.com/AndyBunn/dplR/issues/9
     scale_x_reverse(breaks = seq(80, 50, -1),
                     minor_breaks = seq(80, 50, -0.1)) +
     scale_y_continuous(breaks = c(-4, 0, 4)) +
-    scale_linewidth_continuous(range = c(1.2, 0.3)) +
-    scale_alpha_continuous(range = c(1, 0.2)) +
+    scale_linewidth_continuous(range = c(1.2, 0.8)) +
+    scale_alpha_continuous(range = c(1, 0.4)) +
     scale_colour_manual(values = c("Astronomical Solution" = "black",
-                                   detrend_colours),
+                                   "Data"="purple"),
                         guide = guide_legend(override.aes = list(alpha = 1))) +
     geom_vline(aes(xintercept = age1),
                colour = "darkgray",
@@ -10562,7 +10614,10 @@ https://github.com/AndyBunn/dplR/issues/9
     # plot all fits as thin lines
     ## geom_line(linewidth = .1, alpha = .3) +
     # add the BEST fits for each segment/proxy/solution
-    geom_line(aes(linewidth = RMSD, alpha = RMSD), data = baoo) +
+    geom_line(aes(## linewidth = RMSD,
+                  ## alpha = SD,
+                  colour = "Data"
+                  ), data = baoo) +
 
     # annotate astronomical solution
     geom_line(aes(x = age * 1e-3, y = scl, group = sol,
@@ -10659,7 +10714,8 @@ https://github.com/AndyBunn/dplR/issues/9
     ##           data = best_age_optim |>
     ##             filter(comb == "1:1") |>
     ##             filter(proxy == "Lstar") |>
-    ##             ## filter(detrend_type == "lin_scl_fine") |>
+    ##             filter(detrend_type == "lin_scl_med") |>
+    ##             filter(depth_chunk == "full record") |>
     ##             mutate(m = map(the_best, "summary")) |>
     ##             unnest(m))
     ## geom_text(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4.5,
@@ -10734,7 +10790,7 @@ https://github.com/AndyBunn/dplR/issues/9
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_depth_ecc.pdf]]
 
-**** simplified plot of raw data vs depth
+**** [#B] simplified plot of raw data vs depth
 :PROPERTIES:
 :CREATED:  [2024-01-15 Mon 15:22]
 :END:
@@ -10745,27 +10801,47 @@ I should:
 # #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
 # #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_depth.pdf :width 9.6 :height 2
 # #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_depth.pdf :width 9.6 :height 2
+
 #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_depth.pdf :width 9.6 :height 2
-  best_age_optim |>
+  simp <- best_age_optim |>
     filter(comb == "1:1") |>
     filter(proxy == "Lstar") |>
-    filter(sol == "ZB20b") |>
+    filter(sol == "ZB20a") |>
+    filter(depth_chunk == "full record") |>
     mutate(m = map(the_best, "matched")) |>
-    unnest(m) |>
+    unnest(m)
+
+  simp_crit <- simp |>
+    filter(site == "Sopelana") |>
+    summarize(min_depth = min(depth),
+              .by = c(proxy, sol))
+
+  simp <- simp |>
+    tidylog::left_join(simp_crit) |>
+    tidylog::filter(!(site == "Zumaia" & depth > min_depth))
+
+  pl_detrended_depth <- simp |>
     ggplot(aes(x = depth,
                ## y = sign_405 * ecc,
                y = value,
                colour = site,
                group = paste(site, sol, proxy,
                              detrend_type, depth_chunk))) +
-    facet_grid(rows = vars(sol)) +
+    ## facet_grid(rows = vars(sol)) +
+    theme(legend.position = c(.7, .9), legend.location = "inside") +
     labs(x = "Depth (m)", y = "Detrended proxy",
          colour = "") +
+    coord_cartesian(xlim = c(183, 0)) +
+    ## scale_colour_manual(values = detrend_colours) +
+    scale_colour_manual(name = "",
+                        values = c("Zumaia" = "purple",
+                                   "Sopelana" = "orange",
+                                   "Solution" = "black")) +
     ## theme(legend.pos = c(.64, .864),
     ##       legend.direction = "horizontal") +
-    scale_colour_manual(values = detrend_colours) +
-    scale_x_reverse(breaks = seq(200, -50, -40),
-                    minor_breaks = seq(200, -50, -5)) +
+    scale_x_reverse(breaks = seq(200, -50, -20),
+                    ## minor_breaks = seq(200, -50, -5)
+                    ) +
     ## scale_y_continuous(breaks = c(-4, 0, 4)) +
     ## scale_linewidth_continuous(range = c(1.2, 0.3)) +
     ## scale_alpha_continuous(range = c(1, 0.2)) +
@@ -10776,27 +10852,52 @@ I should:
     ##                                ## "MS" = "skyblue",
     ##                                ## "d13C" = "darkgreen"
     ##                                )) +
-    geom_vline(xintercept = 0) +
-    # annotate field-based long ecc minima
+    ## geom_vline(xintercept = 0, alpha = .2) +
+      # annotate field-based long ecc minima
     # uncertainty
     geom_segment(aes(x = strat_bot - 1.6, xend = strat_bot + 1.6,
-                     y = -4, yend = -4),
+                     y = -4, yend = -4, colour = site),
                  inherit.aes = FALSE,
                  data = agem_simple) +
-    # points themselves
-    geom_point(aes(x = strat_bot, y = -4),
-               inherit.aes = FALSE,
-               data = agem_simple) +
-    ## geom_line(aes(y = ) +
-    geom_line(aes(colour = detrend_type))
-    ## geom_line(aes(y = value), colour = "gray")
+    geom_vline(aes(xintercept = strat_bot, colour = site),
+             alpha = .2,
+             data = agem_simple) +
+    ## # points themselves
+    ## geom_point(aes(x = strat_bot, y = -4,colour = site),
+    ##            inherit.aes = FALSE,
+    ##            data = agem_simple) +
+    geom_line(alpha = .3)
     ## geom_line(aes(y = value, colour = "Astronomical Solution")) +
     ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
     ## annotate("text", x = 66.3, y = 5, label = "RMSD", size = 3) +
+  pl_detrended_depth
 #+end_src
 
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_depth.pdf]]
+
+**** [#B] superduper combination for in main paper
+:PROPERTIES:
+:CREATED:  [2024-03-22 Fri 09:36]
+:END:
+where I make the plot components:
+[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simple plot of records vs. solutions][simple plot of records vs. solutions]]
+[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simplified plot of raw data vs depth][simplified plot of raw data vs depth]]
+[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*create a quick plot of all the detrend types][create a quick plot of all the detrend types]]
+
+#+begin_src R :results output graphics file :file imgs/matched_solutions.pdf :width 8 :height 7
+  (pl_age_matches /
+   (pl_detrended_depth +
+    theme(axis.text.x = element_blank(),
+          axis.line.x = element_blank(),
+          axis.ticks.x = element_blank())
+   ) /
+   pl_detrend) +
+  plot_layout(heights = c(7, 1, 1), axes = "collect_x", guides = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/matched_solutions.pdf]]
 
 **** +simple+ plot of filtered data in time domain
 :PROPERTIES:
