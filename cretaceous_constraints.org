@@ -5200,6 +5200,13 @@ same for MS
 #+RESULTS:
 [[file:imgs/detrend_MS.png]]
 
+**** compare the detrending for the different proxies
+:PROPERTIES:
+:CREATED:  [2024-03-22 Fri 16:22]
+:END:
+#+begin_src R
+  (pl_detrend / pl_detrend_d13C / pl_detrend_MS) + plot_layout(axes = "collect")
+#+end_src
 **** create smooth_pred, a subset with only detrend types we care about
 :PROPERTIES:
 :CREATED:  [2024-01-11 Thu 10:48]
@@ -9831,7 +9838,6 @@ same for d13C
 [[file:imgs/sol_SD_d13C.pdf]]
 
 and for MS
-same for d13C
 #+begin_src R :results output graphics file :file imgs/sol_SD_MS.pdf :width 7 :height 7
   pl_age_matches_MS <- overall_sd |>
     tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
@@ -9879,7 +9885,6 @@ same for d13C
 #+RESULTS:
 [[file:imgs/sol_SD_MS.pdf]]
 
-
 **** COMMENT SD as a function of time
 :PROPERTIES:
 :CREATED:  [2024-03-21 Thu 16:23]
@@ -9908,7 +9913,7 @@ same for d13C
 :PROPERTIES:
 :CREATED:  [2024-03-21 Thu 16:14]
 :END:
-#+begin_src R :results output graphics file :file imgs/cumulative_rRMSD_all.pdf :width 5 :height 5
+#+begin_src R :results output graphics file :file imgs/cumulative_rRMSD_all.pdf :width 7 :height 2.5
   overall_sd |>
     tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
     ## filter(proxy == "Lstar") |>
@@ -9921,10 +9926,11 @@ same for d13C
          y = "cumulative RMSD",
          colour = "Orbital\nSolution") +
     scale_colour_brewer(type = "qual", palette = 3) +
-    facet_wrap(cols = vars(proxy)) +
+    facet_grid(cols = vars(proxy), space = "free_x", scales = "free_x") +
     scale_x_reverse(breaks = seq(75, 55, -1)) +
     scale_y_continuous(breaks = seq(0, 50, 10)) +
-    geom_line(aes(y = rRMSD, colour = sol))
+    geom_line(aes(y = rRMSD, colour = sol,
+                  group = paste(sol, proxy)))
 #+end_src
 
 #+RESULTS:
@@ -11111,14 +11117,13 @@ https://github.com/AndyBunn/dplR/issues/9
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_depth_ecc.pdf]]
 
-**** [#B] simplified plot of raw data vs depth
+**** [#B] simplified plot of detrended data vs depth
 :PROPERTIES:
 :CREATED:  [2024-01-15 Mon 15:22]
 :END:
 I should:
-- [ ] make a plot of scl in depth domain
-- [ ] with another row with preferred way of detrending in depth domain
-- [ ] with one more row of faint detrended data in time domain with short and long ecc filters
+- [X] make a plot of scl in depth domain
+- [X] with another row with preferred way of detrending in depth domain
 # #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
 # #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_depth.pdf :width 9.6 :height 2
 # #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_depth.pdf :width 9.6 :height 2
@@ -11138,7 +11143,7 @@ I should:
 
   simp <- simp |>
     tidylog::left_join(simp_crit) |>
-    tidylog::filter(!(site == "Zumaia" & depth > min_depth))
+    tidylog::filter(proxy == "d13C" | site == "Sopelana" | (site == "Zumaia" & depth < min_depth))
 #+end_src
 
 #+RESULTS:
@@ -11209,7 +11214,7 @@ I should:
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_depth.pdf]]
 
-same for d13C -> *TODO*
+same for d13C
 #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_depth.pdf :width 9.6 :height 2
   pl_detrended_depth_d13C <- simp |>
     filter(proxy == "d13C") |>
@@ -11332,9 +11337,9 @@ same for MS
 :CREATED:  [2024-03-22 Fri 09:36]
 :END:
 where I make the plot components:
-[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simple plot of records vs. solutions][simple plot of records vs. solutions]]
-[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simplified plot of raw data vs depth][simplified plot of raw data vs depth]]
 [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*create a quick plot of all the detrend types][create a quick plot of all the detrend types]]
+[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simplified plot of detrended data vs depth][simplified plot of detrended data vs depth]]
+[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simple plot of records vs. solutions][simple plot of records vs. solutions]]
 
 Lstar main one
 #+begin_src R :results output graphics file :file imgs/matched_solutions.pdf :width 8 :height 7
