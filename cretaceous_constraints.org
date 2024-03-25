@@ -4885,6 +4885,136 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 
 #+RESULTS:
 
+**** fit a MARS
+:PROPERTIES:
+:CREATED:  [2024-03-24 Sun 21:42]
+:END:
+#+begin_src R
+  # if we match all proxies, remove quite a lot of NA becaues of d13C
+  mars <- comp |>
+     ## filter(proxy == "Lstar") |>
+    pivot_wider(names_from = proxy) |>
+    filter(!is.na(d13C), !is.na(MS), !is.na(Lstar)) |>
+    earth::earth(d13C + Lstar + MS ~ depth,
+                 data = _)
+
+  plot(mars, nresponse = 2)
+  summary(mars)
+
+  pred_raw <- predict(mars) |>
+    as_tibble() |>
+    rename(pred_d13C = d13C, pred_Lstar = Lstar, pred_MS = MS)
+
+  pred <- comp |>
+    pivot_wider(names_from = proxy) |>
+    filter(!is.na(d13C), !is.na(MS), !is.na(Lstar)) |>
+    bind_cols(pred_raw)
+
+  (pred |>
+    ggplot(aes(x = depth, y = Lstar)) +
+    xlim(0, 180) +
+    geom_point(colour = "gray", data = comp |> pivot_wider(names_from = proxy)) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_Lstar), colour = "red")) /
+  (pred |>
+    ggplot(aes(x = depth, y = MS)) +
+    xlim(0, 180) +
+    geom_point(colour = "gray", data = comp |> pivot_wider(names_from = proxy)) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_MS), colour = "red")) /
+  (pred |>
+    ggplot(aes(x = depth, y = d13C)) +
+    xlim(0, 180) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_d13C), colour = "red"))
+
+
+  # only MS and Lstar
+  mars <- comp |>
+    filter(proxy != "d13C") |>
+    pivot_wider(names_from = proxy) |>
+    filter(!is.na(MS), !is.na(Lstar)) |>
+    earth::earth(Lstar + MS ~ depth,
+                 data = _)
+
+  plot(mars, nresponse = 2)
+  summary(mars)
+
+  pred_raw <- predict(mars) |>
+    as_tibble() |>
+    rename(pred_Lstar = Lstar, pred_MS = MS)
+
+  pred <- comp |>
+    pivot_wider(names_from = proxy) |>
+    filter(!is.na(MS), !is.na(Lstar)) |>
+    bind_cols(pred_raw)
+
+  (pred |>
+    ggplot(aes(x = depth, y = Lstar)) +
+    xlim(0, 180) +
+    geom_point(colour = "gray", data = comp |> pivot_wider(names_from = proxy)) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_Lstar), colour = "red")) /
+  (pred |>
+    ggplot(aes(x = depth, y = MS)) +
+    xlim(0, 180) +
+    geom_point(colour = "gray", data = comp |> pivot_wider(names_from = proxy)) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_MS), colour = "red"))
+#+end_src
+
+**** bspline
+:PROPERTIES:
+:CREATED:  [2024-03-24 Sun 22:37]
+:END:
+#+begin_src R
+  wide <- comp |>
+     ## filter(proxy == "Lstar") |>
+    pivot_wider(names_from = proxy) |>
+    tidylog::filter(## !is.na(d13C),
+               !is.na(MS), !is.na(Lstar)) |>
+    arrange(depth) |>
+    select(-comment,
+           -d13C)
+
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          )
+
+  pred <- wide |>
+    mutate(bs = map(depth, \(x) bs(x) |>
+                                as_tibble() |>
+                                rename(pred_MS = MS, #pred_d13C = d13C,
+                                       pred_Lstar = Lstar))) |>
+    unnest(bs)
+
+  (
+  pred |>
+    ggplot(aes(x = depth, y = Lstar)) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_Lstar), colour = "red")
+  ) /
+  (
+  pred |>
+    ggplot(aes(x = depth, y = MS)) +
+    geom_line() +
+    geom_point() +
+    geom_line(aes(y = pred_MS), colour = "red")
+  ) ## / (
+  ## pred |>
+  ##   ggplot(aes(x = depth, y = d13C)) +
+  ##   geom_line() +
+  ##   geom_point() +
+  ##   geom_line(aes(y = pred_d13C), colour = "red")
+  ## )
+#+end_src
 **** combine the trend removal dataframes into smooth_pred
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
