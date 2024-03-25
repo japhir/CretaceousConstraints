@@ -9144,11 +9144,12 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ##        ## depth >= 109.26) |> # this is for the lower part with a different sedrate
     ##        depth < 109.26) |> # this is for the upper part
     filter(comb == "1:1") |>
-    ## filter(proxy == "Lstar") |>
-    filter(proxy != "Lstar") |>
+    filter(proxy == "Lstar") |>
+    ## filter(proxy != "Lstar") |>
     ## filter(site == "Zumaia") |>
     ## filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
-    filter(detrend_type == "lin_scl_med") |>
+    ## filter(detrend_type == "lin_scl_med") |>
+    filter(detrend_type == "scl") |>
     nest(.by = c(proxy, site,
                  detrend_type, depth_chunk, comb,
                  s405, s100,
@@ -9191,7 +9192,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds")
     ## write_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds")
     ## write_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds")
-    write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
+    ## write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
+    write_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(taner_filter) # rm so we can get back the one from the package
@@ -9295,6 +9297,10 @@ so expect 40 minutes for the remainder of proxies
 write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
 > current time: 2024-03-21 16:51:29.667351
 > current time: 2024-03-21 17:15:04.751889
+
+I wanted to see how the taner filter behaves on the raw data
+write_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
+> current time: 2024-03-25 10:25:42.58027
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
