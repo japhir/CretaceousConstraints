@@ -9353,7 +9353,7 @@ write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds
 
 ***** latest
 #+begin_src R
-  rolling_age_optim <-
+  rolling_age_optim_old <-
     bind_rows(
       read_rds("out/2024-02-14_rolling_age_optim_full_indep.rds"),
       read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds"),
@@ -9452,8 +9452,6 @@ new runs after changing to a taner filter currently with roll = 1e10.
 #+end_src
 
 #+RESULTS:
-: filter: no rows removed
-: filter: no rows removed
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -9755,7 +9753,41 @@ old
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol)`
 : filter: removed 368 rows (1%), 26,188 rows remaining
 
-**** bootstrapped RMSD?
+**** recompute RMSD for all the other detrend types etc.
+:PROPERTIES:
+:CREATED:  [2024-03-25 Mon 10:01]
+:END:
+#+begin_src R
+  # find youngest age of the sopelana site, so we can filter out
+  # Zumaia's oldest part
+  cutoff <- rolling_age_optim_old |>
+    filter(site == "Sopelana") |>
+    mutate(match = map(the_best, "matched")) |>
+    unnest(match) |>
+    summarize(max_age_sopelana = min(age),
+              .by = c(proxy, # NOT SITE
+                      detrend_type, depth_chunk, comb, sol, window))
+
+  # get summary
+  overall_sd_old <- rolling_age_optim_old |>
+    mutate(match = map(the_best, "matched")) |>
+    filter(depth_chunk == "full record") |>
+    unnest(match) |>
+    left_join(cutoff) |>
+    # have to explicitly NOT filter out d13C because we only have it for Zumaia
+    # so no age max_age_sopelana there!
+    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
+                    (site == "Zumaia" & age < max_age_sopelana))
+
+  overall_best_old <- overall_sd_old |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, detrend_type, comb, sol, window))
+
+  overal_best_sol_old <- overall_best_old |>
+    filter(RMSD == min(RMSD), .by = c(sol, proxy))
+
+#+end_src
+**** bootstrapped RMSD
 :PROPERTIES:
 :CREATED:  [2024-03-22 Fri 14:34]
 :END:
@@ -9781,14 +9813,14 @@ old
   bootstrapped_summary <- bootstrapped_best |>
     ggdist::median_qi(boot,
                       .width =
-                        seq(.05, .95, .1)
+                        seq(0, .95, .05)
                       ## c(.68, .95)
                       )
 #+end_src
 
 #+RESULTS:
 
-plot of boostrapped RMSD scores
+**** plot of boostrapped RMSD scores
 #+begin_src R :results output graphics file :file imgs/full_RMSD_boot.png :width 1000 :height 600 :res 300
   pl_rmsd_boot <-
     bootstrapped_summary |>
@@ -9799,15 +9831,17 @@ plot of boostrapped RMSD scores
          y = "RMSD",
          colour = "", fill = ""
          ) +
-    theme(legend.position = c(.12, .99),
-          legend.location = "inside",
+    theme(legend.position = "inside",
+          legend.position.inside = c(.12, .99),
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm")) +
     ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
     ggdist::geom_lineribbon(aes(ymin = .lower,
                                 ymax = .upper,
                                 group = paste(proxy, .width)),
-                            alpha = .03) +
+                            alpha = .03
+                            ## alpha = .1
+                            ) +
     ## ggdist::stat_gradientinterval(data = bootstrapped_best |> unnest(boot)) +
     ## geom_line(aes(group = proxy), alpha = .3) +
     geom_point() #+
@@ -9817,7 +9851,17 @@ plot of boostrapped RMSD scores
   # what if we compute the average RMSD for each solution based on all the proxies (this is bad, not weighted by measurement numbers!)
     ## stat_summary(aes(group = sol), geom = "pointrange", colour = "black")
 
-  pl_rmsd_boot
+  pl_rmsd_boot +
+    facet_grid(cols = vars(proxy)) +
+    ggnewscale::new_scale_color() +
+    scale_colour_manual(values = detrend_colours) +
+    geom_line(aes(y = RMSD, colour = detrend_type,
+                  group = paste(proxy, detrend_type, window)), alpha = .3,
+                data = overall_best_old) +
+    geom_point(aes(y = RMSD, colour = detrend_type),
+               alpha = .3,
+               data = overall_best_old)
+
 #+end_src
 
 #+RESULTS:
@@ -9881,6 +9925,7 @@ another attempt to visualize if the RMSD scores differ significantly between sol
 :PROPERTIES:
 :CREATED:  [2024-03-08 Fri 14:19]
 :END:
+***** Lstar
 #+begin_src R :results output graphics file :file imgs/sol_SD.pdf :width 7 :height 7
   pl_age_matches <- overall_sd |>
     tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
@@ -9923,6 +9968,7 @@ another attempt to visualize if the RMSD scores differ significantly between sol
 #+RESULTS:
 [[file:imgs/sol_SD.pdf]]
 
+***** d13C
 same for d13C
 #+begin_src R :results output graphics file :file imgs/sol_SD_d13C.pdf :width 7 :height 7
   pl_age_matches_d13C <- overall_sd |>
@@ -9967,6 +10013,7 @@ same for d13C
 #+RESULTS:
 [[file:imgs/sol_SD_d13C.pdf]]
 
+***** MS
 and for MS
 #+begin_src R :results output graphics file :file imgs/sol_SD_MS.pdf :width 7 :height 7
   pl_age_matches_MS <- overall_sd |>
