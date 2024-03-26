@@ -448,16 +448,15 @@ while \gls{L*} likely corresponds to changes in the lithology that have been dri
 We argue that the color reflectance record most directly reflects the orbital forcing.
 
 %TODO: update appendix overview/comparison figure
-Different ways of detrending of the proxy records to subtract non-cyclical patterns (\cref{fig:detrend}) lead to slightly different results (\cref{fig:rolling-rmsd-improvement}).
+Different ways of detrending of the proxy records to subtract non-cyclical patterns (\cref{fig:detrend}) lead to slightly different results.
 Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \(10^{12}\) or a smoother window (roll of \(10^{3}\)) results in different ``best'' solutions.
 
 \rez{IMPORTANT: double check gauss. for gauss with $\pm 1 \sigma$ about equal to rectangular window, results should be very similar.}
 \ijk{I don't know how gauss window is parameterized, but seems like boundaries are at extremes (visually lower/higher than 95\% CI. That's why I describe this as effectively shrinking the window. I also tried in Analyseries but there it's even more obscure how they do it.}
 \ijk{We talked about this and it was indeed how the gaussian window is parameterized in astrochron. Switched to taner filters.}
 
-See \cref{fig:rolling-rmsd-improvement} for a comparison of \gls{RMSD} scores across all detrend types, taner filters, different proxies, and whether or not we performed our tie-point adjustments (\cref{sec:algorithm}).
+See \cref{fig:full-RMSD-detrend} for a comparison of \gls{RMSD} scores across all detrend types, ways of filtering, different proxies, and whether or not we performed our tie-point adjustments (\cref{sec:algorithm}).
 See also \cref{fig:rolling-age-MS,fig:rolling-age-d13C} for the fits against the astronomical solutions in the time domain.
-% TODO: I removed these figures for now, will remake them cleanly.
 
 % FIGURE 1
 \begin{figure}[htb]
@@ -479,19 +478,20 @@ See also \cref{fig:rolling-age-MS,fig:rolling-age-d13C} for the fits against the
          A nice place to do this would be in the 3rd panel from the bottom (detrended record),
          but I never filter in the depth domain for my analysis and that might be confusing?}
     }
+    \ijk{TODO: add Ma405 numbering to make referring to certain intervals easier?}
 \end{figure}
-
 
 % first describe simple "what is the best RMSD-scoring solution?"
 \subsection{Comparison of RMSD scores}
 
 
-For the RMSD comparison, we select the best scores across all analyses (see \cref{fig:full-RMSD}).
+For the RMSD comparison, we select the best scores across all analyses (see \cref{fig:full-RMSD-all}).
 \gls{RMSD}-scores are very similar between the different astronomical solutions.
 The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \gls{RMSD} score for
 % La10b (\num{1.06}) and ZB18a (\num{1.06}) (\cref{fig:full-RMSD}).???
 
 % FIGURE 2
+\setcounter{figure}{2000}
 \begin{figure}[htb]
     \centering
     \includegraphics[width=0.6\textwidth]{full_RMSD_scores_all.pdf}
@@ -502,10 +502,11 @@ The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \
 \end{figure}
 
 % FIGURE 2 alternative?
+\setcounter{figure}{2001}
 \begin{figure}[htb]
     \centering
     \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
-    \caption{\label{fig:full-RMSD-all}
+    \caption{\label{fig:full-RMSD-boot}
         \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
         Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
         Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
@@ -532,7 +533,9 @@ The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a 
 % }
 % \end{figure}
 
+% FIGURE 3
 % I prefer my new cumsum analysis below :)
+\setcounter{figure}{3000}
 \begin{figure}[htb]
   \centering
   \includegraphics[width=0.7\textwidth]{cumulative_rRMSD.pdf}
@@ -541,6 +544,8 @@ The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a 
 }
 \end{figure}
 
+% FIGURE 3 alternative
+\setcounter{figure}{3001}
 \begin{figure}[htb]
   \centering
   \includegraphics[width=\textwidth]{cumulative_rRMSD_all.pdf}
@@ -570,7 +575,7 @@ The same goes for Ma405\(_{10}\) at \qty{69.7}{\millionyearago}, which does not 
 
 This study aims to find out which, if any, astronomical solutions best match the highest-quality Maastrichtian proxy records of the Zumaia and Sopelana sites, in order to arrive at an astronomically calibrated time scale.
 
-The youngest interval for Zumaia shows a slight preference for solutions La10b, ZB20a, and ZB20b (\cref{fig:cum-rmsd}).
+The youngest interval for Zumaia shows a slight preference for solutions La10b, ZB20a, and ZB20b (\cref{fig:cum-RMSD}).
 For the deeper/older part of the Zumaia record, only La10c (and to a lesser extent La10b) and ZB20b have good scores because ZB20a does not have a very long eccentricity node at Ma405\(_{8}\) (\appr\qty{68.9}{\millionyearago}), whereas the record clearly does.
 Solutions La10b and La10c showed a poorer match already in the late Cretaceous, where they did not show a very long eccentricity node at around \qty{61}{\millionyearago} whereas the Walvis Ridge data did \cite{ZeebeLourens2022EPSL}.
 Then as we move to the older section the Sopelana data results in a best score for ZB20a because ZB20b has a very long eccentricity node at Ma405\(_{10}\) (\appr\qty{69.7}{\millionyearago}), whereas the amplitude of the record is large there.
@@ -698,26 +703,16 @@ We suggest that future studies generate new astronomical solutions with similar 
 \appendix
 % this template also turns the open research section into an appendix...
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_detrend_types_all.pdf}
-  \caption{\label{fig:detrend}
-    \textbf{Zumaia and Sopelana trend removal strategies.}
-    The raw data (gray) and the lines that were fit through (coloured lines), which were subtracted from the record. See \cref{tab:detrend_types} for descriptions.
-    % TODO: remove a few of the lin_pred_xxx's
-  }
-\end{figure}
 
 \section{Alternative Combinations and Proxies}
 
-We show some more combinations of \cref{fig:rolling-rmsd-improvement} in \cref{fig:rolling-rmsd-improvement}.
+We show some more combinations of \cref{fig:full-RMSD-all} in \cref{fig:full-RMSD-detrend}.
 We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:rolling-age-MS}) and for \gls{d13C} (\cref{fig:rolling-age-d13C}).
-
 
 \begin{figure}[htb]
   \centering
   \includegraphics[width=\textwidth]{MS-vs-solutions.png}
-  \caption{\label{fig:rolling-depth-age-ms}
+  \caption{\label{fig:rolling-age-MS}
     \textbf{Maastrichtian Zumaia (purple) and Sopelana (orange) filtered/normalized \gls{MS} records tuned to astronomical solutions (black, first 7 panels).}
     % This uses short linear detrending to correct for changes in sediment composition (\cref{sec:detrend}).
     %We also show Zumaia above and below \qty{109.26}{\metre} to account for the change in the sedimentation rate and lithology.
@@ -734,7 +729,7 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
 \begin{figure}[htb]
   \centering
   \includegraphics[width=\textwidth]{d13C-vs-solutions.png}
-  \caption{\label{fig:rolling-depth-age-d13C}
+  \caption{\label{fig:rolling-age-d13C}
     \textbf{Maastrichtian Zumaia (purple) inverted filtered/normalized \gls{d13C} records tuned to astronomical solutions (black, first 7 panels).}
     % This uses short linear detrending to correct for changes in sediment composition (\cref{sec:detrend}).
     %We also show Zumaia above and below \qty{109.26}{\metre} to account for the change in the sedimentation rate and lithology.
@@ -749,6 +744,56 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
     \ijk{@REZ: do you see the \appr\qty{1.6}{\millionyear} cycles here before detrending? Might be something to look at?}
     }
 \end{figure}
+
+% TODO: remove some of these?
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_detrend_types_all.pdf}
+  \caption{\label{fig:detrend}
+    \textbf{Zumaia and Sopelana trend removal strategies.}
+    The raw data (gray) and the lines that were fit through (coloured lines), which were subtracted from the record.
+    The piecewise linear detrending that we use in the main manuscript corresponds to \texttt{lin\_pred\_med}.
+  }
+\end{figure}
+
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
+  \caption{\label{fig:full-RMSD-tie}
+    \textbf{Illustration of how RMSD scores change after tiepoint depth optimization.}
+    This shows how the \gls{RMSD} scores change for the full
+    %piecewize linearly detrended
+    Zumaia \gls{L*} record
+    % where the long and short eccentricity components where filtered with a taner filter
+    when we allow tiepoint depths identified in the field to vary by \qty{\pm1.6}{\metre}.
+    }
+\end{figure}
+
+% TODO: make separation between detrend_types and filtering strategy!
+% \begin{figure}[htb]
+%   \centering \includegraphics[width=\textwidth]{RMSD_detrend_types.png}
+%   \caption{\label{fig:full-RMSD-detrend}
+%     \textbf{Sensitivity analysis for various ways of detrending the data and filtering the short and long eccentricity components.}
+%     The rectangular and gaussian filters use the same frequencies as upper and lower filter limits,
+%     but the parametrization of the gaussian window effectively narrows the bandpass filter.
+%     This is why we also tried several taner filters with changing parameters to get the best overall RMSD scores (not shown)
+%     before settling on a roll of \(10^{12}\).
+%     % Extended version of \cref{fig:full-RMSD-all}.
+%     }
+% \end{figure}
+
+
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{sol_SD_detrend.pdf}
+  \caption{\label{fig:Lstar-detrend}
+  \textbf{Effects of different detrending strategies in the time domain.}
+    Illustration of how simple scaling of \gls{L*} with subsequent linear detrending (lower opacity lines)
+    compares to the piecewize linear detrending strategy used in the main manuscript.
+    Both use the same taner filter to extract long and short eccentricity components.
+    The large changes in lithology result in a very large amplitude filter in the simple detrending approach.
+    For most solutions, this simply results in a worse fit, but for ZB20a it makes our algorithm shift the long-eccentricity tiepoint depths enough that it gets offset by about one short-eccentricty cycle, resulting in an even worse fit.
+    }
+\end{figure}
+
 
 % \begin{figure}[htb]
 %   \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm_raw.pdf}
@@ -803,12 +848,6 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
 % \end{figure}
 %
 %
-% \begin{figure}[htb]
-%   \centering \includegraphics[width=1.2\textwidth]{new_rolling_improvement.pdf}
-%   \caption{\label{fig:rolling-rmsd-improvement}
-%     More elaborate version of \cref{fig:rolling-rmsd} showing all proxies, different ways of detrending and filtering.}
-% \end{figure}
-
 
 % \begin{figure}[htb]
 %   \centering
