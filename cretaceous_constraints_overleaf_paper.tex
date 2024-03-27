@@ -23,6 +23,7 @@
 % abbreviates after (use \gls{key}).
 \usepackage{glossaries}
 %\makeglossaries % not needed if we don't want to print them at the end
+\usepackage[section]{placeins} % figures were jumping to the end, I prefer them closer
 
 \newcommand{\appr}{\raise.17ex\hbox{$\scriptstyle\sim$}} % approximately symbol
 
@@ -263,10 +264,9 @@ University of Hawaii at Manoa,
 
 \ijk{I've focused on the figures, results, and discussion first!}
 
-``Cool quote that addresses how crucial good dating is''.
 \ijk{I like how some of RZ's paper's start with an ancient quote}
-Maybe something from \citeA{Berger1980} review?
-Or perhaps \citeA{Berger1989}.
+``Cool quote that addresses how crucial good dating is''.
+Maybe something from \citeA{Berger1980} review? Or perhaps \citeA{Berger1989}.
 
 As we move to older and older time-periods, the available records will get further distorted and \ijk{TODO}.
 
@@ -297,6 +297,11 @@ We think that the Zumaia and Sopelana field sections show the clearest orbitally
 
 \ijk{TODO:\ Site descriptions for Zumaia and Sopelana.}
 We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements~\cite{Batenburg2012,Batenburg2014}.
+We performed our analysis for the proxies \gls{L*}, \gls{d13C}, and \gls{MS}, but  focus on \gls{L*} in the main manuscript.
+The \gls{d13C} proxy is more sensitive to lower frequency orbital forcing~\cite{Zeebe2017,Kocken2019loscar} and shows long eccentricity forcing clearly but the short eccentricity is less clearly expressed.
+For \gls{MS} it is unclear how it relates to the climate forcing, %Richard doesn't trust/understand it.
+while \gls{L*} likely corresponds to changes in the lithology that have been driven by carbonate--clay alternations, which are in turn driven by changes in wetness and climate.
+We argue that the color reflectance record most directly reflects the orbital forcing.
 
 \begin{table}
     \centering
@@ -382,7 +387,7 @@ We have tried many ways of detrending the records, for example with larger and s
 
 \rez{you could pad more 5x, 10x, any difference?}
 \ijk{I didn't read the docs correctly, defaults to 5. I quickly tried out 5, 10, 15, 100 times and no diff for 405 and 100 kyr filters.}
-\ijk{also tried different padfacs for taner, it just becomes way slower but other than that it's nearly identical once you have \ge3\times the data.}
+\ijk{also tried different padfacs for taner, it just becomes way slower but other than that it's nearly identical once you have over 3x the data.}
 
 \subsection{Finding the Best Fit}\label{sec:algorithm}
 
@@ -391,58 +396,39 @@ In order to test which astronomical solution provides the best match to the data
 we adopt and extend the approach of \citeA{ZeebeLourens2019,ZeebeLourens2022EPSL}.
 The detrended data (\cref{sec:detrend}) is combined with the initial age model (\cref{sec:agemodel}) to arrive at the time domain.
 After linearly interpolating to a timestep that is a multiple of the timestep of the astronomical solution, we filter targeting the long and short eccentricity cycles.
-We use a taner filter with a roll of \num{1e12} \(10^{12}\), targeting periods of \qtylist{405;120}{\kiloyear} (frequency \qty{\pm30}{\percent}).
+We use a taner filter with a roll of \num{e12} targeting periods of \qtylist{405;110}{\kiloyear} (frequency \qty{\pm30}{\percent}).
 The filtered signals are added and scaled to construct an artificial ``eccentricity'' curve.
 The scaled astronomical solutions are then interpolated/subset to the same timesteps as the data, and the \gls{RMSD} is calculated:
-
 \ijk{do you think this is needed or leave it out?}
-\begin{equation}
+\begin{equation}\label{eqn:rmsd}
     \text{RMSD} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(e_{i} - f_{i})^{2}}
 \end{equation}
-
 where \(e\) is the eccentricity of the astronomical solution and \(f\) is the scaled and filtered combination of long- and short eccentricity.
 
 %% To study the effect of the two cycles on the match with the astronomical solution, we also looked at the effect of assigning different weights to the two filtered signals (weights of 1:0, 1:0.25, 1:0.5, 1:0.75, 1:1, 0.75:1, 0.5:1, 0.25:1, and 0:1 for the long and short eccentricity cycles respectively).
+\ijk{TODO:\ Decide how/if I want to talk about different combinations of long and short ecc components (1:1 vs. 0.5:1 etc).}
 
-An age offset from the initial age model was found by minimizing the \gls{RMSD} after offsetting the records by up to \qty{\pm200}{\kiloyear}.
+We update the initial age model by minimizing the \gls{RMSD} after offsetting the records by up to \qty{\pm200}{\kiloyear}.
 To account for potential errors in the tie-points---the long eccentricity minima depths as identified in the field (see \cref{sec:agemodel})---we iteratively shift each tie-point from the youngest to oldest by a range of values between \qtyrange[range-phrase=~to~]{-1.6}{1.6}{\metre} in \qty{20}{\centi\metre} increments (about \qty{10}{\percent} of the \qty{405}{\kiloyear} period).
-After tweaking the tie-point depth, the altered agemodel is applied, the record is filtered to target the long and short eccentricity cycles (see \cref{sec:spectral}), and an artificial eccentricity curve is created to calculate the \gls{RMSD} as before.
-Once the optimal (lowest \gls{RMSD}) tie-point depth is found, we fix it and moved on to the next-youngest tie-point.
+After tweaking the tie-point depth, the altered agemodel is applied, the record is filtered to target the long and short eccentricity cycles, and an artificial eccentricity curve is created to calculate the \gls{RMSD} as before.
+Once the optimal (lowest \gls{RMSD}) tie-point depth is found, we fix it and move on to the next-youngest tie-point.
 This is repeated until all tie-points have been adjusted, resulting in the overall best fit.
 This analysis is performed separately for the Zumaia and Sopelana sites, so that potential errors in the depth correlation between sites can be corrected for.
 
-We also calculate a cumulative sum of the \gls{RMSD}-scores starting at the \gls{KT}-boundary and moving to older datapoints.
+We also calculate a square root of the cumulative sum of the squared differences starting at the \gls{KT}-boundary and moving to older data points.
 This allows us to visualize where the time domain the data differs most from the astronomical solutions.
+\begin{equation}\label{eqn:cumsum}
+    \text{RCSD}_{k} = \sqrt{\sum_{i=1}^{k}(e_{i} - f_{i})^{2}}
+\end{equation}
+\ijk{@REZ: I don't know if this makes any sense mathematically, I wanted something like an evolutive RMSD and this was the simplest I came up with at the time.}
 
 \section{Results}\label{sec:results}
 
-\ijk{something about spectral analysis? For now just rely on original study that showed this?}
+\ijk{something about spectral analysis? \(\to{}\) No, just rely on original study that showed this.}
 
 \ijk{introduce Ma\(_{405}\)X numbering from~\cite{Husson2011}---nvm this was already done in \citeA{Westerhold2008}.}
 
-% talk about all the nitty-gritty details of parameter perturbations?
-% - proxy (show the same pattern?)
-% - site (Zumaia vs. Sopelana) part of main text
-% - depth_chunk (cut Zumaia into seperate sedimentation rate intervals
-% - detrend_type
-% - window (gaussian/rectangular)
-% - comb (I only show 1:1, but 1:0.5 and 0.5:1 both outperform the rest)
-We performed our analysis for the proxies \gls{L*}, \gls{d13C}, and \gls{MS}, but  focus on \gls{L*} in the main manuscript.
-The \gls{d13C} proxy is more sensitive to lower frequency orbital forcing~\cite{Zeebe2017,Kocken2019loscar} and shows long eccentricity forcing clearly but the short eccentricity is less clearly expressed.
-For \gls{MS} it is unclear how it relates to the climate forcing, %Richard doesn't trust/understand it.
-while \gls{L*} likely corresponds to changes in the lithology that have been driven by carbonate--clay alternations, which are in turn driven by changes in wetness and climate.
-We argue that the color reflectance record most directly reflects the orbital forcing.
-
-%TODO: update appendix overview/comparison figure
-Different ways of detrending of the proxy records to subtract non-cyclical patterns (\cref{fig:detrend}) lead to slightly different results.
-Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \(10^{12}\) or a smoother window (roll of \(10^{3}\)) results in different ``best'' solutions.
-
-\rez{IMPORTANT: double check gauss. for gauss with $\pm 1 \sigma$ about equal to rectangular window, results should be very similar.}
-\ijk{I don't know how gauss window is parameterized, but seems like boundaries are at extremes (visually lower/higher than 95\% CI. That's why I describe this as effectively shrinking the window. I also tried in Analyseries but there it's even more obscure how they do it.}
-\ijk{We talked about this and it was indeed how the gaussian window is parameterized in astrochron. Switched to taner filters.}
-
-See \cref{fig:full-RMSD-detrend} for a comparison of \gls{RMSD} scores across all detrend types, ways of filtering, different proxies, and whether or not we performed our tie-point adjustments (\cref{sec:algorithm}).
-See also \cref{fig:rolling-age-MS,fig:rolling-age-d13C} for the fits against the astronomical solutions in the time domain.
+% first talk about how the matched filtered records look!
 
 % FIGURE 1
 \begin{figure}[htb]
@@ -467,11 +453,7 @@ See also \cref{fig:rolling-age-MS,fig:rolling-age-d13C} for the fits against the
     \ijk{TODO: add Ma405 numbering to make referring to certain intervals easier?}
 \end{figure}
 
-% first describe simple "what is the best RMSD-scoring solution?"
-\subsection{Comparison of RMSD scores}
-
-
-For the RMSD comparison, we select the best scores across all analyses (see \cref{fig:full-RMSD-all}).
+% then describe simple "what is the best RMSD-scoring solution?"
 \gls{RMSD}-scores are very similar between the different astronomical solutions.
 The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \gls{RMSD} score for
 % La10b (\num{1.06}) and ZB18a (\num{1.06}) (\cref{fig:full-RMSD}).???
@@ -483,7 +465,7 @@ The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \
     \includegraphics[width=0.6\textwidth]{full_RMSD_scores_all.pdf}
     \caption{\label{fig:full-RMSD-all}
         \gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.
-        Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
+        % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}). % not needed?
     }
 \end{figure}
 
@@ -495,11 +477,13 @@ The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \
     \caption{\label{fig:full-RMSD-boot}
         \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
         Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
-        Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
+        % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
         \ijk{@REZ: sorry I did one more analysis... A bootstrapped RMSD calculation to see what the uncertainty on the RMSD score is/how significantly they differ between solutions.}
     }
 \end{figure}
 
+% but we can also look at how it changes through time
+\ijk{TODO:\ update this older section where I looked at discrete chunks.}
 This analysis can be improved by looking at specific depth intervals separately, however.
 The full Zumaia record gives the lowest \gls{RMSD}-scores for the La10b (\num{1.055}) and ZB20b (\num{1.120}) solutions,
 while the Sopelana site gives the best results for ZB20a (\num{0.872}) and ZB18a (\num{0.894}), and to a lesser extent ZB20c (\num{0.959}) and La10c (\num{0.968}).
@@ -507,26 +491,15 @@ For Zumaia we also analyzed the record separately for two depth intervals to acc
 The older interval shows a better match with the La10c (\num{0.981}) and ZB20b (1.001) solutions.
 The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a (\num{1.105}), and ZB20b (\num{1.116}), but results show similar \gls{RMSD} scores.
 
-% looking at the intervals separately results in near-identical output
-% EXCEPT for ZB20a Zumaia deeper part, which gets offset by 100 kyr!
-% \begin{figure}[htb]
-%   \centering
-%   \includegraphics[width=0.7\textwidth]{rolling_age_overview_new.pdf}
-%   \caption{\label{fig:rolling-rmsd}
-%     \textbf{Best \gls{RMSD} scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
-%     Same as \cref{fig:full-RMSD}, but separated by site and depth interval.
-%     The two bottom panels show results for the upper and lower parts of the Zumaia record analyzed separately because of the change in sedimentation rate and lithology.
-% }
-% \end{figure}
-
 % FIGURE 3
-% I prefer my new cumsum analysis below :)
 \setcounter{figure}{3000}
 \begin{figure}[htb]
   \centering
   \includegraphics[width=0.7\textwidth]{cumulative_rRMSD.pdf}
   \caption{\label{fig:cum-RMSD}
-    \textbf{Cumulative \gls{RMSD} scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
+    \textbf{Square root of the cumulative sum of the squared differences of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
+    \ijk{@REZ: I don't know if this makes any sense mathematically, I wanted something like an evolutive RMSD and this was the simplest I came up with at the time.
+    It's \(\text{sqrt}(\text{cumsum}((e - f)^2)\), see \cref{eqn:cumsum}.}
 }
 \end{figure}
 
@@ -540,8 +513,7 @@ The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a 
 }
 \end{figure}
 
-\subsection{Very long eccentricity nodes}
-
+% \subsection{Very long eccentricity nodes}
 Looking beyond the \gls{RMSD} scores, additional patterns may be used as criteria for selecting appropriate astronomical solutions.
 \cref{fig:rolling-depth-age} shows our filtered, normalized records tuned to the astronomical solutions, highlighting where the records match the solutions better or worse.
 The key differentiating factors between astronomical solutions are the locations of the very long eccentricity nodes, where the amplitude of the short eccentricity cycle is very low and the long eccentricity cycle dominates.
@@ -553,6 +525,43 @@ We can, however, detect sections with a high amplitude in the short eccentricity
 The high amplitude of the short eccentricity filtered records indicate that Ma405\(_{8}\) at around \qty{68.9}{\millionyearago} was probably not a very long eccentricity node.
 This is significant, because solutions La10b, ZB18a, and ZB20c have a low amplitude of short eccentricity here.
 The same goes for Ma405\(_{10}\) at \qty{69.7}{\millionyearago}, which does not match La10c and ZB20b.
+
+% \subsection{Sensitivity Analysis}
+% talk about all the nitty-gritty details of parameter perturbations?
+% - proxy (show the same pattern?)
+% - site (Zumaia vs. Sopelana) part of main text
+% - depth_chunk (cut Zumaia into seperate sedimentation rate intervals
+% - detrend_type
+% - window (gaussian/rectangular)
+% - comb (I only show 1:1, but 1:0.5 and 0.5:1 both outperform the rest)
+
+
+%TODO: update appendix overview/comparison figure
+% nitty-gritty:
+Different ways of detrending of the proxy records to subtract non-cyclical patterns (\cref{fig:detrend}) lead to slightly different results.
+Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \(10^{12}\) or a smoother window (roll of \(10^{3}\)) results in different ``best'' solutions.
+\rez{IMPORTANT: double check gauss. for gauss with $\pm 1 \sigma$ about equal to rectangular window, results should be very similar.}
+\ijk{I don't know how gauss window is parameterized, but seems like boundaries are at extremes (visually lower/higher than 95\% CI. That's why I describe this as effectively shrinking the window. I also tried in Analyseries but there it's even more obscure how they do it.}
+\ijk{We talked about this and it was indeed how the gaussian window is parameterized in astrochron. Switched to taner filters.}
+See \cref{fig:full-RMSD-detrend} for a comparison of \gls{RMSD} scores across all detrend types, ways of filtering, different proxies, and whether or not we performed our tie-point adjustments (\cref{sec:algorithm}). \ijk{TODO}
+See also \cref{fig:rolling-age-MS,fig:rolling-age-d13C} for the fits against the astronomical solutions in the time domain.
+
+
+
+
+% looking at the intervals separately results in near-identical output
+% EXCEPT for ZB20a Zumaia deeper part, which gets offset by 100 kyr!
+% I prefer cumsum thingie I built now!
+% \begin{figure}[htb]
+%   \centering
+%   \includegraphics[width=0.7\textwidth]{rolling_age_overview_new.pdf}
+%   \caption{\label{fig:rolling-rmsd}
+%     \textbf{Best \gls{RMSD} scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
+%     Same as \cref{fig:full-RMSD}, but separated by site and depth interval.
+%     The two bottom panels show results for the upper and lower parts of the Zumaia record analyzed separately because of the change in sedimentation rate and lithology.
+% }
+% \end{figure}
+
 
 
 
