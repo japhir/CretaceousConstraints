@@ -9123,10 +9123,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
           c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
             0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
         target_periods = c("405 kyr" = 405, "100 kyr" = 110),
-        ## frequency_fraction = 0.3, # default
+        frequency_fraction = 0.3, # default
         ## frequency_fraction = 0.1, # sensitivity
         ## frequency_fraction = 0.2, # sensitivity
-        frequency_fraction = 0.25, # sensitivity
+        ## frequency_fraction = 0.25, # sensitivity
         ## frequency_fraction = 0.22, # sensitivity
         ## frequency_fraction = 0.23, # sensitivity
         ## frequency_fraction = 0.24, # sensitivity
@@ -9247,7 +9247,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.23.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.24.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.245.rds")
-    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.rds")
+    write_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss.rds")
   message("current time: ", lubridate::now())
   message("duration: ", round(lubridate::now() - nw, 2))
   rm(wrap_age_model) # rm so we can get back the one from the package
@@ -9439,6 +9439,9 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.
 > current time: 2024-03-27 23:40:37.241927
 > current time: 2024-03-27 23:47:54.894761
 > duration: 7.29
+
+write_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss.rds")
+> current time: 2024-03-28 10:34:15.21319
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -9508,18 +9511,20 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.
       read_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds"),
       read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds"),
       read_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds"),
+      read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"),
       ) |>
-    mutate(window = "rectangular") |>
+    mutate(window = "rectangular", frac = 0.3) |>
     bind_rows(
       bind_rows(
-        read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds"),
-        read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds"),
-        read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds"),
-        read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds"),
-        read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"),
-
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds") |> mutate(frac = 0.22),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.rds") |> mutate(frac = 0.25),
+        # frac for first few was calculated after-the-fact (it was set to 0.3 but it's just half that)
+        read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds") |> mutate(frac = 0.15),
+        read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds") |> mutate(frac = 0.15),
+        read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds") |> mutate(frac = 0.15),
+        read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds") |> mutate(frac = 0.15),
+        ## read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"), # this was here before! :O moved up
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds") |> mutate(frac = 0.22),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.rds") |> mutate(frac = 0.25),
+        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss.rds") |> mutate(frac = 0.3),
       ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
@@ -9553,7 +9558,9 @@ new runs after changing to a taner filter currently with roll = 1e10.
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds") |> mutate(roll = 1e8),
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds") |> mutate(roll = 1e100),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10)) |>
+    mutate(frac = 0.3) |>
+    bind_rows(
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds") |> mutate(roll = 1e10, frac = 0.1),
 
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds") |> mutate(roll = 1e10, frac = 0.2),
@@ -10017,7 +10024,7 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     filter(detrend_type == "lin_scl_med") |>
     filter(roll == 1e10) |>
     ## filter(proxy == "Lstar") |>
-    filter(is.na(frac)) |> # only the defaults
+    filter(frac == 0.3) |> # only the defaults
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
@@ -10053,7 +10060,7 @@ filter: removed 88 rows (1%), 11,917 rows remaining
 #+RESULTS:
 [[file:imgs/full_RMSD_scores.pdf]]
 
-**** plot of RMSD vs frac
+**** plot of RMSD vs frac: filter window size
 :PROPERTIES:
 :CREATED:  [2024-03-27 Wed 22:40]
 :END:
@@ -10063,7 +10070,6 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     filter(detrend_type == "lin_scl_med") |>
     filter(roll == 1e10) |>
     filter(proxy == "Lstar") |>
-    mutate(frac = ifelse(is.na(frac), 0.3, frac)) |>
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
@@ -10221,7 +10227,7 @@ everything
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
     filter(proxy == "Lstar") |>
-    filter(is.na(frac)) |>
+    filter(frac == 0.3) |>
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
@@ -10618,10 +10624,10 @@ don't know why Lstar sopelana is off-rails now
     ## filter(proxy == "Lstar") |>
     tidylog::filter(depth_chunk == "full record") |>
     tidylog::filter(roll == 1e10,
-           #frac == 0.25
-           is.na(frac),
-           window == "taner",
-           detrend_type == "lin_scl_med",
+                    #frac == 0.25
+                    frac == 0.3,
+                    window == "taner",
+                    detrend_type == "lin_scl_med",
            ) |>
     arrange(age) |>
     mutate(rRMSD = sqrt(cumsum(SD)),
