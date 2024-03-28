@@ -1604,6 +1604,8 @@ Raw magsus data from [cite:@Blum2005] https://doi.pangaea.de/10.1594/PANGAEA.266
 
 also related: [cite:@Zachos2004]
 
+see also this nice paper, but it focuses on a too-young interval for our purposes! [cite:@Westerhold2017] 56--46 Ma
+
 *** Magsus data
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:22]
@@ -3880,7 +3882,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
     nested_spectral_analysis(nest = "ref",
                       x = `Depth comp r [rmcd]`,
                       y = `δ18O carb [‰ PDB]`) |>
-    plot_spectrum() +
+    plot_spectrum(logy = TRUE) +
     labs(title = "IODP 342 U1403 δ18O")
 #+end_src
 
@@ -9103,7 +9105,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
         frequency_fraction = 0.3,
         ## bandpass_window = 0, # rectangular
         ## bandpass_window = 1, # gaussian
-        taner_roll = 1e10,
+        ## taner_roll = 1e10, # taner default
+        ## taner_roll = 1e3, # for sensitivity
+        ## taner_roll = 1e6, # for sensitivity
+        taner_roll = 1e12, # for sensitivity
         eccentricity_weights = c(s405, s100),
         age_slider = 200,
         kpg_age = 65.9e3,
@@ -9148,8 +9153,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## filter(proxy != "Lstar") |>
     ## filter(site == "Zumaia") |>
     ## filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
-    ## filter(detrend_type == "lin_scl_med") |>
-    filter(detrend_type == "scl") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(depth_chunk == "full record") |>
+    ## filter(detrend_type == "lin_scl_fine") |>
+    ## filter(detrend_type == "scl") |>
     nest(.by = c(proxy, site,
                  detrend_type, depth_chunk, comb,
                  s405, s100,
@@ -9193,7 +9200,11 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds")
     ## write_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds")
     ## write_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds")
-    write_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
+    ## write_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds")
+    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(taner_filter) # rm so we can get back the one from the package
@@ -9302,6 +9313,23 @@ I wanted to see how the taner filter behaves on the raw data
 write_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
 > current time: 2024-03-25 10:25:42.58027
 > current time: 2024-03-25 10:40:41.550386
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds")
+> current time: 2024-03-27 10:47:49.047946
+> current time: 2024-03-27 11:05:19.495115
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds")
+> current time: 2024-03-27 11:10:40.794065
+> current time: 2024-03-27 11:25:06.879896
+
+note that I also limited this one to only depth_chunk == full record
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds")
+> current time: 2024-03-27 11:50:24.519551
+> current time: 2024-03-27 12:00:03.291885
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
+> current time: 2024-03-27 13:55:22.262323
+
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -9399,41 +9427,41 @@ write_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
 : Caused by warning:
 : ! 6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
 
-***** limited
+***** new taner filters
 new runs after changing to a taner filter currently with roll = 1e10.
 #+begin_src R
-  rolling_age_optim <-
-    bind_rows(
-      read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds"),
-      read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds"),
-      read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds")
-    ) |>
-    mutate(detrend_type = as_factor(detrend_type) |>
-             fct_relevel(names(detrend_colours))) |>
-    mutate(comb = as_factor(comb) |>
-             fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                           x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-    mutate(depth_chunk = as_factor(depth_chunk) |>
-             fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
+    rolling_age_optim <-
+      bind_rows(
+        read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
+      ) |>
+      mutate(window = "taner") |>
+      mutate(detrend_type = as_factor(detrend_type) |>
+               fct_relevel(names(detrend_colours))) |>
+      mutate(comb = as_factor(comb) |>
+               fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                             x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+      mutate(depth_chunk = as_factor(depth_chunk) |>
+               fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
 #+end_src
 
 #+RESULTS:
-#+begin_example
-Warning messages:
-1: There was 1 warning in `mutate()`.
-ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type),
-  names(detrend_colours))`.
-Caused by warning:
-! 6 unknown levels in `f`: gam_scl, hp_scl, lin_scl_rw, lin_scl_fine,
-lin_scl_coarse, and value
-2: There was 1 warning in `mutate()`.
-ℹ In argument: `comb = fct_relevel(...)`.
-Caused by warning:
-! 8 unknown levels in `f`: 1:0, 1:0.25, 1:0.5, 1:0.75, 0.75:1, 0.5:1, 0.25:1,
-and 0:1
-#+end_example
+: Warning messages:
+: 1: There was 1 warning in `mutate()`.
+: ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type), names(detrend_colours))`.
+: Caused by warning:
+: ! 5 unknown levels in `f`: gam_scl, hp_scl, lin_scl_rw, lin_scl_coarse, and value
+: 2: There was 1 warning in `mutate()`.
+: ℹ In argument: `comb = fct_relevel(...)`.
+: Caused by warning:
+: ! 8 unknown levels in `f`: 1:0, 1:0.25, 1:0.5, 1:0.75, 0.75:1, 0.5:1, 0.25:1, and 0:1
 
-**** identify the best fits
+**** extract proxy, depth chunk, and site RMSD_start and RMSD
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:57]
 :END:
@@ -9457,7 +9485,7 @@ and 0:1
                                pull(RMSD_cum))) |>
     # I may have accidentally included multiple copies of the same sim?
     tidylog::filter(RMSD == min(RMSD),
-                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb## , window
+                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window, roll
                             )) #|>
     # lin_scl_med at < 109 m is identical to lin_scl_fine
     ## tidylog::filter(!(detrend_type == "lin_scl_med" & depth_chunk == "depth < 109.26")) |>
@@ -9476,11 +9504,12 @@ and 0:1
 out of all the detrend types and gaussian/rectangular filters (window)
 #+begin_src R
   best_age_optim_one <- best_age_optim |>
-    filter(RMSD == min(RMSD),
+    tidylog::filter(RMSD == min(RMSD),
            .by = c(sol, proxy, site, comb, depth_chunk))
 #+end_src
 
 #+RESULTS:
+: filter: removed 93 rows (53%), 82 rows remaining
 
 **** COMMENT plot improvement after optimization after algorithm revision
 # #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
@@ -9758,16 +9787,16 @@ old
 
   overall_best <- overall_sd |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, detrend_type, comb, sol## , window
-                      ))
+              .by = c(proxy, detrend_type, comb, sol, window, roll))
 
   overal_best_sol <- overall_best |>
-    filter(RMSD == min(RMSD), .by = c(sol, proxy))
+    tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
 #+end_src
 
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol)`
-: filter: removed 456 rows (1%), 38,105 rows remaining
+: filter: removed 763 rows (1%), 73,792 rows remaining
+: filter: removed 28 rows (57%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -9805,11 +9834,10 @@ old
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol,
-: window)`
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window)`
 : filter: removed 22,442 rows (5%), 408,101 rows remaining
 
-**** recompute RMSD for the raw taner filter
+**** COMMENT recompute RMSD for the ~scl~ taner filter
 :PROPERTIES:
 :CREATED:  [2024-03-25 Mon 11:10]
 :END:
@@ -9849,11 +9877,28 @@ old
               .by = c(proxy, detrend_type, comb, sol## , window
                       ))
 #+end_src
+
+#+RESULTS:
+#+begin_example
+Warning messages:
+1: There was 1 warning in `mutate()`.
+ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type), names(detrend_colours))`.
+Caused by warning:
+! 7 unknown levels in `f`: gam_scl, hp_scl, lin_scl_rw, lin_scl_fine, lin_scl_med, lin_scl_coarse, and value
+2: There was 1 warning in `mutate()`.
+ℹ In argument: `comb = fct_relevel(...)`.
+Caused by warning:
+! 8 unknown levels in `f`: 1:0, 1:0.25, 1:0.5, 1:0.75, 0.75:1, 0.5:1, 0.25:1, and 0:1
+Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol)`
+filter: removed 88 rows (1%), 11,917 rows remaining
+#+end_example
+
 **** simple plot of RMSD vs solution
 #+begin_src R :results output graphics file :file imgs/full_RMSD_scores.pdf :width 5 :height 2
   pl_rmsd_full <- overall_best |>
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
+    filter(roll == 1e10) |>
     ## filter(proxy == "Lstar") |>
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
@@ -9866,18 +9911,17 @@ old
          colour = ""
          ) +
     ## facet_grid(cols = vars(proxy)) +
-    ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
-    ## scale_shape_manual(values = c("gaussian" = "circle",
-    ##                               "rectangular" = "square")) +
+    scale_shape_manual(values = c("gaussian" = "circle",
+                                  "rectangular" = "square")) +
     ## geom_line(aes(group = paste(detrend_type, proxy, comb## , window
     ##                             )),
     ##           alpha = .1) +
-    ## geom_point(alpha = .05) +
-    geom_line(aes(group = paste(detrend_type, proxy)),
+    ## ## geom_point(alpha = .05) +
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll)),
                   alpha = .3) +
     geom_point() +
-    theme(legend.position = c(.13, .95),
-          legend.location = "inside",
+    theme(legend.position.inside = c(.13, .95),
+          legend.position = "inside",
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm")) #+
   # what if we compute the average RMSD for each solution based on all the proxies (this is bad, not weighted by measurement numbers!)
@@ -9974,10 +10018,11 @@ another attempt to visualize if the RMSD scores differ significantly between sol
 #+RESULTS:
 [[file:imgs/bootstrapped_halfeyes.png]]
 
-**** compare taner filters to bandpass filters
+**** COMMENT compare detrend_types and filters
 :PROPERTIES:
 :CREATED:  [2024-03-25 Mon 11:08]
 :END:
+everything
 #+begin_src R :results output graphics file :file imgs/full_RMSD_boot_comparison.png :width 2600 :height 700 :res 300
   pl_rmsd_detrend_types <- pl_rmsd_full +
     ggnewscale::new_scale_color() +
@@ -10003,6 +10048,100 @@ another attempt to visualize if the RMSD scores differ significantly between sol
 
 #+RESULTS:
 [[file:imgs/full_RMSD_boot_comparison.png]]
+
+**** simple comparison of taner roll parameter
+#+begin_src R :results output graphics file :file imgs/full_RMSD_roll_comparison.pdf :width 3.3 :height 2
+  pl_rmsd_taner <- overall_best |>
+    filter(comb == "1:1") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(proxy == "Lstar") |>
+    ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
+    ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
+    ggplot(aes(x = sol, y = RMSD,
+               colour = proxy
+               ## colour = detrend_type## , shape = window
+               )) +
+    ## scale_colour_manual(values = detrend_colours) +
+    labs(x = "Astronomical Solution",## , shape = "Bandpass Filter type"
+         colour = "", alpha = ""
+         ) +
+    ## facet_grid(cols = vars(proxy)) +
+    ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
+    ## scale_shape_manual(values = c("gaussian" = "circle",
+    ##                               "rectangular" = "square")) +
+    ## geom_line(aes(group = paste(detrend_type, proxy, comb## , window
+    ##                             )),
+    scale_colour_discrete(guide = "none") +
+    ##           alpha = .1) +
+    ## geom_point(alpha = .05) +
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll)),
+                  alpha = .3) +
+    geom_point(aes(alpha = factor(roll))) +
+    theme(legend.position.inside = c(.2, .25),
+          legend.position = "inside",
+          legend.background = element_blank(),
+          legend.key.height = unit(1, "mm")) #+
+  # what if we compute the average RMSD for each solution based on all the proxies (this is bad, not weighted by measurement numbers!)
+    ## stat_summary(aes(group = sol), geom = "pointrange", colour = "black")
+  pl_rmsd_taner
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_roll_comparison.pdf]]
+
+**** simplified comparison of filters
+:PROPERTIES:
+:CREATED:  [2024-03-27 Wed 08:57]
+:END:
+#+begin_src R :results output graphics file :file imgs/full_RMSD_filter_comparison.png :width 2600 :height 700 :res 300
+  pl_rmsd_detrend_types <- pl_rmsd_taner +
+    scale_alpha_discrete(guide = "none") +
+    aes(shape = "taner", linetype = "taner") +
+    labs(shape = "", linetype = "") +
+    scale_colour_discrete(guide = "none") +
+    ## ggnewscale::new_scale_color() +
+    ## scale_colour_manual(values = detrend_colours) +
+    facet_grid(cols = vars(proxy)) +
+    scale_linetype_manual(values = c("taner" = "solid", "gaussian" = "dashed", "rectangular" = "dotted")) +
+    geom_line(aes(y = RMSD, ## colour = detrend_type,
+                  linetype = window,
+                  group = paste(proxy, detrend_type, window)),
+              data = overall_best_old |> filter(detrend_type == "lin_scl_med")) +
+    scale_shape_manual(values = c("taner" = "circle", "gaussian" = "triangle", "rectangular" = "square")) +
+    geom_point(aes(y = RMSD, ## colour = detrend_type,
+                   shape = window),
+               data = overall_best_old |> filter(detrend_type == "lin_scl_med")) +
+    theme(legend.position.inside = c(.2, .3))
+  pl_rmsd_detrend_types
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_filter_comparison.png]]
+
+**** simplified comparison of detrend_types
+:PROPERTIES:
+:CREATED:  [2024-03-27 Wed 09:05]
+:END:
+
+#+begin_src R :results output graphics file :file imgs/full_RMSD_detrend_comparison.png :width 2600 :height 700 :res 300
+  pl_rmsd_detrend_types <- pl_rmsd_full +
+    ## aes(colour = detrend_type) +
+    scale_colour_discrete(guide = FALSE) +
+    ggnewscale::new_scale_color() +
+    scale_colour_manual(values = detrend_colours) +
+    labs(shape = "", linetype = "", colour = "") +
+    facet_grid(cols = vars(proxy)) +
+    geom_line(aes(y = RMSD, colour = detrend_type,
+                  group = paste(proxy, detrend_type, window)),
+              data = overall_best_old |> filter(window == "rectangular", detrend_type != "value")) +
+    geom_point(aes(y = RMSD, colour = detrend_type),
+               data = overall_best_old |> filter(window == "rectangular", detrend_type != "value")) +
+    theme(legend.position.inside = c(.4, .999))
+  pl_rmsd_detrend_types
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_detrend_comparison.png]]
 
 **** [#B] simple plot of records vs. solutions
 :PROPERTIES:
@@ -10152,7 +10291,7 @@ and for MS
   best_age_optim |>
     filter(depth_chunk == "full record") |> # ignore the other depth chunks I tried
     filter(comb == "1:1") |>
-    filter(detrend_type == "lin_scl_med") |> # ignore scl
+    filter(detrend_type == "lin_scl_med") |>
     filter(site == "Zumaia") |>
     left_join(overall_best |> rename(full_RMSD = RMSD)) |>
     arrange(proxy, detrend_type, sol) |> # this is so we can see why full_RMSD is not the same as RMSD
@@ -10980,6 +11119,13 @@ https://github.com/AndyBunn/dplR/issues/9
 #+RESULTS:
 [[file:imgs/Zumaia_Sopelana_spectra_optimal.pdf]]
 
+**** plot filter windows
+:PROPERTIES:
+:CREATED:  [2024-03-27 Wed 11:04]
+:END:
+#+begin_src R
+ my_filt_age
+#+end_src
 **** COMMENT eha after applying age model
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 14:01]
@@ -12009,7 +12155,7 @@ Table in the supplement:
 #+RESULTS:
 [[file:imgs/198-1210B_d13C_Jung2012.png]]
 
-But the data are also available on pangaea now in [cite:@Ji-Eun2022]
+But the data are also available on pangaea now in [cite:@Kim2022]
 refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
 #+begin_src R :results output graphics file :file imgs/198-1210_d13C_Jung2012-fig6.png :width 900 :height 500
   IODP198_1210B <- pangaear::pg_data("10.1594/PANGAEA.950806")[[1]]
