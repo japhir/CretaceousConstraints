@@ -13,7 +13,7 @@
 #'   signal to make it in-phase with the orbital forcing.
 #' @param target_periods Vector of periods to target. Defaults to 405 and 110
 #'   kyr.
-#' @param bandpass_window Window type for bandpass filter: 0 = rectangular, 1 = Gaussian, 2 = Cosine-tapered window (a.k.a. Tukey window).
+#' @param bandpass_window Window type for bandpass filter: 0 = rectangular, 1 = Gaussian, 2 = Cosine-tapered window (a.k.a. Tukey window). 999 = taner (default).
 #' @param frequency_fraction Fraction of frequency to adjust upper and lower
 #'   filter limits by.
 #' @param eccentricity_weights Weights for the 405 kyr and 100 kyr filter when
@@ -43,7 +43,7 @@ wrap_age_model <- function(data,
                            proxy_phase = 1,
                            target_periods = c("405 kyr" = 405, "100 kyr" = 110),
                            frequency_fraction = 0.3,
-                           ## bandpass_window = 0,
+                           bandpass_window = 999,
                            taner_roll = 1e10,
                            eccentricity_weights = c(1, 1),
                            age_slider = 200,
@@ -140,8 +140,11 @@ wrap_age_model <- function(data,
   # end input validation
 
   # convert input frequency to tibble with desired frequency ranges
+  if (bandpass_window == 1) {# this is parametrized at 2 sigma from the mean
+    frequency_fraction <- 0.5 * frequency_fraction
+  }
   my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
-                        p = target_periods) |>
+                                p = target_periods) |>
     dplyr::mutate(f = 1 / .data$p,
            range = frequency_fraction * .data$f,
            flow = .data$f - .data$range,
@@ -178,14 +181,23 @@ wrap_age_model <- function(data,
   # this results in 7, so 7 * 0.4 = 2.8
   linterp_dt <- solution_timestep * ceiling(data_dt / solution_timestep)
 
-  flt <- tmp |>
-    taner_filter(frequencies = my_filt_age,
-                 x = .data$age_floating, y = .data$value,
-                 add_depth = TRUE,
-                 genplot = FALSE, verbose = FALSE,
-                 ## xmax = 0.03, # if genplot = TRUE
-                 padfac = 3,
-                 roll = taner_roll)
+  if (bandpass_window %in% c(0, 1)) {
+    flt <- tmp |>
+      bandpass_filter(frequencies = my_filt_age,
+                      x = .data$age_floating, y = .data$value,
+                      linterp = TRUE, linterp_dt = linterp_dt,
+                      add_depth = TRUE,
+                      window = bandpass_window)
+  } else {#999
+    flt <- tmp |>
+      taner_filter(frequencies = my_filt_age,
+                   x = .data$age_floating, y = .data$value,
+                   add_depth = TRUE,
+                   genplot = FALSE, verbose = FALSE,
+                   linterp_dt = linterp_dt,
+                   padfac = 3,
+                   roll = taner_roll)
+  }
 
   ## cli::cli_inform(c(
   ##        "nrow(tmp) = {nrow(tmp)}",
