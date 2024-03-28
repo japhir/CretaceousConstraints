@@ -8729,9 +8729,9 @@ This is not an improvement! Typically, it is the 100-kyr cycle that forces it in
         c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
           0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
       target_periods = c("405 kyr" = 405, "100 kyr" = 110),
-      frequency_fraction = 0.1,
-      ## bandpass_window = 1,
-      taner_roll = 1e10,
+      frequency_fraction = 0.2,
+      bandpass_window = 1,
+      ## taner_roll = 1e10,
       max_error_range = 1.6, #1.6, # 10% of 16 m 405 kyr cycle
       RMSD_threshold = 0.005,
       genplot = TRUE, output = "full")
@@ -9107,7 +9107,7 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   ## devtools::install() # MUST install locally for furrr to work
   ## devtools::load_all() # ok that still didn't work, doing it the dumb way
   source("R/construct_eccentricity.R")
-  ## source("R/bandpass_filter.R")
+  source("R/bandpass_filter.R")
   source("R/taner_filter.R")
   source("R/wrap_age_model.R")
   plan(multisession, workers = 4) # set up 4 cores
@@ -9126,7 +9126,11 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
         ## frequency_fraction = 0.3, # default
         ## frequency_fraction = 0.1, # sensitivity
         ## frequency_fraction = 0.2, # sensitivity
-        frequency_fraction = 0.25, # sensitivity
+        ## frequency_fraction = 0.25, # sensitivity
+        ## frequency_fraction = 0.22, # sensitivity
+        ## frequency_fraction = 0.23, # sensitivity
+        ## frequency_fraction = 0.24, # sensitivity
+        frequency_fraction = 0.245, # sensitivity
         ## bandpass_window = 0, # rectangular
         ## bandpass_window = 1, # gaussian
         taner_roll = 1e10, # taner default
@@ -9237,11 +9241,17 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds")
-    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.22.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.23.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.24.rds")
+    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.245.rds")
   message("current time: ", lubridate::now())
-  message("duration: ", lubridate::now() - nw)
+  message("duration: ", round(lubridate::now() - nw, 2))
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(taner_filter) # rm so we can get back the one from the package
+  rm(bandpass_filter)
   rm(construct_eccentricity)
 #+end_src
 
@@ -9393,6 +9403,34 @@ this makes ZB18a the best
 
 write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds")
 > current time: 2024-03-27 20:52:55.667946
+> current time: 2024-03-27 21:00:11.768722
+> duration: 7.27
+
+above is almost identical to 0.3, but slightly better overall
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.22.rds")
+> current time: 2024-03-27 21:06:45.1201
+> current time: 2024-03-27 21:14:14.969444
+> duration: 7.5
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds")
+> current time: 2024-03-27 22:21:04.636116
+> current time: 2024-03-27 22:28:43.671436
+> duration: 7.65
+
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.23.rds")
+> current time: 2024-03-27 22:45:16.250716
+> current time: 2024-03-27 22:52:52.755793
+> duration: 7.61
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.24.rds")
+> current time: 2024-03-27 22:57:29.267337
+> current time: 2024-03-27 23:05:01.12837
+> duration: 7.53
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.245.rds")
+> current time: 2024-03-27 23:08:27.725414
 
 **** [#B] load cached results
 :PROPERTIES:
@@ -9472,7 +9510,9 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.
         read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds"),
         read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds"),
       read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"),
-        ) |>
+
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds") |> mutate(frac = 0.22),
+      ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
     mutate(detrend_type = as_factor(detrend_type) |>
@@ -9493,50 +9533,40 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.
 
 ***** new taner filters
 new runs after changing to a taner filter currently with roll = 1e10.
-#+begin_src R
-    rolling_age_optim <-
-      bind_rows(
-        read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds") |> mutate(roll = 1e8),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds") |> mutate(roll = 1e100),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds") |> mutate(roll = 1e10, frac = 0.1),
+#+begin_src R :results none
+  rolling_age_optim <-
+    bind_rows(
+      read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds") |> mutate(roll = 1e8),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds") |> mutate(roll = 1e100),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds") |> mutate(roll = 1e10, frac = 0.1),
 
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds") |> mutate(roll = 1e10, frac = 0.2),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds") |> mutate(roll = 1e10, frac = 0.2),
 
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds") |> mutate(roll = 1e10, frac = 0.25),
-      ) |>
-      mutate(window = "taner") |>
-      mutate(detrend_type = as_factor(detrend_type) |>
-               fct_relevel(names(detrend_colours))) |>
-      mutate(comb = as_factor(comb) |>
-               fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                             x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-      mutate(depth_chunk = as_factor(depth_chunk) |>
-               fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds") |> mutate(roll = 1e10, frac = 0.25),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.22.rds") |> mutate(roll = 1e10, frac = 0.22),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.23.rds") |> mutate(roll = 1e10, frac = 0.23),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.24.rds") |> mutate(roll = 1e10, frac = 0.24),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.245.rds") |> mutate(roll = 1e10, frac = 0.245),
+    ) |>
+    mutate(window = "taner") |>
+    mutate(detrend_type = as_factor(detrend_type) |>
+             fct_relevel(names(detrend_colours))) |>
+    mutate(comb = as_factor(comb) |>
+             fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                           x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+    mutate(depth_chunk = as_factor(depth_chunk) |>
+             fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
 #+end_src
 
-#+RESULTS:
-#+begin_example
-Warning messages:
-1: There was 1 warning in `mutate()`.
-ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type),
-  names(detrend_colours))`.
-Caused by warning:
-! 5 unknown levels in `f`: gam_scl, hp_scl, lin_scl_rw, lin_scl_coarse, and
-value
-2: There was 1 warning in `mutate()`.
-ℹ In argument: `comb = fct_relevel(...)`.
-Caused by warning:
-! 8 unknown levels in `f`: 1:0, 1:0.25, 1:0.5, 1:0.75, 0.75:1, 0.5:1, 0.25:1,
-and 0:1
-#+end_example
+
 
 **** extract proxy, depth chunk, and site RMSD_start and RMSD
 :PROPERTIES:
@@ -9584,7 +9614,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: filter: removed 136 rows (56%), 109 rows remaining
+: filter: removed 136 rows (47%), 151 rows remaining
 
 **** COMMENT plot improvement after optimization after algorithm revision
 # #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
@@ -9872,8 +9902,8 @@ old
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac,
 : window)`
-: filter: removed 1,451 rows (1%), 145,186 rows remaining
-: + + filter: removed 63 rows (75%), 21 rows remaining
+: filter: removed 1,856 rows (1%), 192,782 rows remaining
+: + + filter: removed 91 rows (81%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -9903,7 +9933,7 @@ old
 
   overall_best_old <- overall_sd_old |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, detrend_type, comb, sol, window))
+              .by = c(proxy, detrend_type, comb, sol, window, frac))
 
   overal_best_sol_old <- overall_best_old |>
     filter(RMSD == min(RMSD), .by = c(sol, proxy))
@@ -9911,8 +9941,9 @@ old
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window)`
-: filter: removed 22,442 rows (5%), 408,101 rows remaining
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol,
+: window)`
+: filter: removed 22,597 rows (5%), 420,006 rows remaining
 
 **** COMMENT recompute RMSD for the ~scl~ taner filter
 :PROPERTIES:
@@ -9976,8 +10007,8 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
     filter(roll == 1e10) |>
-    ## filter(is.na(frac)) |> # we don't want our super narrow 0.1
-    filter(proxy == "Lstar") |>
+    ## filter(proxy == "Lstar") |>
+    filter(is.na(frac)) |> # only the defaults
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
@@ -9998,7 +10029,7 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac)),
                   alpha = .3) +
     geom_point() +
-    geom_text(aes(label = frac)) +
+    ## geom_text(aes(label = frac)) +
     ## geom_text(aes(label = detrend_type)) +
     theme(legend.position.inside = c(.13, .95),
           legend.position = "inside",
@@ -10012,6 +10043,53 @@ filter: removed 88 rows (1%), 11,917 rows remaining
 
 #+RESULTS:
 [[file:imgs/full_RMSD_scores.pdf]]
+
+**** plot of RMSD vs frac
+:PROPERTIES:
+:CREATED:  [2024-03-27 Wed 22:40]
+:END:
+
+#+begin_src R :results output graphics file :file imgs/full_RMSD_frac.pdf :width 9 :height 2
+  pl_rmsd_full <- overall_best |>
+    filter(comb == "1:1") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(roll == 1e10) |>
+    ## filter(proxy == "Lstar") |>
+    mutate(frac = ifelse(is.na(frac), 0.3, frac)) |>
+    ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
+    ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
+    ggplot(aes(x = sol, y = RMSD,
+               colour = factor(frac),
+               ## colour = detrend_type## , shape = window
+               )) +
+    scale_colour_viridis_d() +
+    labs(x = "Astronomical Solution",## , shape = "Bandpass Filter type"
+         colour = ""
+         ) +
+    facet_grid(cols = vars(proxy)) +
+    ## scale_shape_manual(values = c("gaussian" = "circle",
+    ##                               "rectangular" = "square")) +
+    ## geom_line(aes(group = paste(detrend_type, proxy, comb## , window
+    ##                             )),
+    ##           alpha = .1) +
+    ## ## geom_point(alpha = .05) +
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac)),
+                  alpha = .3) +
+    geom_point() +
+    ## geom_text(aes(label = frac)) +
+    ## geom_text(aes(label = detrend_type)) +
+    theme(legend.position.inside = c(.13, .4),
+          legend.position = "inside",
+          legend.background = element_blank(),
+          legend.key.height = unit(1, "mm")) #+
+  # what if we compute the average RMSD for each solution based on all the proxies (this is bad, not weighted by measurement numbers!)
+    ## stat_summary(aes(group = sol), geom = "pointrange", colour = "black")
+
+  pl_rmsd_full
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_frac.pdf]]
 
 **** bootstrapped RMSD
 :PROPERTIES:
@@ -10135,6 +10213,7 @@ everything
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
     filter(proxy == "Lstar") |>
+    filter(frac == 0.22) |>
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
@@ -10166,10 +10245,10 @@ everything
     # manual fiddling to add gauss
     geom_line(aes(group = "all"), colour = "darkred",
               data = overall_best_old |>
-                filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian")) +
+                filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian", frac == 0.22)) +
     geom_point(colour = "darkred", shape = "triangle",
                data = overall_best_old |>
-                 filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian")) +
+                 filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian", frac == 0.22)) +
     # all the taner filters
     geom_line(aes(group = paste(detrend_type, proxy, window, roll)),
                   alpha = .3) +
@@ -11246,26 +11325,35 @@ https://github.com/AndyBunn/dplR/issues/9
     filter(site == "Zumaia")
 
 
+  fac <- 0.22
+  pl <- 405
+  ll <- 1 / pl - fac * (1 / pl)
+  hl <- 1 / pl + fac * (1 / pl)
   windows <- windows |>
     mutate(win = map(roll,
                      \(x) {
-                     simple[, c("age_floating", "value")] |>
-                     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                     astrochron::taner(flow = my_filt_age$flow[[1]], fhigh = my_filt_age$fhigh[[1]],
-                                       roll = x,
-                                       genplot = FALSE, verbose = FALSE,
-                                       output = 2) |>
-                       rename(frequency = V1, amplitude = filter_pos)
+                       simple[, c("age_floating", "value")] |>
+                         astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                         astrochron::taner(flow = ll,
+                                           fhigh = hl,
+                                           roll = x,
+                                           genplot = FALSE, verbose = FALSE,
+                                           output = 2) |>
+                         rename(frequency = V1, amplitude = filter_pos)
                      })) |>
     mutate(target = "405 kyr")
 
+  ps <- 110
+  ls <- 1 / ps - fac * (1 / ps)
+  hs <- 1 / ps + fac * (1 / ps)
   windows <- bind_rows(windows,
                        windows |>
     mutate(win = map(roll,
                      \(x) {
                      simple[, c("age_floating", "value")] |>
                      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-                     astrochron::taner(flow = my_filt_age$flow[[2]], fhigh = my_filt_age$fhigh[[2]],
+                       astrochron::taner(flow = ls,
+                                         fhigh = hs,
                                        roll = x,
                                        genplot = FALSE, verbose = FALSE,
                                        output = 2) |>
@@ -11273,20 +11361,32 @@ https://github.com/AndyBunn/dplR/issues/9
                      })) |>
     mutate(target = "100 kyr")
     )
+#+end_src
 
+investigate how the width of the gaussian is determined
+#+begin_src R
+  fac <- 0.44
+  pl <- 405
+  ll <- 1 / pl - fac * (1 / pl)
+  hl <- 1 / pl + fac * (1 / pl)
+
+  ps <- 110
+  ls <- 1 / ps - fac * (1 / ps)
+  hs <- 1 / ps + fac * (1 / ps)
 
   gauss <-
     bind_rows(
       simple[, c("age_floating", "value")] |>
       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-      astrochron::bandpass(flow = my_filt_age$flow[[1]], fhigh = my_filt_age$fhigh[[1]],
+      astrochron::bandpass(flow = ll,
+                           fhigh = hl,
                            genplot = FALSE, verbose = FALSE,
                            win = 1, output = 2) |>
       mutate(window = "gaussian", target = "405 kyr") |>
       rename(frequency = bpfreq, amplitude = taper),
       simple[, c("age_floating", "value")] |>
       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-      astrochron::bandpass(flow = my_filt_age$flow[[2]], fhigh = my_filt_age$fhigh[[2]],
+      astrochron::bandpass(flow = ls, fhigh = hs,
                            genplot = FALSE, verbose = FALSE,
                            win = 1, output = 2) |>
       mutate(window = "gaussian", target = "100 kyr") |>
@@ -11296,52 +11396,73 @@ https://github.com/AndyBunn/dplR/issues/9
 #+RESULTS:
 
 
-#+begin_src R :results output graphics file :file imgs/filter_windows.pdf :width 5 :height 1.7
+#+begin_src R :results output graphics file :file imgs/filter_windows.pdf :width 5 :height 3
   pl_windows <- windows |>
     unnest(win) |>
     ggplot(aes(x = frequency, y = amplitude,
                ## colour = window,
                fill = window)) +
     scale_fill_manual(values = c("rectangular" = "gray", "gaussian" = "pink", "taner" = "blue")) +
-     geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
-               colour = "darkgray",
-               data = my_filt_age[2, ] |> mutate(window = "rectangular"),
-               alpha = .2) +
-     geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
-               colour = "darkgray",
-               data = my_filt_age[1, ] |> mutate(window = "rectangular"),
-               alpha = .2) +
 
-    ggnewscale::new_scale_color() +
-    scale_colour_viridis_d("", guide = "none") +
-    geom_area(aes(colour = factor(format(roll, scientific = TRUE)),
-                  group = paste(roll, window, target)),
-               position = "identity",
-               alpha = .05) +
-    ggnewscale::new_scale_color() +
-    geom_area(aes(group = paste(window, target)),
-              position = "identity",
-              colour = "darkred",
-              data = gauss) +
-     coord_cartesian(xlim = c(0, 0.015),ylim = c(0, 1.2)) +
-    scale_y_continuous(breaks = c(0, 1)) +
-    labs(x = "Frequency (cycles/kyr)", y = "", colour = "Filter", fill = "Filter") +
-    annotate("text", x = 1 / c(405, 110), y = 1,
-             label = c("405", "110"), vjust = -0.5) +
+    # annotate rectangles
+     ## geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
+     ##           colour = "darkgray",
+     ##           data = my_filt_age[2, ] |> mutate(window = "rectangular"),
+     ##           alpha = .2) +
+     ## geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
+     ##           colour = "darkgray",
+     ##           data = my_filt_age[1, ] |> mutate(window = "rectangular"),
+     ##           alpha = .2) +
 
-    # what if we narrow to 0.1 * freq? TODO
+    # what if we narrow to 0.22 * freq?
     geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
                colour = "darkgray",
               data = my_filt_age[2, ] |>
-                mutate(range = 0.1 * f, flow = f - range, fhigh = f + range) |>
+                mutate(range = 0.22 * f, flow = f - range, fhigh = f + range) |>
                 mutate(window = "rectangular"),
                alpha = .2) +
      geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
                colour = "darkgray",
                data = my_filt_age[1, ] |>
-                 mutate(range = 0.1 * f, flow = f - range, fhigh = f + range) |>
+                 mutate(range = 0.22 * f, flow = f - range, fhigh = f + range) |>
                  mutate(window = "rectangular"),
                alpha = .2) +
+
+    ggnewscale::new_scale_color() +
+    scale_colour_viridis_d("", guide = "none") +
+
+    # gauss
+    geom_area(aes(group = paste(window, target)),
+              position = "identity",
+              colour = "darkred",
+              data = gauss) +
+
+    # taners
+    geom_area(aes(colour = factor(format(roll, scientific = TRUE)),
+                  group = paste(roll, window, target)),
+               position = "identity",
+               alpha = .05) +
+
+    coord_cartesian(xlim = c(0, 0.015),ylim = c(0, 1.2)) +
+
+    scale_y_continuous(breaks = c(0, 1)) +
+
+    labs(x = "Frequency (cycles/kyr)",
+         y = "",
+         colour = "Filter", fill = "Filter") +
+    annotate("text", x = 1 / c(405, 110), y = 1,
+             label = c("405", "110"), vjust = -0.5)
+
+    ## # figure out how gaussian is parameterized
+    ## geom_vline(xintercept = c(1 / ps - 0.5 * fac * 1 / ps,
+    ##                           1 / ps + 0.5 * fac * 1 / ps,
+    ##                           1 / pl - 0.5 * fac * 1 / pl,
+    ##                           1 / pl + 0.5 * fac * 1 / pl))
+
+    ## # annotate astronomical solutions spectra
+    ## geom_area(aes(x = frequency, y = power / max(power)),
+    ##           fill = "black",
+    ##           position = "identity", data = slns_specs |> filter(sln == "ZB20a"))
   pl_windows
 #+end_src
 
