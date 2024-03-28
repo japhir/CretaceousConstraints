@@ -9111,7 +9111,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
   source("R/taner_filter.R")
   source("R/wrap_age_model.R")
   plan(multisession, workers = 4) # set up 4 cores
-  message("current time: ", lubridate::now())
+  nw <- lubridate::now()
+  message("current time: ", nw)
   mw <- function(d, s, s405, s100, sign) {
     d |>
       wrap_age_model(
@@ -9122,14 +9123,17 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
           c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
             0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
         target_periods = c("405 kyr" = 405, "100 kyr" = 110),
-        frequency_fraction = 0.3,
+        ## frequency_fraction = 0.3, # default
+        ## frequency_fraction = 0.1, # sensitivity
+        ## frequency_fraction = 0.2, # sensitivity
+        frequency_fraction = 0.25, # sensitivity
         ## bandpass_window = 0, # rectangular
         ## bandpass_window = 1, # gaussian
-        ## taner_roll = 1e10, # taner default
+        taner_roll = 1e10, # taner default
         ## taner_roll = 1e3, # for sensitivity
         ## taner_roll = 1e6, # for sensitivity
         ## taner_roll = 1e8, # for sensitivity
-        taner_roll = 1e100, # for sensitivity
+        ## taner_roll = 1e100, # for sensitivity
         ## taner_roll = 1e12, # for sensitivity
         eccentricity_weights = c(s405, s100),
         age_slider = 200,
@@ -9175,7 +9179,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## filter(proxy != "Lstar") |>
     ## filter(site == "Zumaia") |>
     ## filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
-    filter(detrend_type == "lin_scl_med") |>
+    filter(detrend_type == "lin_scl_med") |> # default
+    ## filter(detrend_type == "lin_scl_fine") |> # sensitivity
     filter(depth_chunk == "full record") |>
     ## filter(detrend_type == "lin_scl_fine") |>
     ## filter(detrend_type == "scl") |>
@@ -9228,8 +9233,13 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds")
-    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds")
+    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds")
   message("current time: ", lubridate::now())
+  message("duration: ", lubridate::now() - nw)
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(taner_filter) # rm so we can get back the one from the package
   rm(construct_eccentricity)
@@ -9364,6 +9374,26 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds")
 > current time: 2024-03-27 15:46:07.169938
 > current time: 2024-03-27 15:55:53.183246
 
+was I wrong to switch from lin_scl_fine to lin_scl_med? -> No, it's same pattern, slightly worse scores for ZB20b and ZB20c, slightly better for La10c and ZB18a
+well within bootstrapped uncertainties
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds")
+> current time: 2024-03-27 17:53:31.175274
+> current time: 2024-03-27 18:02:57.783143
+
+what if my filters are just too wide?
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds")
+> current time: 2024-03-27 18:24:53.102549
+> current time: 2024-03-27 18:34:25.361577
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds")
+> current time: 2024-03-27 18:47:54.281992
+> current time: 2024-03-27 19:35:43.329698
+
+this makes ZB18a the best
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds")
+> current time: 2024-03-27 20:52:55.667946
+
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -9464,38 +9494,49 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds")
 ***** new taner filters
 new runs after changing to a taner filter currently with roll = 1e10.
 #+begin_src R
-  rolling_age_optim <-
-    bind_rows(
-      read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
-      read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
-      read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds") |> mutate(roll = 1e8),
-      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds") |> mutate(roll = 1e100),
-    ) |>
-    mutate(window = "taner") |>
-    mutate(detrend_type = as_factor(detrend_type) |>
-             fct_relevel(names(detrend_colours))) |>
-    mutate(comb = as_factor(comb) |>
-             fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                           x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-    mutate(depth_chunk = as_factor(depth_chunk) |>
-             fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
+    rolling_age_optim <-
+      bind_rows(
+        read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds") |> mutate(roll = 1e8),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds") |> mutate(roll = 1e100),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.1.rds") |> mutate(roll = 1e10, frac = 0.1),
+
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.2.rds") |> mutate(roll = 1e10, frac = 0.2),
+
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds") |> mutate(roll = 1e10, frac = 0.25),
+      ) |>
+      mutate(window = "taner") |>
+      mutate(detrend_type = as_factor(detrend_type) |>
+               fct_relevel(names(detrend_colours))) |>
+      mutate(comb = as_factor(comb) |>
+               fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                             x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+      mutate(depth_chunk = as_factor(depth_chunk) |>
+               fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
 #+end_src
 
 #+RESULTS:
-: Warning messages:
-: 1: There was 1 warning in `mutate()`.
-: ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type), names(detrend_colours))`.
-: Caused by warning:
-: ! 5 unknown levels in `f`: gam_scl, hp_scl, lin_scl_rw, lin_scl_coarse, and value
-: 2: There was 1 warning in `mutate()`.
-: ℹ In argument: `comb = fct_relevel(...)`.
-: Caused by warning:
-: ! 8 unknown levels in `f`: 1:0, 1:0.25, 1:0.5, 1:0.75, 0.75:1, 0.5:1, 0.25:1, and 0:1
+#+begin_example
+Warning messages:
+1: There was 1 warning in `mutate()`.
+ℹ In argument: `detrend_type = fct_relevel(as_factor(detrend_type),
+  names(detrend_colours))`.
+Caused by warning:
+! 5 unknown levels in `f`: gam_scl, hp_scl, lin_scl_rw, lin_scl_coarse, and
+value
+2: There was 1 warning in `mutate()`.
+ℹ In argument: `comb = fct_relevel(...)`.
+Caused by warning:
+! 8 unknown levels in `f`: 1:0, 1:0.25, 1:0.5, 1:0.75, 0.75:1, 0.5:1, 0.25:1,
+and 0:1
+#+end_example
 
 **** extract proxy, depth chunk, and site RMSD_start and RMSD
 :PROPERTIES:
@@ -9521,7 +9562,7 @@ new runs after changing to a taner filter currently with roll = 1e10.
                                pull(RMSD_cum))) |>
     # I may have accidentally included multiple copies of the same sim?
     tidylog::filter(RMSD == min(RMSD),
-                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window, roll
+                    .by = c(sol, site, proxy, detrend_type, depth_chunk, comb, window, roll, frac,
                             )) #|>
     # lin_scl_med at < 109 m is identical to lin_scl_fine
     ## tidylog::filter(!(detrend_type == "lin_scl_med" & depth_chunk == "depth < 109.26")) |>
@@ -9539,11 +9580,11 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+begin_src R
   best_age_optim_one <- best_age_optim |>
     tidylog::filter(RMSD == min(RMSD),
-           .by = c(sol, proxy, site, comb, depth_chunk))
+           .by = c(sol, proxy, site, comb, depth_chunk, frac))
 #+end_src
 
 #+RESULTS:
-: filter: removed 135 rows (62%), 82 rows remaining
+: filter: removed 136 rows (56%), 109 rows remaining
 
 **** COMMENT plot improvement after optimization after algorithm revision
 # #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
@@ -9805,7 +9846,7 @@ old
     mutate(match = map(the_best, "matched")) |>
     unnest(match) |>
     summarize(max_age_sopelana = min(age),
-              .by = c(proxy, detrend_type, depth_chunk, comb, sol## , window
+              .by = c(proxy, detrend_type, depth_chunk, comb, sol, window, frac
                       ))
 
   # get summary
@@ -9822,16 +9863,17 @@ old
   overall_best <- overall_sd |>
     summarize(RMSD = sqrt(mean(SD)),
               .by = c(proxy, detrend_type,
-                      comb, sol, window, roll))
+                      comb, sol, window, roll, frac))
 
   overal_best_sol <- overall_best |>
     tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol)`
-: filter: removed 1,147 rows (1%), 109,420 rows remaining
-: + + filter: removed 49 rows (70%), 21 rows remaining
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac,
+: window)`
+: filter: removed 1,451 rows (1%), 145,186 rows remaining
+: + + filter: removed 63 rows (75%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -9934,11 +9976,12 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
     filter(roll == 1e10) |>
-    ## filter(proxy == "Lstar") |>
+    ## filter(is.na(frac)) |> # we don't want our super narrow 0.1
+    filter(proxy == "Lstar") |>
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
-               colour = proxy
+               colour = proxy,
                ## colour = detrend_type## , shape = window
                )) +
     ## scale_colour_manual(values = detrend_colours) +
@@ -9946,15 +9989,17 @@ filter: removed 88 rows (1%), 11,917 rows remaining
          colour = ""
          ) +
     ## facet_grid(cols = vars(proxy)) +
-    scale_shape_manual(values = c("gaussian" = "circle",
-                                  "rectangular" = "square")) +
+    ## scale_shape_manual(values = c("gaussian" = "circle",
+    ##                               "rectangular" = "square")) +
     ## geom_line(aes(group = paste(detrend_type, proxy, comb## , window
     ##                             )),
     ##           alpha = .1) +
     ## ## geom_point(alpha = .05) +
-    geom_line(aes(group = paste(detrend_type, proxy, window, roll)),
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac)),
                   alpha = .3) +
     geom_point() +
+    geom_text(aes(label = frac)) +
+    ## geom_text(aes(label = detrend_type)) +
     theme(legend.position.inside = c(.13, .95),
           legend.position = "inside",
           legend.background = element_blank(),
@@ -10111,9 +10156,25 @@ everything
     scale_colour_viridis_d() +
     ##           alpha = .1) +
     ## geom_point(alpha = .05) +
+    # manual fiddling to add rect
+    geom_line(aes(group = "all"), colour = "darkgray",
+              data = overall_best_old |>
+                filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "rectangular")) +
+    geom_point(colour = "darkgray", shape = "square",
+               data = overall_best_old |>
+                 filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "rectangular")) +
+    # manual fiddling to add gauss
+    geom_line(aes(group = "all"), colour = "darkred",
+              data = overall_best_old |>
+                filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian")) +
+    geom_point(colour = "darkred", shape = "triangle",
+               data = overall_best_old |>
+                 filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian")) +
+    # all the taner filters
     geom_line(aes(group = paste(detrend_type, proxy, window, roll)),
                   alpha = .3) +
     geom_point() +
+
     theme(legend.position.inside = c(.85, .32),
           legend.position = "inside",
           legend.background = element_blank(),
@@ -10174,6 +10235,7 @@ everything
                   group = paste(proxy, detrend_type, window)),
               data = overall_best_old |> filter(window == "rectangular", detrend_type != "value")) +
     geom_point(aes(y = RMSD, colour = detrend_type),
+               shape = "square",
                data = overall_best_old |> filter(window == "rectangular", detrend_type != "value")) +
     theme(legend.position.inside = c(.4, .999))
   pl_rmsd_detrend_types
@@ -11249,6 +11311,7 @@ https://github.com/AndyBunn/dplR/issues/9
                colour = "darkgray",
                data = my_filt_age[1, ] |> mutate(window = "rectangular"),
                alpha = .2) +
+
     ggnewscale::new_scale_color() +
     scale_colour_viridis_d("", guide = "none") +
     geom_area(aes(colour = factor(format(roll, scientific = TRUE)),
@@ -11264,7 +11327,21 @@ https://github.com/AndyBunn/dplR/issues/9
     scale_y_continuous(breaks = c(0, 1)) +
     labs(x = "Frequency (cycles/kyr)", y = "", colour = "Filter", fill = "Filter") +
     annotate("text", x = 1 / c(405, 110), y = 1,
-              label = c("405", "110"), vjust = -0.5)
+             label = c("405", "110"), vjust = -0.5) +
+
+    # what if we narrow to 0.1 * freq? TODO
+    geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
+               colour = "darkgray",
+              data = my_filt_age[2, ] |>
+                mutate(range = 0.1 * f, flow = f - range, fhigh = f + range) |>
+                mutate(window = "rectangular"),
+               alpha = .2) +
+     geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
+               colour = "darkgray",
+               data = my_filt_age[1, ] |>
+                 mutate(range = 0.1 * f, flow = f - range, fhigh = f + range) |>
+                 mutate(window = "rectangular"),
+               alpha = .2) +
   pl_windows
 #+end_src
 
