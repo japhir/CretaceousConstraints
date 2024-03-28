@@ -5113,6 +5113,7 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 this is not easy to customize, so we manually create it below.
 # #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.png :width 2400 :height 2200 :res 300
 # #+begin_src R :results output graphics file :file imgs/Zumaia-Sopelana_detrend_types_all.pdf :width 6 :height 5
+***** for Lstar
 #+begin_src R :results output graphics file :file imgs/detrend.png :width 800 :height 450
   pl_detrend <- smooth_all |>
     arrange(detrend_type) |>
@@ -5126,7 +5127,10 @@ this is not easy to customize, so we manually create it below.
     filter(detrend_megatype != "detrended") |>
     filter(detrend_megatype != "scaled") |>
     filter(detrend_type %in% c("gam_pred", #"lin_pred_coarse",
-                               "lin_pred_med", "lp_0.025", "value")) |>
+                               "lin_pred_fine",
+                               "lin_pred_med",
+                               "lin_pred_coarse",
+                               "lp_0.025", "value")) |>
     filter(proxy == "Lstar") |>
     ## filter(!detrend_type %in% c("lin_scl_rw", "lin_pred_rw")) |>
     ## filter(detrend_type %in% c("lin_pred_coarse", "value")) |>
@@ -5188,6 +5192,7 @@ this is not easy to customize, so we manually create it below.
 
 [[file:imgs/Zumaia-Sopelana_detrend_types_all.pdf]]
 
+***** for d13C
 same but for d13C
 #+begin_src R :results output graphics file :file imgs/detrend_d13C.png :width 800 :height 450
   pl_detrend_d13C <- smooth_all |>
@@ -5202,7 +5207,10 @@ same but for d13C
     filter(detrend_megatype != "detrended") |>
     filter(detrend_megatype != "scaled") |>
     filter(detrend_type %in% c("gam_pred", #"lin_pred_coarse",
-                               "lin_pred_med", "lp_0.025", "value")) |>
+                               "lin_pred_fine",
+                               "lin_pred_med",
+                               "lin_pred_coarse",
+                               "lp_0.025", "value")) |>
     filter(proxy == "d13C") |>
     ## filter(!detrend_type %in% c("lin_scl_rw", "lin_pred_rw")) |>
     ## filter(detrend_type %in% c("lin_pred_coarse", "value")) |>
@@ -5219,7 +5227,7 @@ same but for d13C
     ##                                          "MS" = "MS",
     ##                                          "Lstar" = "L*")),
     ##            switch = "y") +
-    labs(x = "Depth (m)", y = delta^{13}*C~"(\u2030 VPDB)") +
+    labs(x = "Depth (m)", y = expression(delta^{13}*C)) +
     coord_cartesian(xlim = c(183, 0)) +
     scale_x_reverse(breaks = seq(-20, 200, 20),
                     minor_breaks = seq(-10, 200, 10)) +
@@ -5262,6 +5270,7 @@ same but for d13C
 #+RESULTS:
 [[file:imgs/detrend_d13C.png]]
 
+***** for MS
 same for MS
 #+begin_src R :results output graphics file :file imgs/detrend_MS.png :width 800 :height 450
   pl_detrend_MS <- smooth_all |>
@@ -5276,7 +5285,10 @@ same for MS
     filter(detrend_megatype != "detrended") |>
     filter(detrend_megatype != "scaled") |>
     filter(detrend_type %in% c("gam_pred", #"lin_pred_coarse",
-                               "lin_pred_med", "lp_0.025", "value")) |>
+                               "lin_pred_fine",
+                               "lin_pred_med",
+                               "lin_pred_coarse",
+                               "lp_0.025", "value")) |>
     filter(proxy == "MS") |>
     ## filter(!detrend_type %in% c("lin_scl_rw", "lin_pred_rw")) |>
     ## filter(detrend_type %in% c("lin_pred_coarse", "value")) |>
@@ -5331,6 +5343,14 @@ same for MS
 
 #+RESULTS:
 [[file:imgs/detrend_MS.png]]
+
+***** combine them all
+#+begin_src R :results output graphics file :file imgs/depth_detrend.pdf :width 6 :height 5
+  pl_detrend / pl_detrend_MS / pl_detrend_d13C + plot_layout(guides = "collect", axes = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/depth_detrend.pdf]]
 
 **** compare the detrending for the different proxies
 :PROPERTIES:
@@ -9108,7 +9128,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
         ## taner_roll = 1e10, # taner default
         ## taner_roll = 1e3, # for sensitivity
         ## taner_roll = 1e6, # for sensitivity
-        taner_roll = 1e12, # for sensitivity
+        ## taner_roll = 1e8, # for sensitivity
+        taner_roll = 1e100, # for sensitivity
+        ## taner_roll = 1e12, # for sensitivity
         eccentricity_weights = c(s405, s100),
         age_slider = 200,
         kpg_age = 65.9e3,
@@ -9204,7 +9226,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds")
     ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds")
-    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
+    ## write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds")
+    write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds")
   message("current time: ", lubridate::now())
   rm(wrap_age_model) # rm so we can get back the one from the package
   rm(taner_filter) # rm so we can get back the one from the package
@@ -9329,6 +9353,16 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds")
 
 write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
 > current time: 2024-03-27 13:55:22.262323
+> current time: 2024-03-27 14:05:07.991531
+
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds")
+> current time: 2024-03-27 14:09:41.44469
+> current time: 2024-03-27 14:22:57.205202
+
+near-rectangular
+write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds")
+> current time: 2024-03-27 15:46:07.169938
+> current time: 2024-03-27 15:55:53.183246
 
 **** [#B] load cached results
 :PROPERTIES:
@@ -9430,24 +9464,26 @@ write_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds")
 ***** new taner filters
 new runs after changing to a taner filter currently with roll = 1e10.
 #+begin_src R
-    rolling_age_optim <-
-      bind_rows(
-        read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
-      ) |>
-      mutate(window = "taner") |>
-      mutate(detrend_type = as_factor(detrend_type) |>
-               fct_relevel(names(detrend_colours))) |>
-      mutate(comb = as_factor(comb) |>
-               fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
-                             x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
-      mutate(depth_chunk = as_factor(depth_chunk) |>
-               fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
+  rolling_age_optim <-
+    bind_rows(
+      read_rds("out/2024-03-21_rolling_age_optim_all_Lstar_one-type_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-21_rolling_age_optim_all_other-proxies_one-type_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-21_rolling_age_optim_Lstar_scl_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e3.rds") |> mutate(roll = 1e3),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-fine_taner.rds") |> mutate(roll = 1e10),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e6.rds") |> mutate(roll = 1e6),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e12.rds") |> mutate(roll = 1e12),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e8.rds") |> mutate(roll = 1e8),
+      read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_1e100.rds") |> mutate(roll = 1e100),
+    ) |>
+    mutate(window = "taner") |>
+    mutate(detrend_type = as_factor(detrend_type) |>
+             fct_relevel(names(detrend_colours))) |>
+    mutate(comb = as_factor(comb) |>
+             fct_relevel(c("1:0", "1:0.25", "1:0.5", "1:0.75",
+                           x = "1:1", "0.75:1", "0.5:1", "0.25:1", "0:1"))) |>
+    mutate(depth_chunk = as_factor(depth_chunk) |>
+             fct_relevel(c("full record", "depth >= 109.26", "depth < 109.26")))
 #+end_src
 
 #+RESULTS:
@@ -9494,8 +9530,6 @@ new runs after changing to a taner filter currently with roll = 1e10.
 #+end_src
 
 #+RESULTS:
-: filter: no rows removed
-: filter: no rows removed
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -9509,7 +9543,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: filter: removed 93 rows (53%), 82 rows remaining
+: filter: removed 135 rows (62%), 82 rows remaining
 
 **** COMMENT plot improvement after optimization after algorithm revision
 # #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
@@ -9787,7 +9821,8 @@ old
 
   overall_best <- overall_sd |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, detrend_type, comb, sol, window, roll))
+              .by = c(proxy, detrend_type,
+                      comb, sol, window, roll))
 
   overal_best_sol <- overall_best |>
     tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
@@ -9795,8 +9830,8 @@ old
 
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol)`
-: filter: removed 763 rows (1%), 73,792 rows remaining
-: filter: removed 28 rows (57%), 21 rows remaining
+: filter: removed 1,147 rows (1%), 109,420 rows remaining
+: + + filter: removed 49 rows (70%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -10058,12 +10093,14 @@ everything
     ## filter(detrend_type == "lin_scl_med", window == "gaussian") |>
     ## filter(RMSD == min(RMSD), .by = c(sol, proxy)) |> # only the best
     ggplot(aes(x = sol, y = RMSD,
-               colour = proxy
+               ## colour = proxy
+               colour = factor(format(roll, scientific = TRUE)),
                ## colour = detrend_type## , shape = window
                )) +
     ## scale_colour_manual(values = detrend_colours) +
     labs(x = "Astronomical Solution",## , shape = "Bandpass Filter type"
-         colour = "", alpha = ""
+         colour = "roll",
+         alpha = ""
          ) +
     ## facet_grid(cols = vars(proxy)) +
     ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
@@ -10071,13 +10108,13 @@ everything
     ##                               "rectangular" = "square")) +
     ## geom_line(aes(group = paste(detrend_type, proxy, comb## , window
     ##                             )),
-    scale_colour_discrete(guide = "none") +
+    scale_colour_viridis_d() +
     ##           alpha = .1) +
     ## geom_point(alpha = .05) +
     geom_line(aes(group = paste(detrend_type, proxy, window, roll)),
                   alpha = .3) +
-    geom_point(aes(alpha = factor(roll))) +
-    theme(legend.position.inside = c(.2, .25),
+    geom_point() +
+    theme(legend.position.inside = c(.85, .32),
           legend.position = "inside",
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm")) #+
@@ -10094,7 +10131,9 @@ everything
 :CREATED:  [2024-03-27 Wed 08:57]
 :END:
 #+begin_src R :results output graphics file :file imgs/full_RMSD_filter_comparison.png :width 2600 :height 700 :res 300
-  pl_rmsd_detrend_types <- pl_rmsd_taner +
+  pl_rmsd_detrend_types <-
+    pl_rmsd_full +
+    ## pl_rmsd_taner +
     scale_alpha_discrete(guide = "none") +
     aes(shape = "taner", linetype = "taner") +
     labs(shape = "", linetype = "") +
@@ -10370,6 +10409,7 @@ and for MS
 :PROPERTIES:
 :CREATED:  [2024-03-21 Thu 16:14]
 :END:
+don't know why Lstar sopelana is off-rails now
 #+begin_src R :results output graphics file :file imgs/cumulative_rRMSD_all.pdf :width 7 :height 2.5
   overall_sd |>
     tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
@@ -11124,8 +11164,125 @@ https://github.com/AndyBunn/dplR/issues/9
 :CREATED:  [2024-03-27 Wed 11:04]
 :END:
 #+begin_src R
- my_filt_age
+  windows <- tibble::tribble(
+                       ~ window, ~ roll,
+                       ## "gaussian", NA_real_,
+                       ## "rectangular", NA_real_,
+                       "taner", 1e3,
+                       "taner", 1e6,
+                       "taner", 1e8,
+                       "taner", 1e10,
+                       "taner", 1e12,
+                       "taner", 1e100,
+                       ## "taner", 1e1000,
+                     )
+
+  simple <- smooth_ages |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(depth_chunk == "full record") |>
+    filter(proxy == "Lstar") |>
+    filter(site == "Zumaia")
+
+
+  windows <- windows |>
+    mutate(win = map(roll,
+                     \(x) {
+                     simple[, c("age_floating", "value")] |>
+                     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                     astrochron::taner(flow = my_filt_age$flow[[1]], fhigh = my_filt_age$fhigh[[1]],
+                                       roll = x,
+                                       genplot = FALSE, verbose = FALSE,
+                                       output = 2) |>
+                       rename(frequency = V1, amplitude = filter_pos)
+                     })) |>
+    mutate(target = "405 kyr")
+
+  windows <- bind_rows(windows,
+                       windows |>
+    mutate(win = map(roll,
+                     \(x) {
+                     simple[, c("age_floating", "value")] |>
+                     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+                     astrochron::taner(flow = my_filt_age$flow[[2]], fhigh = my_filt_age$fhigh[[2]],
+                                       roll = x,
+                                       genplot = FALSE, verbose = FALSE,
+                                       output = 2) |>
+                       rename(frequency = V1, amplitude = filter_pos)
+                     })) |>
+    mutate(target = "100 kyr")
+    )
+
+
+  gauss <-
+    bind_rows(
+      simple[, c("age_floating", "value")] |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::bandpass(flow = my_filt_age$flow[[1]], fhigh = my_filt_age$fhigh[[1]],
+                           genplot = FALSE, verbose = FALSE,
+                           win = 1, output = 2) |>
+      mutate(window = "gaussian", target = "405 kyr") |>
+      rename(frequency = bpfreq, amplitude = taper),
+      simple[, c("age_floating", "value")] |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::bandpass(flow = my_filt_age$flow[[2]], fhigh = my_filt_age$fhigh[[2]],
+                           genplot = FALSE, verbose = FALSE,
+                           win = 1, output = 2) |>
+      mutate(window = "gaussian", target = "100 kyr") |>
+      rename(frequency = bpfreq, amplitude = taper))
 #+end_src
+
+#+RESULTS:
+
+
+#+begin_src R :results output graphics file :file imgs/filter_windows.pdf :width 5 :height 1.7
+  pl_windows <- windows |>
+    unnest(win) |>
+    ggplot(aes(x = frequency, y = amplitude,
+               ## colour = window,
+               fill = window)) +
+    scale_fill_manual(values = c("rectangular" = "gray", "gaussian" = "pink", "taner" = "blue")) +
+     geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
+               colour = "darkgray",
+               data = my_filt_age[2, ] |> mutate(window = "rectangular"),
+               alpha = .2) +
+     geom_rect(aes(x = NULL, y = NULL, xmin = flow, xmax = fhigh, ymin = 0, ymax = 1),
+               colour = "darkgray",
+               data = my_filt_age[1, ] |> mutate(window = "rectangular"),
+               alpha = .2) +
+    ggnewscale::new_scale_color() +
+    scale_colour_viridis_d("", guide = "none") +
+    geom_area(aes(colour = factor(format(roll, scientific = TRUE)),
+                  group = paste(roll, window, target)),
+               position = "identity",
+               alpha = .05) +
+    ggnewscale::new_scale_color() +
+    geom_area(aes(group = paste(window, target)),
+              position = "identity",
+              colour = "darkred",
+              data = gauss) +
+     coord_cartesian(xlim = c(0, 0.015),ylim = c(0, 1.2)) +
+    scale_y_continuous(breaks = c(0, 1)) +
+    labs(x = "Frequency (cycles/kyr)", y = "", colour = "Filter", fill = "Filter") +
+    annotate("text", x = 1 / c(405, 110), y = 1,
+              label = c("405", "110"), vjust = -0.5)
+  pl_windows
+#+end_src
+
+#+RESULTS:
+[[file:imgs/filter_windows.pdf]]
+
+**** combine taner filter and RMSD scores
+:PROPERTIES:
+:CREATED:  [2024-03-27 Wed 15:40]
+:END:
+#+begin_src R :results output graphics file :file imgs/filter_windows.pdf :width 5 :height 3
+  (pl_windows /
+  pl_rmsd_taner) + plot_layout(guides = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/filter_windows.pdf]]
+
 **** COMMENT eha after applying age model
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 14:01]
