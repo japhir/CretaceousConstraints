@@ -140,8 +140,9 @@ wrap_age_model <- function(data,
   # end input validation
 
   # convert input frequency to tibble with desired frequency ranges
-  if (bandpass_window == 1) {# this is parametrized at 2 sigma from the mean
-    frequency_fraction <- 0.5 * frequency_fraction
+  if (bandpass_window == 1) {# experimentally found out that this
+    # should make lower and upper boundaries correspond to -\sigma and +\sigma
+    frequency_fraction <- 3 * frequency_fraction
   }
   my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
                                 p = target_periods) |>
