@@ -296,8 +296,8 @@ We think that the Zumaia and Sopelana field sections show the clearest orbitally
 \ijk{TODO:\ something on where Zumaia was first described? I think that's in \cite{Pujalte1993}}
 
 \ijk{TODO:\ Site descriptions for Zumaia and Sopelana.}
-We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements~\cite{Batenburg2012,Batenburg2014}.
-We performed our analysis for the proxies \gls{L*}, \gls{d13C}, and \gls{MS}, but  focus on \gls{L*} in the main manuscript.
+\ijk{TODO:\ talk about small turbidites}
+We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements from \citeA{Batenburg2012,Batenburg2014}, but  focus on \gls{L*} in the main manuscript.
 The \gls{d13C} proxy is more sensitive to lower frequency orbital forcing~\cite{Zeebe2017,Kocken2019loscar} and shows long eccentricity forcing clearly but the short eccentricity is less clearly expressed.
 For \gls{MS} it is unclear how it relates to the climate forcing, %Richard doesn't trust/understand it.
 while \gls{L*} likely corresponds to changes in the lithology that have been driven by carbonate--clay alternations, which are in turn driven by changes in wetness and climate.
@@ -396,7 +396,7 @@ In order to test which astronomical solution provides the best match to the data
 we adopt and extend the approach of \citeA{ZeebeLourens2019,ZeebeLourens2022EPSL}.
 The detrended data (\cref{sec:detrend}) is combined with the initial age model (\cref{sec:agemodel}) to arrive at the time domain.
 After linearly interpolating to a timestep that is a multiple of the timestep of the astronomical solution, we filter targeting the long and short eccentricity cycles.
-We use a taner filter with a roll of \num{e12} targeting periods of \qtylist{405;110}{\kiloyear} (frequency \qty{\pm30}{\percent}).
+We use a taner filter with a roll of \num{e10} targeting periods of \qtylist{405;110}{\kiloyear} (frequency \qty{\pm30}{\percent}).
 The filtered signals are added and scaled to construct an artificial ``eccentricity'' curve.
 The scaled astronomical solutions are then interpolated/subset to the same timesteps as the data, and the \gls{RMSD} is calculated:
 \ijk{do you think this is needed or leave it out?}
@@ -539,7 +539,7 @@ The same goes for Ma405\(_{10}\) at \qty{69.7}{\millionyearago}, which does not 
 %TODO: update appendix overview/comparison figure
 % nitty-gritty:
 Different ways of detrending of the proxy records to subtract non-cyclical patterns (\cref{fig:detrend}) lead to slightly different results.
-Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \(10^{12}\) or a smoother window (roll of \(10^{3}\)) results in different ``best'' solutions.
+Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \num{e10} or a smoother window (roll of \(10^{3}\)) results in different ``best'' solutions.
 \rez{IMPORTANT: double check gauss. for gauss with $\pm 1 \sigma$ about equal to rectangular window, results should be very similar.}
 \ijk{I don't know how gauss window is parameterized, but seems like boundaries are at extremes (visually lower/higher than 95\% CI. That's why I describe this as effectively shrinking the window. I also tried in Analyseries but there it's even more obscure how they do it.}
 \ijk{We talked about this and it was indeed how the gaussian window is parameterized in astrochron. Switched to taner filters.}
@@ -740,42 +740,17 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
     }
 \end{figure}
 
+
 % TODO: remove some of these?
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=.9\linewidth]{Zumaia-Sopelana_detrend_types_all.pdf}
+  \includegraphics[width=.9\linewidth]{depth_detrend.png}
   \caption{\label{fig:detrend}
-    \textbf{Zumaia and Sopelana trend removal strategies.}
-    The raw data (gray) and the lines that were fit through (coloured lines), which were subtracted from the record.
+    \textbf{Zumaia (purple) and Sopelana (yellow) trend removal strategies.}
+    The raw data and the lines that were fit (other colours), which were subtracted from the record prior to filtering.
     The piecewise linear detrending that we use in the main manuscript corresponds to \texttt{lin\_pred\_med}.
   }
 \end{figure}
-
-\begin{figure}[htb]
-  \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
-  \caption{\label{fig:full-RMSD-tie}
-    \textbf{Illustration of how RMSD scores change after tiepoint depth optimization.}
-    This shows how the \gls{RMSD} scores change for the full
-    %piecewize linearly detrended
-    Zumaia \gls{L*} record
-    % where the long and short eccentricity components where filtered with a taner filter
-    when we allow tiepoint depths identified in the field to vary by \qty{\pm1.6}{\metre}.
-    }
-\end{figure}
-
-% TODO: make separation between detrend_types and filtering strategy!
-% \begin{figure}[htb]
-%   \centering \includegraphics[width=\textwidth]{RMSD_detrend_types.png}
-%   \caption{\label{fig:full-RMSD-detrend}
-%     \textbf{Sensitivity analysis for various ways of detrending the data and filtering the short and long eccentricity components.}
-%     The rectangular and gaussian filters use the same frequencies as upper and lower filter limits,
-%     but the parametrization of the gaussian window effectively narrows the bandpass filter.
-%     This is why we also tried several taner filters with changing parameters to get the best overall RMSD scores (not shown)
-%     before settling on a roll of \(10^{12}\).
-%     % Extended version of \cref{fig:full-RMSD-all}.
-%     }
-% \end{figure}
-
 
 \begin{figure}[htb]
   \centering \includegraphics[width=\textwidth]{sol_SD_detrend.pdf}
@@ -785,10 +760,68 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
     compares to the piecewize linear detrending strategy used in the main manuscript.
     Both use the same taner filter to extract long and short eccentricity components.
     The large changes in lithology result in a very large amplitude filter in the simple detrending approach.
-    For most solutions, this simply results in a worse fit, but for ZB20a it makes our algorithm shift the long-eccentricity tiepoint depths enough that it gets offset by about one short-eccentricty cycle, resulting in an even worse fit.
+    For most solutions, this simply results in a worse fit, but for ZB20a and La10b it makes our algorithm shift the long-eccentricity tiepoint depths enough that it gets offset by about one short-eccentricty cycle, resulting in an even worse fit.
     }
 \end{figure}
 
+
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
+  \caption{\label{fig:full-RMSD-tie}
+    \textbf{Illustration of how RMSD scores change after tie-point depth optimization.}
+    The change in \gls{RMSD} scores for the
+    %piecewize linearly detrended
+    Zumaia (not the Zumaia/Sopelana composite!) proxy records (column panels)
+    % where the long and short eccentricity components where filtered with a taner filter
+    when we allow tie-point depths identified in the field to vary by \qty{\pm1.6}{\metre}.
+    This uses the taner filter from the main text on the piecewise linearly detrended record.
+    }
+\end{figure}
+
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{full_RMSD_detrend_comparison.png}
+  \caption{\label{fig:full-RMSD-detrend}
+    \textbf{Sensitivity analysis of various ways of detrending the data.}
+    This uses optimized tie-point depths and limits the results to a rectangular filter.
+    We show main-paper taner filters for \texttt{lin\_scl\_med} with different colours for each proxy for context.
+    Note that the \texttt{lin\_scl\_fine} for the taner filter is very similar to the one for \texttt{lin\_scl\_med}.
+    }
+\end{figure}
+
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{full_RMSD_filter_comparison.png}
+  \caption{\label{fig:full-RMSD-filter}
+    \textbf{Sensitivity analysis of different types of bandpass filtering.}
+    %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
+    This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization.
+    The taner filter has the main-text roll parameter of \num{e10}.
+    \ijk{TODO: I've figured out the parametrization, should be able to fix this so it's less confusing.}
+    See \cref{fig:filter-windows} for illustrations of filter windows and alternative roll parameters.
+    }
+\end{figure}
+
+\begin{figure}[htb]
+  \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
+  \caption{\label{fig:filter-windows}
+    \textbf{Sensitivity analysis for taner filter roll parameters.}
+    The rectangular (gray), gaussian (pink), and taner filters (blue fill)
+    use the same filter boundary frequencies (\(\frac{1}{405}\) and \(\frac{1}{110}\)~\si[per-mode=power]{\per\kiloyear} \qty{\pm25}{\percent}).
+    Note that the way \texttt{astrochron} parametrizes the gaussian window width (narrower gaussian, better RMSD scores) is not directly comparable to the taner and rectangular filters.
+    Therefore, we also show a reparametrized filter, where the upper and lower boundaries correspond to \(-\sigma\) and \(+\sigma\).
+    This was determined by experimentally multiplying the fraction of the target frequency added/subtracted for the lower and upper bounds
+    until we found that a value of 3 matched a true normal distribution best.
+    Different roll parameters for the taner filters are shown,
+    from the pointy \num{e3} (narrowest peak, widest shoulders) moving outwards from the peak to
+    \num{e6}, \num{e8}, \num{e10}, \num{e12}, and \num{e100} (approaching the rectangular filter).
+    We show MTM-spectral peaks of the astronomical solutions analyzed in this study in black for reference.
+    The bottom panel contrasts \gls{RMSD} scores for the \texttt{lin\_scl\_med} detrended \gls{L*} data with tie-point depth optimization.
+    }
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                   some spectral analysis figures                       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % \begin{figure}[htb]
 %   \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm_raw.pdf}
@@ -843,7 +876,6 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
 % \end{figure}
 %
 %
-
 % \begin{figure}[htb]
 %   \centering
 %   \includegraphics[width=1.2\textwidth]{Zumaia_MS_1-1_solutions_simple_with_log.pdf}
@@ -857,6 +889,7 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
 %   \caption{\label{fig:rolling-age-d13C}
 %     Same as \cref{fig:rolling-depth-age} but for \gls{d13C}.}
 % \end{figure}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
