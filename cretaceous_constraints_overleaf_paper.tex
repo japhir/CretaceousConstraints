@@ -297,9 +297,11 @@ We think that the Zumaia and Sopelana field sections show the clearest orbitally
 
 \ijk{TODO:\ Site descriptions for Zumaia and Sopelana.}
 \ijk{TODO:\ talk about small turbidites}
+
 We use proxy records \gls{MS}, \gls{d13C}, and \gls{L*} measurements from \citeA{Batenburg2012,Batenburg2014}, but  focus on \gls{L*} in the main manuscript.
 The \gls{d13C} proxy is more sensitive to lower frequency orbital forcing~\cite{Zeebe2017,Kocken2019loscar} and shows long eccentricity forcing clearly but the short eccentricity is less clearly expressed.
 For \gls{MS} it is unclear how it relates to the climate forcing, %Richard doesn't trust/understand it.
+\ijk{TODO: find refs to support this}
 while \gls{L*} likely corresponds to changes in the lithology that have been driven by carbonate--clay alternations, which are in turn driven by changes in wetness and climate.
 We argue that the color reflectance record most directly reflects the orbital forcing.
 
@@ -417,10 +419,6 @@ This analysis is performed separately for the Zumaia and Sopelana sites, so that
 
 We also calculate a square root of the cumulative sum of the squared differences starting at the \gls{KT}-boundary and moving to older data points.
 This allows us to visualize where the time domain the data differs most from the astronomical solutions.
-\begin{equation}\label{eqn:cumsum}
-    \text{RCSD}_{k} = \sqrt{\sum_{i=1}^{k}(e_{i} - f_{i})^{2}}
-\end{equation}
-\ijk{@REZ: I don't know if this makes any sense mathematically, I wanted something like an evolutive RMSD and this was the simplest I came up with at the time.}
 
 \section{Results}\label{sec:results}
 
@@ -459,26 +457,12 @@ The combined \gls{L*} record of the Zumaia and Sopelana section gives the best \
 % La10b (\num{1.06}) and ZB18a (\num{1.06}) (\cref{fig:full-RMSD}).???
 
 % FIGURE 2
-\setcounter{figure}{2000}
 \begin{figure}[htb]
     \centering
     \includegraphics[width=0.6\textwidth]{full_RMSD_scores_all.pdf}
     \caption{\label{fig:full-RMSD-all}
         \gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.
         % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}). % not needed?
-    }
-\end{figure}
-
-% FIGURE 2 alternative?
-\setcounter{figure}{2001}
-\begin{figure}[htb]
-    \centering
-    \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
-    \caption{\label{fig:full-RMSD-boot}
-        \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
-        Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
-        % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
-        \ijk{@REZ: sorry I did one more analysis... A bootstrapped RMSD calculation to see what the uncertainty on the RMSD score is/how significantly they differ between solutions.}
     }
 \end{figure}
 
@@ -492,24 +476,14 @@ The older interval shows a better match with the La10c (\num{0.981}) and ZB20b (
 The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a (\num{1.105}), and ZB20b (\num{1.116}), but results show similar \gls{RMSD} scores.
 
 % FIGURE 3
-\setcounter{figure}{3000}
 \begin{figure}[htb]
   \centering
-  \includegraphics[width=0.7\textwidth]{cumulative_rRMSD.pdf}
-  \caption{\label{fig:cum-RMSD}
-    \textbf{Square root of the cumulative sum of the squared differences of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{L*}}.
-    \ijk{@REZ: I don't know if this makes any sense mathematically, I wanted something like an evolutive RMSD and this was the simplest I came up with at the time.
-    It's \(\text{sqrt}(\text{cumsum}((e - f)^2)\), see \cref{eqn:cumsum}.}
-}
-\end{figure}
-
-% FIGURE 3 alternative
-\setcounter{figure}{3001}
-\begin{figure}[htb]
-  \centering
-  \includegraphics[width=\textwidth]{cumulative_rRMSD_all.pdf}
+  \includegraphics[width=0.6\textwidth]{cumulative_rRMSD_all.png}
   \caption{\label{fig:cum-RMSD-all}
-    \textbf{Cumulative \gls{RMSD} scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{MS}, \gls{d13C}, and \gls{L*}}.
+    \textbf{Square root cumulative sum squared difference scores of different astronomical solutions versus the Zumaia and Sopelana Maastrichtian records for \gls{MS}, \gls{d13C}, and \gls{L*}}.
+    \[
+    \text{RCSD}_{k} = \sqrt{\sum_{i=1}^{k}(e_{i} - f_{i})^{2}}
+    \]
 }
 \end{figure}
 
@@ -748,7 +722,8 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
   \caption{\label{fig:detrend}
     \textbf{Zumaia (purple) and Sopelana (yellow) trend removal strategies.}
     The raw data and the lines that were fit (other colours), which were subtracted from the record prior to filtering.
-    The piecewise linear detrending that we use in the main manuscript corresponds to \texttt{lin\_pred\_med}.
+    The piecewise linear fit that we subtract in the main manuscript corresponds to \texttt{lin\_pred\_med}.
+    % The detrended resultant record is callend \texttt{lin\_scl\_med}.
   }
 \end{figure}
 
@@ -764,6 +739,17 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
     }
 \end{figure}
 
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
+    \caption{\label{fig:full-RMSD-boot}
+        \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
+        Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
+        % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
+        This illustrates that while differences between astronomical solutions are not large, they may be significant.
+    }
+\end{figure}
 
 \begin{figure}[htb]
   \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
@@ -795,7 +781,8 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
     %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
     This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization.
     The taner filter has the main-text roll parameter of \num{e10}.
-    \ijk{TODO: I've figured out the parametrization, should be able to fix this so it's less confusing.}
+    Note that we have reparametrized the gaussian filter so that the upper and lower boundaries correspond to \(\pm\sigma\).
+    % We also show the original for \gls{L*} but this is effectively a narrower filter range.
     See \cref{fig:filter-windows} for illustrations of filter windows and alternative roll parameters.
     }
 \end{figure}
@@ -807,9 +794,8 @@ We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:ro
     The rectangular (gray), gaussian (pink), and taner filters (blue fill)
     use the same filter boundary frequencies (\(\frac{1}{405}\) and \(\frac{1}{110}\)~\si[per-mode=power]{\per\kiloyear} \qty{\pm25}{\percent}).
     Note that the way \texttt{astrochron} parametrizes the gaussian window width (narrower gaussian, better RMSD scores) is not directly comparable to the taner and rectangular filters.
-    Therefore, we also show a reparametrized filter, where the upper and lower boundaries correspond to \(-\sigma\) and \(+\sigma\).
-    This was determined by experimentally multiplying the fraction of the target frequency added/subtracted for the lower and upper bounds
-    until we found that a value of 3 matched a true normal distribution best.
+    Therefore, we also show a reparametrized gaussian filter, where the upper and lower boundaries correspond to \(\pm\sigma\).
+    % We experimentally found that multiplying the fraction of the target frequency added/subtracted to determine the lower and upper bounds by three matched a true normal distribution best.
     Different roll parameters for the taner filters are shown,
     from the pointy \num{e3} (narrowest peak, widest shoulders) moving outwards from the peak to
     \num{e6}, \num{e8}, \num{e10}, \num{e12}, and \num{e100} (approaching the rectangular filter).
