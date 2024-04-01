@@ -5,6 +5,7 @@
 #+startup: overview
 #+SELECT_TAGS: export
 #+EXCLUDE_TAGS: noexport nolatex
+#+visibility: folded
 
 \newpage
 * quick links to most relevant sections for Richard
@@ -4018,7 +4019,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
 ** [#A] Zumaia and Sopelana
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:37]
-:VISIBILITY: content
+:VISIBILITY: children
 :CUSTOM_ID: sec:Zumaia-Sopelana
 :END:
 [cite:@Batenburg2012]
@@ -8681,6 +8682,7 @@ This slides the whole time series along the time axis and checks the RMSD w/ res
 *** overall variable tie-points
 :PROPERTIES:
 :CREATED:  [2023-12-08 Fri 10:07]
+:VISIBILITY: all
 :END:
 Ahhh after clarification from Richard, what he recommends in stead is:
 1. apply the normal 405 kyr minima tiepoint age model from the field
