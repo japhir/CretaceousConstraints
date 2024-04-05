@@ -5271,6 +5271,62 @@ this lacks the sharp edges that I so desperately desire
                           ) |>
     write_rds("out/bs_18_smooth.rds")
 #+end_src
+
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 19
+                          ) |>
+    write_rds("out/bs_19_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 20
+                          ) |>
+    write_rds("out/bs_20_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 40
+                          ) |>
+    write_rds("out/bs_40_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 30
+                          ) |>
+    write_rds("out/bs_30_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 100
+                          ) |>
+    write_rds("out/bs_100_smooth.rds")
+#+end_src
+
+should be somewhere between 30 and 40?
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 35
+                          ) |>
+    write_rds("out/bs_35_smooth.rds")
+#+end_src
 ***** fit bspline for Sopelana
 let's do Sopelana separately
 #+begin_src R :eval never
@@ -5304,22 +5360,53 @@ sopelana fewer knots
                           ) |>
     write_rds("out/bs_2_S.rds")
 #+end_src
+
+sopelana smooth
+#+begin_src R :eval never
+  bs_S <- bspline::fitsmbsp(x = wide_S$depth,
+                          y = wide_S[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 2
+                          ) |>
+    write_rds("out/bs_2_smooth_S.rds")
+#+end_src
+
+
+#+begin_src R :eval never
+  bs_S <- bspline::fitsmbsp(x = wide_S$depth,
+                          y = wide_S[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 3
+                          ) |>
+    write_rds("out/bs_3_smooth_S.rds")
+#+end_src
 ***** read in results
 #+begin_src R
   ## bs <- read_rds("out/bs.rds") # bs_40
   ## bs <- read_rds("out/bs_25.rds")
   ## bs <- read_rds("out/bs_20.rds")
   ## bs <- read_rds("out/bs_20_Z.rds") # Zumaia only
-  bs <- read_rds("out/bs_17.rds") # Zumaia only
+  ## bs <- read_rds("out/bs_17.rds") # Zumaia only
   ## bs <- read_rds("out/bs_23.rds") # Zumaia only
   ## bs <- read_rds("out/bs_15.rds")
-  bs <- read_rds("out/bs_12.rds") # Zumaia only
+  ## bs <- read_rds("out/bs_12.rds") # Zumaia only
+  bs <- read_rds("out/bs_9.rds")
+  ## bs <- read_rds("out/bs_9_smooth.rds")
   ## bs <- read_rds("out/bs_10_smooth.rds")
+  ## bs <- read_rds("out/bs_12_smooth.rds")
+  ## bs <- read_rds("out/bs_17_smooth.rds")
+  ## bs <- read_rds("out/bs_20_smooth.rds")
+  ## bs <- read_rds("out/bs_30_smooth.rds")
   ## bs <- read_rds("out/bs_40_smooth.rds")
+  ## bs <- read_rds("out/bs_100_smooth.rds") # obvious overfit
   bs_S <- read_rds("out/bs_2_S.rds")
+  ## bs_S <- read_rds("out/bs_2_smooth_S.rds")
+  ## bs_S <- read_rds("out/bs_3_smooth_S.rds")
   ## bs <- read_rds("out/bs_20_S.rds") # Sopelana only
   ## bs_S <- read_rds("out/bs_20_S.rds") # actually nki = 1
 #+end_src
+
+#+RESULTS:
 
 *****  extract the knots
 #+begin_src R
@@ -5339,7 +5426,7 @@ sopelana fewer knots
     filter(proxy == "d13C") |>
     pivot_wider(names_from = "proxy")
 
-  d13C_knots <- the_knots |>
+  d13C_knots <- the_knots[-1, ] |>
     filter(site == "Zumaia") |>
     filter(depth <= max(dat$depth))
 
@@ -5422,30 +5509,56 @@ this could be simplified?
 #+RESULTS:
 [[file:imgs/bspline.png]]
 
-***** plot detrended
-#+begin_src R :results output graphics file :file imgs/bspline_scl.png :width 800
+***** filtering residuals
+:PROPERTIES:
+:CREATED:  [2024-04-04 Thu 15:43]
+:END:
+#+begin_src R
   filts <- bat_filters[bat_filters$proxy == "Lstar" &
-                       bat_filters$depth_chunk == "full record" &
+                       bat_filters$depth_chunk == "depth < 109.26" &
                        bat_filters$target != "prec", ]
 
+  bps <- pred |>
+    ## pivot_longer(cols = c(MS, Lstar, d13C), names_to = "proxy", values_to = "raw") |>
+    ## pivot_longer(cols = starts_with("pred_"), names_to = "pred_proxy", values_to = "fit") |>
+    select(site, depth, ends_with("_scl")) |>
+    pivot_longer(cols = ends_with("_scl"), names_to = "proxy_scl", values_to = "scl") |>
+    separate(proxy_scl, into = c("proxy", "xxx")) |>
+    select(-xxx) |>
+    filter(!is.na(scl)) |>
+    nested_taner_filter(frequencies = filts,
+                        x = depth,
+                        y = scl,
+                        nest = c("site", "proxy"),
+                        roll = 1e10,
+                        genplot = FALSE, verbose = FALSE)
+#+end_src
+
+#+RESULTS:
+
+***** plot detrended
+#+begin_src R :results output graphics file :file imgs/bspline_scl.png :width 800
   (
     pred |>
     filter(!is.na(d13C)) |>
     ggplot(aes(x = depth, y = d13C_scl, group = site)) +
     coord_cartesian(xlim = range(the_knots$depth)) +
-    geom_line(alpha=.3)
+    geom_line(alpha=.3) +
+    geom_line(aes(y = filter + 2 * as.integer(as.factor(target)), group = paste(site, target)), data = bps |> filter(proxy == "d13C"))
   ) / (
   pred |>
     ggplot(aes(x = depth, y = Lstar_scl, group = site)) +
     coord_cartesian(xlim = range(the_knots$depth)) +
-  geom_line(alpha=.3) +
-  geom_line(aes(group = "x"), data = \(x) x |>
-                                          nested_taner_filter(frequencies = filts, x = depth, y = Lstar_scl, nest = "site", roll = 1e10))
+    geom_line(alpha=.3)  +
+    geom_line(aes(y = filter + 2 * as.integer(as.factor(target)), group = paste(site, target)), data = bps |> filter(proxy == "Lstar")) +
+    geom_vline(xintercept = 116)
   ) / (
    pred |>
     ggplot(aes(x = depth, y = MS_scl, group = site)) +
     coord_cartesian(xlim = range(the_knots$depth)) +
-    geom_line(alpha=.3)
+    geom_line(alpha=.3) +
+    geom_line(aes(y = filter + 2 * as.integer(as.factor(target)), group = paste(site, target)), data = bps |> filter(proxy == "MS")) +
+    geom_vline(xintercept = 116)
   ) + plot_layout(axes = "collect")
 #+end_src
 

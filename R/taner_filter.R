@@ -47,7 +47,9 @@ nested_taner_filter <- function(data, frequencies, x, y, nest, ...) {
                \(d) d |>
                     taner_filter(frequencies = frequencies,
                                     x = {{x}}, y = {{y}},
-                                    ...))) |>
+                                 ...) |>
+                      select(-nest) # otherwise it'll get duplicated
+               )) |>
     tidyr::unnest("bp") |>
     dplyr::select(-"data")
 }
