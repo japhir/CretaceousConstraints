@@ -472,7 +472,9 @@ This allows us to visualize where the time domain the data differs most from the
 
 % first talk about how the matched filtered records look!
 The matched eccentricity construct shows generally good compatibility with the different astronomical solutions (\cref{fig:rolling-depth-age}).
-Especially cycle \(\text{Ma}_{405}8\) shows a very large amplitude in the short eccentricity filter, which relates to the darker interval at around \qty{117}{\metre}.
+Especially bundle \(\text{Ma}_{405}8\) shows a very large amplitude in the short eccentricity filter, which relates to the darker interval at around \qty{117}{\metre}.
+% this weird thing is soooo influential! I tried filtering it out
+
 
 % then describe simple "what is the best RMSD-scoring solution?"
 \gls{RMSD}-scores are very similar between the different astronomical solutions.
@@ -582,12 +584,30 @@ This study aims to find out which, if any, astronomical solutions best match the
 
 The youngest interval for Zumaia shows a slight preference for solutions La10b, ZB20a, and ZB20b (\cref{fig:cum-RMSD}).
 For the deeper/older part of the Zumaia record, only La10c (and to a lesser extent La10b) and ZB20b have good scores because ZB20a does not have a very long eccentricity node at Ma405\(_{8}\) (\appr\qty{68.9}{\millionyearago}), whereas the record clearly does.
+The record shows an exceptional peak within this bundle though.
+
+% also observe a high amplitude of the short-eccentricity cycle in Ma\(_{405}8\) in ODP Site 1262 and to a lesser extent in 1209.
+Contrast to: Zumaia, ODP 1262, and 1267 Ma\(_{405}-1\) and Ma\(_{405}-2\)~\cite{Westerhold2008} figure 4.
+% this is all Husson2011:
+525A gray level bundle 1 (fig 4)
+1267B MS 1--6.5 (fig 4) but note that they did not use the splice table from~\cite{Westerhold2008} to convert from MBSF to RMCD.
+762C bundles 1 to 5.5 (fig 4)
+525A gray level smoothed 6--9 (fig 3) hard to tell...
+762C gray level smoothed bundles 8 to 16 (fig 3) indicates potential hiatus within this bundle but also high change
+1258A MS Ma405-8--14ish (fig 3) no recovery in 10
+of~\citeA{Husson2011}.
+
+Can we look at multiple sites?
+
+
 Solutions La10b and La10c showed a poorer match already in the late Cretaceous, where they did not show a very long eccentricity node at around \qty{61}{\millionyearago} whereas the Walvis Ridge data did \cite{ZeebeLourens2022EPSL}.
 Then as we move to the older section the Sopelana data results in a best score for ZB20a because ZB20b has a very long eccentricity node at Ma405\(_{10}\) (\appr\qty{69.7}{\millionyearago}), whereas the amplitude of the record is large there.
 Therefore, we prefer the ZB20b solution up to \appr\qty{69.2}{\millionyearago}.
 For studies working with data older than this we must conclude that the data do not support any of the currently available solutions that are also consistent with data from the late Cretaceous.
 
 We suggest that future studies generate new astronomical solutions with similar initial settings to the ZB20b solution and, using appropriate parameter variations, attempt to reproduce the patterns in the \gls{L*} record of the Sopelana site.
+
+
 
 
 
