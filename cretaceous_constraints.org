@@ -4956,7 +4956,8 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
 :PROPERTIES:
 :CREATED:  [2024-03-24 Sun 21:42]
 :END:
-#+begin_src R
+***** d13C + Lstar + MS ~ depth
+#+begin_src R :results output graphics file :file imgs/mars_full.png :width 800
   # if we match all proxies, remove quite a lot of NA becaues of d13C
   mars <- comp |>
      ## filter(proxy == "Lstar") |>
@@ -4996,20 +4997,34 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     xlim(0, 180) +
     geom_line() +
     geom_point() +
-    geom_line(aes(y = pred_d13C), colour = "red"))
+   geom_line(aes(y = pred_d13C), colour = "red")) +
+    plot_layout(axes = "collect")
+#+end_src
 
+#+RESULTS:
+[[file:imgs/mars_full.png]]
 
+***** Lstar + MS ~ depth
+#+begin_src R :results output graphics file :file imgs/mars.png :width 800
   # only MS and Lstar
   mars <- comp |>
     filter(proxy != "d13C") |>
     pivot_wider(names_from = proxy) |>
     filter(!is.na(MS), !is.na(Lstar)) |>
-    earth::earth(Lstar + MS ~ depth,
+    earth::earth(Lstar + MS ~ depth + site, # note site binning here!
+                 Scale.y = TRUE,
+                 degree = 5,
+                 ## nfold = 15, ncross = 5,
                  data = _)
 
   plot(mars, nresponse = 2)
-  summary(mars)
+  ## summary(mars)
+#+end_src
 
+#+RESULTS:
+[[file:imgs/mars.png]]
+
+#+begin_src R :results output graphics file :file imgs/mars_fit.png :width 800
   pred_raw <- predict(mars) |>
     as_tibble() |>
     rename(pred_Lstar = Lstar, pred_MS = MS)
@@ -5024,64 +5039,519 @@ This is still a bit iffy, not sure if it is the best approach for detrending\dot
     xlim(0, 180) +
     geom_point(colour = "gray", data = comp |> pivot_wider(names_from = proxy)) +
     geom_line() +
-    geom_point() +
-    geom_line(aes(y = pred_Lstar), colour = "red")) /
+    geom_line(aes(y = pred_Lstar, group = site), colour = "red")) /
   (pred |>
     ggplot(aes(x = depth, y = MS)) +
     xlim(0, 180) +
     geom_point(colour = "gray", data = comp |> pivot_wider(names_from = proxy)) +
     geom_line() +
-    geom_point() +
-    geom_line(aes(y = pred_MS), colour = "red"))
+    geom_line(aes(y = pred_MS, group = site), colour = "red")) +
+    plot_layout(axes = "collect")
 #+end_src
+
+#+RESULTS:
+[[file:imgs/mars_fit.png]]
+
+**** CANC bayesian MARS - bass
+CLOSED: [2024-04-03 Wed 16:39]
+:PROPERTIES:
+:CREATED:  [2024-04-03 Wed 16:30]
+:END:
+#+begin_src R
+  wide <- comp |>
+    filter(proxy != "d13C") |>
+    pivot_wider(names_from = proxy) |>
+    filter(!is.na(MS), !is.na(Lstar))
+
+  bass <- BASS::bass(xx = wide$depth, y = wide[, c("Lstar", "MS")])
+#+end_src
+
+#+RESULTS:
+: Error in BASS::bass(xx = wide$depth, y = wide[, c("Lstar", "MS")]) :
+:   missing xx.func
 
 **** bspline
 :PROPERTIES:
 :CREATED:  [2024-03-24 Sun 22:37]
 :END:
+***** prep data
 #+begin_src R
   wide <- comp |>
      ## filter(proxy == "Lstar") |>
+    filter(site == "Zumaia") |>
     pivot_wider(names_from = proxy) |>
     tidylog::filter(## !is.na(d13C),
                !is.na(MS), !is.na(Lstar)) |>
     arrange(depth) |>
     select(-comment,
            -d13C)
+#+end_src
 
+#+RESULTS:
+: filter: removed 29 rows (2%), 1,359 rows remaining
+
+separate for sopelana
+#+begin_src R
+  wide_S <- comp |>
+     ## filter(proxy == "Lstar") |>
+    filter(site == "Sopelana") |>
+    pivot_wider(names_from = proxy) |>
+    tidylog::filter(## !is.na(d13C),
+               !is.na(MS), !is.na(Lstar)) |>
+    arrange(depth) |>
+    select(-comment)
+#+end_src
+
+#+RESULTS:
+: filter: no rows removed
+
+***** fit bspline for Zumaia
+this was pretty slow!
+#+begin_src R :eval never
+  # NOTE: THIS IS STILL COMBINED
   bs <- bspline::fitsmbsp(x = wide$depth,
                           y = wide[c(## "d13C",
                             "Lstar", "MS")],
+                          n = 1,
+                          nki = 40
                           )
+  write_rds(bs, file = "out/bs.rds")
+#+end_src
 
-  pred <- wide |>
+another coarser one, also slow
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 25
+                          ) |>
+    write_rds("out/bs_25.rds")
+#+end_src
+
+coarser still: too coarse, jumps are now / in stead of _|-
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 15
+                          ) |>
+    write_rds("out/bs_15.rds")
+#+end_src
+
+less coarse
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 20
+                          ) |>
+    write_rds("out/bs_20_Z.rds")
+#+end_src
+
+slightly coarser
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 17
+                          ) |>
+    write_rds("out/bs_17.rds")
+#+end_src
+
+maybe a little finer?
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 23
+                          ) |>
+    write_rds("out/bs_23.rds")
+#+end_src
+
+almost there?
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 24
+                          ) |>
+    write_rds("out/bs_24.rds")
+#+end_src
+
+very coarse, based on what I counted
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 12
+                          ) |>
+    write_rds("out/bs_12.rds")
+#+end_src
+
+even courser, but this misses the sharp jump
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 8
+                          ) |>
+    write_rds("out/bs_8.rds")
+#+end_src
+
+one more to put the kink back in?
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 9
+                          ) |>
+    write_rds("out/bs_9.rds")
+#+end_src
+
+
+a smooth one?
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 9
+                          ) |>
+    write_rds("out/bs_9_smooth.rds")
+#+end_src
+
+this lacks the sharp edges that I so desperately desire
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 11
+                          ) |>
+    write_rds("out/bs_11_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 12
+                          ) |>
+    write_rds("out/bs_12_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 15
+                          ) |>
+    write_rds("out/bs_15_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 16
+                          ) |>
+    write_rds("out/bs_16_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 17
+                          ) |>
+    write_rds("out/bs_17_smooth.rds")
+#+end_src
+
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          nki = 18
+                          ) |>
+    write_rds("out/bs_18_smooth.rds")
+#+end_src
+***** fit bspline for Sopelana
+let's do Sopelana separately
+#+begin_src R :eval never
+  bs <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 20
+                          ) |>
+    write_rds("out/bs_20_S.rds")
+#+end_src
+
+fewer knots for Sopelana
+#+begin_src R :eval never
+  bs_S <- bspline::fitsmbsp(x = wide$depth,
+                          y = wide[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 1
+                          ) |>
+    write_rds("out/bs_1_S.rds")
+#+end_src
+
+sopelana fewer knots
+#+begin_src R :eval never
+  bs_S <- bspline::fitsmbsp(x = wide_S$depth,
+                          y = wide_S[c(## "d13C",
+                            "Lstar", "MS")],
+                          n = 1,
+                          nki = 2
+                          ) |>
+    write_rds("out/bs_2_S.rds")
+#+end_src
+***** read in results
+#+begin_src R
+  ## bs <- read_rds("out/bs.rds") # bs_40
+  ## bs <- read_rds("out/bs_25.rds")
+  ## bs <- read_rds("out/bs_20.rds")
+  ## bs <- read_rds("out/bs_20_Z.rds") # Zumaia only
+  bs <- read_rds("out/bs_17.rds") # Zumaia only
+  ## bs <- read_rds("out/bs_23.rds") # Zumaia only
+  ## bs <- read_rds("out/bs_15.rds")
+  bs <- read_rds("out/bs_12.rds") # Zumaia only
+  ## bs <- read_rds("out/bs_10_smooth.rds")
+  ## bs <- read_rds("out/bs_40_smooth.rds")
+  bs_S <- read_rds("out/bs_2_S.rds")
+  ## bs <- read_rds("out/bs_20_S.rds") # Sopelana only
+  ## bs_S <- read_rds("out/bs_20_S.rds") # actually nki = 1
+#+end_src
+
+*****  extract the knots
+#+begin_src R
+  the_knots <- tibble(depth = bspline::bsppar(bs)$xk) |>
+    mutate(Lstar = bs(depth)[, 1], MS = bs(depth)[, 2], site = "Zumaia") |>
+    bind_rows(
+      tibble(depth = bspline::bsppar(bs_S)$xk) |>
+      mutate(Lstar = bs_S(depth)[, 1], MS = bs_S(depth)[, 2], site = "Sopelana")
+    )
+#+end_src
+
+#+RESULTS:
+
+***** now that we have the knots, fit a bs with those for d13C
+#+begin_src R
+  dat <- comp |>
+    filter(proxy == "d13C") |>
+    pivot_wider(names_from = "proxy")
+
+  d13C_knots <- the_knots |>
+    filter(site == "Zumaia") |>
+    filter(depth <= max(dat$depth))
+
+  bs_d13C <- bspline::smbsp(x = dat$depth,
+                            y = dat$d13C,
+                            n = 1,
+                            xki = d13C_knots$depth)
+
+  the_knots <- the_knots |>
+    mutate(d13C = bs_d13C(depth)[, 1], .before = site)
+#+end_src
+
+#+RESULTS:
+
+***** predict the model and residuals
+#+begin_src R
+  pred <- wide |> # first Zumaia
+    # add predictions from bs
     mutate(bs = map(depth, \(x) bs(x) |>
                                 as_tibble() |>
                                 rename(pred_MS = MS, #pred_d13C = d13C,
                                        pred_Lstar = Lstar))) |>
-    unnest(bs)
+    unnest(bs) |>
+    # add Sopelana
+    bind_rows(
+      wide_S |>
+      # add predictions from bs
+      mutate(bs = map(depth, \(x) bs_S(x) |>
+                                  as_tibble() |>
+                                  rename(pred_MS = MS, #pred_d13C = d13C,
+                                         pred_Lstar = Lstar))) |>
+      unnest(bs)
+    ) |>
+    mutate(Lstar_scl = scale(Lstar - pred_Lstar)[, 1],
+           MS_scl = scale(MS - pred_MS)[, 1],
+           .by = site) |>
+    full_join(
+      dat |>
+      mutate(pred_d13C = bs_d13C(depth)[, 1],
+             d13C_scl = scale(d13C - pred_d13C)[, 1])
+    ) |>
+    arrange(depth)
+#+end_src
 
+#+RESULTS:
+: Joining with `by = join_by(site, depth)`
+
+this could be simplified?
+
+***** plot detrending
+#+begin_src R :results output graphics file :file imgs/bspline.png :width 800
   (
+    pred |>
+    filter(!is.na(d13C)) |>
+    ggplot(aes(x = depth, y = d13C)) +
+    coord_cartesian(xlim = range(the_knots$depth)) +
+    geom_line(alpha = .3) +
+    geom_point(data = the_knots, colour = "blue") +
+    geom_line(aes(y = pred_d13C), colour = "red")
+  ) / (
   pred |>
-    ggplot(aes(x = depth, y = Lstar)) +
-    geom_line() +
-    geom_point() +
+    ggplot(aes(x = depth, y = Lstar, group = site)) +
+    coord_cartesian(xlim = range(the_knots$depth)) +
+    geom_line(alpha = .3) +
+    ## geom_point() +
+    geom_point(data = the_knots, colour = "blue") +
     geom_line(aes(y = pred_Lstar), colour = "red")
   ) /
   (
   pred |>
-    ggplot(aes(x = depth, y = MS)) +
-    geom_line() +
-    geom_point() +
+    ggplot(aes(x = depth, y = MS, group = site)) +
+    coord_cartesian(xlim = range(the_knots$depth)) +
+    geom_line(alpha = .3) +
+    ## geom_point() +
+    geom_point(data = the_knots, colour = "blue") +
     geom_line(aes(y = pred_MS), colour = "red")
-  ) ## / (
-  ## pred |>
-  ##   ggplot(aes(x = depth, y = d13C)) +
-  ##   geom_line() +
-  ##   geom_point() +
-  ##   geom_line(aes(y = pred_d13C), colour = "red")
-  ## )
+  ) + plot_layout(axes = "collect")
 #+end_src
+
+#+RESULTS:
+[[file:imgs/bspline.png]]
+
+***** plot detrended
+#+begin_src R :results output graphics file :file imgs/bspline_scl.png :width 800
+  filts <- bat_filters[bat_filters$proxy == "Lstar" &
+                       bat_filters$depth_chunk == "full record" &
+                       bat_filters$target != "prec", ]
+
+  (
+    pred |>
+    filter(!is.na(d13C)) |>
+    ggplot(aes(x = depth, y = d13C_scl, group = site)) +
+    coord_cartesian(xlim = range(the_knots$depth)) +
+    geom_line(alpha=.3)
+  ) / (
+  pred |>
+    ggplot(aes(x = depth, y = Lstar_scl, group = site)) +
+    coord_cartesian(xlim = range(the_knots$depth)) +
+  geom_line(alpha=.3) +
+  geom_line(aes(group = "x"), data = \(x) x |>
+                                          nested_taner_filter(frequencies = filts, x = depth, y = Lstar_scl, nest = "site", roll = 1e10))
+  ) / (
+   pred |>
+    ggplot(aes(x = depth, y = MS_scl, group = site)) +
+    coord_cartesian(xlim = range(the_knots$depth)) +
+    geom_line(alpha=.3)
+  ) + plot_layout(axes = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/bspline_scl.png]]
+
+**** CANC cobs
+CLOSED: [2024-04-03 Wed 17:27]
+:PROPERTIES:
+:CREATED:  [2024-04-01 Mon 17:24]
+:END:
+#+begin_src R
+  fancyfit <- cobs::cobs(comp$depth[comp$proxy == "Lstar" & comp$site == "Zumaia"], y = comp$value[comp$proxy == "Lstar" & comp$site == "Zumaia"],
+                         ## lambda = -1,
+                         lambda = 0,
+                         degree = 1, # lines, not cubes
+                         ## degree = 2, # default
+                         method = "uniform", # defaults to "quantile"
+                         ## nknots = 200, # at 200, this really removes a lot of long ecc variability
+                         ## nknots = 100, # at 100, this removes some of long ecc variability
+                         ## nknots = 50, # at 50, this does not remove the major switches at around 110 m depth
+                         ## nknots = 75, # at 75, this  removes too much long ecc variability
+                         nknots = 60, # at 60, this  removes too much long ecc variability
+                         # tau defaults to 0.5, median
+                         ## tau = c((1 - 0.95) / 2, (1 - 0.68) / 2, 0.5, 1 - (1 - 0.68) / 2, 1 - (1 - 0.95) / 2),
+                         ## nknots = 15,
+                         # I can set knots explicitly
+                         ## knots = c(## -50,
+                         ##           0, 58.8, 109.26, 142), # original coarse
+                         ## knots = c(## -50,
+                         ##   0, 15.2, 32.8, 42.75, 58.8, 80, 91.3, 109.26, 160), # original med
+                         # manually tweaked while watching the output
+                         ## knots = c(## -50,
+                         ##   0, 15.2,
+                         ##   19,
+                         ##   27,
+                         ##   32.4,
+                         ##   ## 32.5,
+                         ##   42.75,
+                         ##   47,
+                         ##   58,
+                         ##   58.8,
+                         ##   70,
+                         ##   80, 91.3,
+                         ##   109.26, 110, # added extra point so it can make the jump
+                         ##   117, 118,
+                         ##   127,
+                         ##   160), # same as lin_scl_med
+                         knots.add = TRUE,
+                         ## lambda.length = 100,
+                         ## lambda.lo = sd(comp$depth[comp$proxy == "Lstar" & comp$site == "Zumaia"])^2 * 1e-8, # defaults to this * 1e-4
+                         ## lambda.hi = sd(comp$depth[comp$proxy == "Lstar" & comp$site == "Zumaia"])^2 * 1e3 # defaults to 1000
+                         )
+  summary(fancyfit)
+  ## plot(fancyfit, type = 'l')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+qbsks2():
+ Performing general knot selection ...
+
+ Deleting unnecessary knots ...
+
+ Searching for missing knots ...
+COBS regression spline (degree = 1) from call:
+	 cobs::cobs(x = comp$depth[comp$proxy == "Lstar" & comp$site ==     "Zumaia"], y = comp$value[comp$proxy == "Lstar" & comp$site ==     "Zumaia"], nknots = 60, method = "uniform", degree = 1, lambda = 0,     knots.add = TRUE)
+{tau=0.5}-quantile;  dimensionality of fit: 48 from {48}
+x$knots[1:48]:   0.04860897,   2.43917373,   7.22002119, ... , 141.08389104
+coef[1:48]: 53.03228, 43.74047, 46.88116, 46.47333, 45.57353, ... , 54.47205
+R^2 = 69.81% ;  empirical tau (over all): 691/1361 = 0.5077149 (target tau= 0.5)
+#+end_example
+
+#+begin_src R :results graphics file :file imgs/cobs_detrending_Lstar.png :width 900 :height 600
+  par(mfrow = c(2, 1))
+  plot(fancyfit$x,
+       fancyfit$y,
+       type = "l",
+       xlab = "Depth (m)", ylab = "L*")
+  lines(fancyfit$x, fancyfit$fitted, col = "red", lwd = 2)
+  plot(fancyfit$x,
+       fancyfit$resid,
+       type = 'l', xlab = "Depth (m)", ylab = "residual")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/cobs_detrending_Lstar.png]]
+
+#+begin_src R :results output graphics file :file imgs/fancyfit_mtm.png
+  astrochron::mtm(astrochron::linterp(data.frame(fancyfit$x, fancyfit$resid)))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/fancyfit_mtm.png]]
+
 **** combine the trend removal dataframes into smooth_pred
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
@@ -10142,7 +10612,7 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     ## scale_alpha_binned() +
     facet_grid(
       ## cols = vars(proxy),
-      cols = vars(proxy),
+      cols = vars(proxy, comb),
       rows = vars(window),
       space = "free_y", scales = "free_y") +
     scale_shape_manual(values = c("gaussian" = "triangle",
