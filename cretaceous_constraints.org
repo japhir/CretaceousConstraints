@@ -10768,7 +10768,7 @@ old
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac, window)`
 : filter: removed 4,972 rows (1%), 416,672 rows remaining
-: + + filter: removed 273 rows (93%), 21 rows remaining
+: filter: removed 273 rows (93%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -11381,13 +11381,41 @@ rectangular only
 :PROPERTIES:
 :CREATED:  [2024-04-15 Mon 14:59]
 :END:
-#+begin_src R :results output graphics file :file imgs/full_RMSD_comb_comparison.png :width 1400 :height 1000 :res 300
+#+begin_src R :results output graphics file :file imgs/comb_bars.png :width 600 :height 200
+  pl_bars <- overall_best |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(roll == 1e10) |>
+    filter(frac == 0.25) |>
+    filter(window == "taner") |>
+    separate(comb, into = c("f405", "f100"), sep = ":", remove = FALSE) |>
+    mutate(f405 = parse_double(f405),
+           f100 = parse_double(f100)) |>
+    mutate(comb_frac = f405 / (f405 + f100)) |>
+    ggplot() +
+    geom_col(aes(x = comb, y = 1), fill = "orange", alpha = .3, width = 0.3) +
+    geom_col(aes(x = comb, y = comb_frac), fill = "navyblue", alpha = .3, width = 0.3) +
+    facet_grid(cols = vars(proxy)) +
+    labs(x = "Relative weight of long- and short eccentricity") +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.line = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_blank())
+  pl_bars
+#+end_src
+
+#+RESULTS:
+[[file:imgs/comb_bars.png]]
+
+#+begin_src R :results output graphics file :file imgs/full_RMSD_comb_comparison.png :width 2600 :height 1000 :res 300
+  (
   overall_best |>
     filter(detrend_type == "lin_scl_med") |>
     filter(roll == 1e10) |>
     filter(frac == 0.25) |>
     filter(window == "taner") |>
-    filter(proxy == "Lstar") |>
+    ## filter(proxy == "Lstar") |>
     ggplot(aes(
       ## x = sol,
       x = comb,
@@ -11404,6 +11432,7 @@ rectangular only
       alpha = ""
     ) +
     ## facet_grid(rows = vars(sol), scales = "free_y", space = "free_y") +
+    facet_grid(cols = vars(proxy)) +
     scale_y_continuous(breaks = seq(0, 1.5, 0.1)) +
     scale_colour_brewer(palette = "Paired") +
     ## annotate("rect", xmin = 4.5, xmax = 5.5, ymin = -Inf, ymax = Inf, fill = "red", alpha = .2, colour = NA) +
@@ -11412,11 +11441,15 @@ rectangular only
                   alpha = .3) +
     geom_point() +
     ## geom_point(size = 3, colour = "red", data = \(x) filter(x, comb == "1:1")) +
-    theme(legend.position.inside = c(.2, .82),
+    theme(legend.position.inside = c(.06, .9),
+            ## c(0.17, 0.22),
           legend.position = "inside",
           legend.background = element_blank(),
-          legend.key.height = unit(1, "mm")) #+
-
+          legend.key.height = unit(1, "mm"),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(), axis.line.x = element_blank()
+          ) #+
+  ) / pl_bars + plot_layout(heights = c(10, 2), axes = "collect")
 #+end_src
 
 #+RESULTS:
