@@ -26,14 +26,13 @@
 \usepackage[section]{placeins} % figures were jumping to the end, I prefer them closer
 
 \newcommand{\appr}{\raise.17ex\hbox{\(\scriptstyle\sim\)}} % approximately symbol
+\newcommand{\ma}[1]{Ma\(_{405}\)#1} % Ma\(_{405}\)8 was a hassle to type
 
 \newcommand{\rez}{\textcolor{magenta}}
 % I'll use this to highlight sections that I want to focus your attention on!
-% I liked violet best, but might be hard to distinguish quickly from magenta...
 \newcommand{\ijk}{\textcolor{blue}}
 
-\newcommand{\ma}[1]{Ma\(_{405}\)#1}
-% normally I strongly prefer biblatex, but the AGU template uses only \cite,
+% normally I strongly prefer biblatex, but the AGU template allows us to use \cite,
 % \citeA, and \nocite from apacite :(
 % \usepackage[giveninits=true,uniquename=false,uniquelist=false,date=year,hyperref=true,mincitenames=1,maxcitenames=2,backend=biber,backref,doi=true,url=false,isbn=false]{biblatex}
 % \addbibresource{references.bib}
@@ -330,7 +329,7 @@ while the upper Maastrichtian was tectonically more stable~\cite{Pujalte1998}.
 the original refs]}
 \ijk{I've looked at the original refs again. It was obviously never copy-pasted, but looking at it again it \emph{was} mostly reshuffled text. I am not sure how close I can be to the original text that I cite/if I need to incorporate other stuff...}
 The upper Maastrichtian section of Zumaia also contains many thin turbidites,
-whose occurrence shows many random spectral peaks, but may also include an eccentricity and obliquity signal for cycles Ma\(_{405}\)1--4~\cite<the first four long eccentricity bundles prior to the \gls{KT}-boundary>{tenKateSprenger1993}. % this part is not mentioned in Batenburg
+whose occurrence shows many random spectral peaks, but may also include an eccentricity and obliquity signal for cycles \ma{1--4}~\cite<the first four long eccentricity bundles prior to the \gls{KT}-boundary>{tenKateSprenger1993}. % this part is not mentioned in Batenburg
 However, the pattern of limestone--marl alternations in the Zumaia succession that has been associated with astronomical forcing remained undisturbed by the turbidites in the upper Maastrichtian~\cite{Batenburg2012}.
 The Sopelana section covers the lower part of the Maastrichtian, and has a similar lithology but without indications for turbidites, likely because it was located farther offshore~\cite{Batenburg2012}.
 The proxy record from Zumaia~\cite{Batenburg2012} was extended to include Sopelana in \citeA{Batenburg2014}.
@@ -625,7 +624,7 @@ that differences in the methods lead to different results!]}
 
 The different proxies match against the astronomical solutions in the time domain (\cref{fig:rolling-age-MS,fig:rolling-age-d13C}).
 Different ways of detrending of the proxy records to subtract non-cyclical patterns lead to different results (\cref{fig:detrend,fig:full-RMSD-detrend,fig:Lstar-detrend}).
-Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \num{e10} or a smoother window (roll of \(10^{3}\)) results in different ``best'' solutions (\cref{fig:full-RMSD-filter,fig:filter-windows}).
+Furthermore, changing the parameters of the taner filter has an effect: when using a more rectangular window (roll of \num{e10} or a smoother window (roll of \num{e3}) results in different ``best'' solutions (\cref{fig:full-RMSD-filter,fig:filter-windows}).
 These differences can also be achieved when the width of the filters is changed (not shown). % TODO: add appendix fig for this
 This effectively occurs when the optimization routine shifts one or more of the long eccentricity minima tie-points so much that an offset of about one short eccentricity cycle occurs.
 See \cref{fig:full-RMSD-comb} for an example of the sensitivity to the different combinations of the long- and short eccentricity related filtered data.
