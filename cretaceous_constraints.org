@@ -10936,6 +10936,91 @@ filter: removed 88 rows (1%), 11,917 rows remaining
 #+RESULTS:
 [[file:imgs/full_RMSD_scores.pdf]]
 
+**** bootstrapped RMSD
+:PROPERTIES:
+:CREATED:  [2024-03-22 Fri 14:34]
+:END:
+***** do the boostrapping
+#+begin_src R :eval never
+  boot_RMSD <- function(data, indices) {
+    d <- data[indices, ]
+    sqrt(mean(d$SD))
+  }
+
+  bootstrapped_best <- overall_sd |>
+    select(proxy, sol, SD) |>
+    nest(.by = c(sol, proxy)) |>
+    mutate(boot = purrr::map(data,
+                             \(d) boot::boot(d, statistic = boot_RMSD, R = 1e5)$t[, 1]))
+
+  bootstrapped_best |>
+    write_rds("out/bootstrapped_best.rds")
+#+end_src
+
+#+begin_src R
+  bootstrapped_best <- read_rds("out/bootstrapped_best.rds")
+
+  bootstrapped_summary <- bootstrapped_best |>
+    ggdist::median_qi(boot,
+                      .width =
+                        seq(0, .95, .05)
+                      ## c(.68, .95)
+                      )
+#+end_src
+
+#+RESULTS:
+
+***** plot of boostrapped RMSD scores
+#+begin_src R :results output graphics file :file imgs/full_RMSD_boot.png :width 1000 :height 600 :res 300
+  pl_rmsd_boot <-
+    bootstrapped_summary |>
+    ggplot(aes(x = sol, y = boot,
+               colour = proxy, fill = proxy,
+               )) +
+    labs(x = "Astronomical Solution",## , shape = "Bandpass Filter type"
+         y = "RMSD",
+         colour = "", fill = ""
+         ) +
+    theme(legend.position = "inside",
+          legend.position.inside = c(.12, .99),
+          legend.background = element_blank(),
+          legend.key.height = unit(1, "mm")) +
+    ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
+    ggdist::geom_lineribbon(aes(ymin = .lower,
+                                ymax = .upper,
+                                group = paste(proxy, .width)),
+                            alpha = .03
+                            ## alpha = .1
+                            ) +
+    ## ggdist::stat_gradientinterval(data = bootstrapped_best |> unnest(boot)) +
+    ## geom_line(aes(group = proxy), alpha = .3) +
+    geom_point() #+
+    # is the bootstrapped RMSD the same as the single-estimate? -> YES, not so sensitive
+    ## geom_point(aes(y = RMSD), colour = "black", size = .3, data = overall_best)
+    ## ggdist::geom_pointinterval(aes(ymin = .lower, ymax = .upper))
+  # what if we compute the average RMSD for each solution based on all the proxies (this is bad, not weighted by measurement numbers!)
+    ## stat_summary(aes(group = sol), geom = "pointrange", colour = "black")
+
+  pl_rmsd_boot
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_boot.png]]
+
+another attempt to visualize if the RMSD scores differ significantly between solutions
+#+begin_src R :results output graphics file :file imgs/bootstrapped_halfeyes.png :width 1700 :height 800 :res 150
+  library(ggdist)
+  bootstrapped_best |>
+    unnest(boot) |>
+    ggplot(aes(x = sol, y = boot, fill = proxy)) +
+    facet_grid(cols = vars(proxy)) +
+    stat_halfeye(position = position_dodge(width = .4)) #+
+    ## stat_halfeye(aes(group = sol), fill = "gray") # how do they add up? to weird bivariate distributions
+#+end_src
+
+#+RESULTS:
+[[file:imgs/bootstrapped_halfeyes.png]]
+
 **** plot of RMSD vs frac: filter window size
 :PROPERTIES:
 :CREATED:  [2024-03-27 Wed 22:40]
@@ -11044,91 +11129,6 @@ filter: removed 88 rows (1%), 11,917 rows remaining
 #+RESULTS:
 [[file:imgs/full_RMSD_frac_old.pdf]]
 
-**** bootstrapped RMSD
-:PROPERTIES:
-:CREATED:  [2024-03-22 Fri 14:34]
-:END:
-***** do the boostrapping
-#+begin_src R :eval never
-  boot_RMSD <- function(data, indices) {
-    d <- data[indices, ]
-    sqrt(mean(d$SD))
-  }
-
-  bootstrapped_best <- overall_sd |>
-    select(proxy, sol, SD) |>
-    nest(.by = c(sol, proxy)) |>
-    mutate(boot = purrr::map(data,
-                             \(d) boot::boot(d, statistic = boot_RMSD, R = 1e5)$t[, 1]))
-
-  bootstrapped_best |>
-    write_rds("out/bootstrapped_best.rds")
-#+end_src
-
-#+begin_src R
-  bootstrapped_best <- read_rds("out/bootstrapped_best.rds")
-
-  bootstrapped_summary <- bootstrapped_best |>
-    ggdist::median_qi(boot,
-                      .width =
-                        seq(0, .95, .05)
-                      ## c(.68, .95)
-                      )
-#+end_src
-
-#+RESULTS:
-
-***** plot of boostrapped RMSD scores
-#+begin_src R :results output graphics file :file imgs/full_RMSD_boot.png :width 1000 :height 600 :res 300
-  pl_rmsd_boot <-
-    bootstrapped_summary |>
-    ggplot(aes(x = sol, y = boot,
-               colour = proxy, fill = proxy,
-               )) +
-    labs(x = "Astronomical Solution",## , shape = "Bandpass Filter type"
-         y = "RMSD",
-         colour = "", fill = ""
-         ) +
-    theme(legend.position = "inside",
-          legend.position.inside = c(.12, .99),
-          legend.background = element_blank(),
-          legend.key.height = unit(1, "mm")) +
-    ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
-    ggdist::geom_lineribbon(aes(ymin = .lower,
-                                ymax = .upper,
-                                group = paste(proxy, .width)),
-                            alpha = .03
-                            ## alpha = .1
-                            ) +
-    ## ggdist::stat_gradientinterval(data = bootstrapped_best |> unnest(boot)) +
-    ## geom_line(aes(group = proxy), alpha = .3) +
-    geom_point() #+
-    # is the bootstrapped RMSD the same as the single-estimate? -> YES, not so sensitive
-    ## geom_point(aes(y = RMSD), colour = "black", size = .3, data = overall_best)
-    ## ggdist::geom_pointinterval(aes(ymin = .lower, ymax = .upper))
-  # what if we compute the average RMSD for each solution based on all the proxies (this is bad, not weighted by measurement numbers!)
-    ## stat_summary(aes(group = sol), geom = "pointrange", colour = "black")
-
-  pl_rmsd_boot
-#+end_src
-
-#+RESULTS:
-[[file:imgs/full_RMSD_boot.png]]
-
-another attempt to visualize if the RMSD scores differ significantly between solutions
-#+begin_src R :results output graphics file :file imgs/bootstrapped_halfeyes.png :width 1700 :height 800 :res 150
-  library(ggdist)
-  bootstrapped_best |>
-    unnest(boot) |>
-    ggplot(aes(x = sol, y = boot, fill = proxy)) +
-    facet_grid(cols = vars(proxy)) +
-    stat_halfeye(position = position_dodge(width = .4)) #+
-    ## stat_halfeye(aes(group = sol), fill = "gray") # how do they add up? to weird bivariate distributions
-#+end_src
-
-#+RESULTS:
-[[file:imgs/bootstrapped_halfeyes.png]]
-
 **** COMMENT compare detrend_types and filters
 :PROPERTIES:
 :CREATED:  [2024-03-25 Mon 11:08]
@@ -11227,7 +11227,7 @@ everything
 #+RESULTS:
 [[file:imgs/full_RMSD_roll_comparison.pdf]]
 
-**** NEXT simplified comparison of windows: rect vs. gauss vs. taner
+**** simplified comparison of windows: rect vs. gauss vs. taner
 :PROPERTIES:
 :CREATED:  [2024-03-27 Wed 08:57]
 :END:
@@ -11290,7 +11290,7 @@ todo: add d13C and MS frac == 0.25
 #+RESULTS:
 [[file:imgs/full_RMSD_filter_comparison.png]]
 
-**** NEXT simplified comparison of filter widths: frac
+**** simplified comparison of filter widths: frac
 :PROPERTIES:
 :CREATED:  [2024-03-28 Thu 16:37]
 :END:
@@ -11376,6 +11376,86 @@ rectangular only
 
 #+RESULTS:
 [[file:imgs/full_RMSD_detrend_comparison.png]]
+
+**** simplified comparison of combs
+:PROPERTIES:
+:CREATED:  [2024-04-15 Mon 14:59]
+:END:
+#+begin_src R :results output graphics file :file imgs/full_RMSD_comb_comparison.png :width 1400 :height 1000 :res 300
+  overall_best |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(roll == 1e10) |>
+    filter(frac == 0.25) |>
+    filter(window == "taner") |>
+    filter(proxy == "Lstar") |>
+    ggplot(aes(
+      ## x = sol,
+      x = comb,
+      y = RMSD,
+      ## colour = comb,
+      colour = sol,
+      ## shape = window,
+      )) +
+    ## scale_colour_manual(values = detrend_colours) +
+    labs(
+      x = "Relative weight of long- and short eccentricity",
+      ## x = "Astronomical Solution",## , shape = "Bandpass Filter type"
+      colour = "Solution",
+      alpha = ""
+    ) +
+    ## facet_grid(rows = vars(sol), scales = "free_y", space = "free_y") +
+    scale_y_continuous(breaks = seq(0, 1.5, 0.1)) +
+    scale_colour_brewer(palette = "Paired") +
+    ## annotate("rect", xmin = 4.5, xmax = 5.5, ymin = -Inf, ymax = Inf, fill = "red", alpha = .2, colour = NA) +
+    # all the taner filters
+    geom_line(aes(group = paste(sol, proxy, detrend_type, window, roll, frac)),
+                  alpha = .3) +
+    geom_point() +
+    ## geom_point(size = 3, colour = "red", data = \(x) filter(x, comb == "1:1")) +
+    theme(legend.position.inside = c(.2, .82),
+          legend.position = "inside",
+          legend.background = element_blank(),
+          legend.key.height = unit(1, "mm")) #+
+
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_comb_comparison.png]]
+
+**** improvement in RMSD score after tie-point optimization
+:PROPERTIES:
+:CREATED:  [2024-03-25 Mon 17:16]
+:END:
+#+begin_src R :results output graphics file :file imgs/sol_SD_tie.png :width 2600 :height 700 :res 300
+  best_age_optim |>
+    filter(depth_chunk == "full record") |> # ignore the other depth chunks I tried
+    filter(comb == "1:1") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(site == "Zumaia") |>
+    left_join(overall_best |> rename(full_RMSD = RMSD)) |>
+    arrange(proxy, detrend_type, sol) |> # this is so we can see why full_RMSD is not the same as RMSD
+    ggplot(aes(x = sol## , colour = site
+               )) +
+    labs(x = "", y = "RMSD", linetype = "", shape = "", colour = "") +
+    theme(legend.position = "inside",
+          legend.key.height = unit(2, "mm"),
+          legend.background = element_blank(),
+          legend.position.inside = c(.2, .65)) +
+    facet_grid(cols = vars(proxy)) +
+    scale_linetype_manual(values = c("Field-based" = "dashed", "Optimized" = "solid")) +
+    scale_shape_manual(values = c("Field-based" = "square", "Optimized" = "circle")) +
+    geom_line(aes(y = RMSD_start, group = paste(site, depth_chunk),
+                  linetype = "Field-based")) +
+    geom_point(aes(y = RMSD_start, shape = "Field-based")) +
+    geom_line(aes(y = RMSD, group = paste(site, depth_chunk),
+                  linetype = "Optimized")) +
+    geom_point(aes(y = RMSD, shape = "Optimized")) #+
+  ## geom_line(aes(y = full_RMSD, group = paste(depth_chunk)), colour = "black") +
+  ## geom_point(aes(y = full_RMSD), colour = "black")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sol_SD_tie.png]]
 
 **** [#B] simple plot of records vs. solutions
 :PROPERTIES:
@@ -11518,40 +11598,239 @@ and for MS
 #+RESULTS:
 [[file:imgs/sol_SD_MS.pdf]]
 
-**** improvement in RMSD score after tie-point optimization
+**** cumulative SD from young to old
 :PROPERTIES:
-:CREATED:  [2024-03-25 Mon 17:16]
+:CREATED:  [2024-03-21 Thu 16:14]
 :END:
-#+begin_src R :results output graphics file :file imgs/sol_SD_tie.png :width 2600 :height 700 :res 300
-  best_age_optim |>
-    filter(depth_chunk == "full record") |> # ignore the other depth chunks I tried
-    filter(comb == "1:1") |>
-    filter(detrend_type == "lin_scl_med") |>
-    filter(site == "Zumaia") |>
-    left_join(overall_best |> rename(full_RMSD = RMSD)) |>
-    arrange(proxy, detrend_type, sol) |> # this is so we can see why full_RMSD is not the same as RMSD
-    ggplot(aes(x = sol## , colour = site
-               )) +
-    labs(x = "", y = "RMSD", linetype = "", shape = "", colour = "") +
-    theme(legend.position = "inside",
-          legend.key.height = unit(2, "mm"),
-          legend.background = element_blank(),
-          legend.position.inside = c(.2, .65)) +
-    facet_grid(cols = vars(proxy)) +
-    scale_linetype_manual(values = c("Field-based" = "dashed", "Optimized" = "solid")) +
-    scale_shape_manual(values = c("Field-based" = "square", "Optimized" = "circle")) +
-    geom_line(aes(y = RMSD_start, group = paste(site, depth_chunk),
-                  linetype = "Field-based")) +
-    geom_point(aes(y = RMSD_start, shape = "Field-based")) +
-    geom_line(aes(y = RMSD, group = paste(site, depth_chunk),
-                  linetype = "Optimized")) +
-    geom_point(aes(y = RMSD, shape = "Optimized")) #+
-  ## geom_line(aes(y = full_RMSD, group = paste(depth_chunk)), colour = "black") +
-  ## geom_point(aes(y = full_RMSD), colour = "black")
+don't know why Lstar sopelana is off-rails now
+#+begin_src R :results output graphics file :file imgs/cumulative_rRMSD_all.pdf :width 5 :height 6
+  overall_sd |>
+    ## tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
+    ## filter(proxy == "Lstar") |>
+    tidylog::filter(depth_chunk == "full record") |>
+    tidylog::filter(roll == 1e10,
+                    #frac == 0.25
+                    frac == 0.3,
+                    window == "taner",
+                    detrend_type == "lin_scl_med",
+           ) |>
+    arrange(age) |>
+    mutate(rRMSD = sqrt(cumsum(SD)),
+           .by = c(proxy, detrend_type, depth_chunk, comb, sol)) |>
+    ggplot(aes(x = age * 1e-3)) +
+    labs(x = "Age (Ma)",
+         y = "cumulative RMSD",
+         colour = "Orbital\nSolution") +
+    scale_colour_brewer(type = "qual", palette = 3) +
+    facet_grid(rows = vars(proxy),
+               space = "free_y", scales = "free_y") +
+    scale_x_reverse(breaks = seq(75, 55, -1)) +
+    scale_y_continuous(breaks = seq(0, 50, 10), sec.axis = sec_axis(transform = \(x) x)) +
+    geom_line(aes(y = rRMSD, colour = sol,
+                  group = paste(sol, proxy))) +
+    theme(strip.placement = "outside")
 #+end_src
 
 #+RESULTS:
-[[file:imgs/sol_SD_tie.png]]
+[[file:imgs/cumulative_rRMSD_all.pdf]]
+
+**** simplified plot of matched records and solutions
+:PROPERTIES:
+:CREATED:  [2024-01-15 Mon 15:22]
+:END:
+# #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
+# #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_simple.pdf :width 9.6 :height 8
+# #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_simple.pdf :width 9.6 :height 8
+#+begin_src R
+  my_filt <- \(x) x |>
+                    filter(comb == "1:1") |>
+                    filter(proxy == "Lstar") |>
+                    ## filter(proxy == "MS") |>
+                    ## filter(proxy == "d13C") |>
+                    # I think I may have re-run the ZB20a < 109 lin_scl_fine
+                    tidylog::distinct(sol, site, proxy, depth_chunk, comb,
+                                      detrend_type, #window,
+                             .keep_all = TRUE) |>
+                    ## filter(window == "gaussian") |>
+                    filter(depth_chunk == "full record")
+
+  baoo <- best_age_optim_one |>
+    my_filt() |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m)
+#+end_src
+
+#+RESULTS:
+: distinct: no rows removed
+
+#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.pdf :width 9.6 :height 8
+  another <- best_age_optim |>
+  ## rolling_age_optim |>
+    my_filt() |>
+    mutate(m = map(the_best, "matched")) |>
+    unnest(m)
+
+  another_crit <- another |>
+    filter(site == "Sopelana") |>
+    summarize(min_age = min(age),
+              .by = c(proxy, sol))
+
+  another <- another |>
+    tidylog::left_join(another_crit) |>
+    tidylog::filter(!(site == "Zumaia" & age > min_age))
+
+  another |>
+    ggplot(aes(x = age * 1e-3,
+               y = sign_405 * ecc,
+               ## colour = site,
+               ## colour = detrend_type,
+               ## colour = paste(site, depth_chunk),
+               ## linetype = window,
+               group = paste(sol,
+                             site, proxy,
+                             detrend_type,
+                             depth_chunk## ,
+                             ## window
+                             ))) +
+    facet_grid(rows = vars(sol)) +
+    labs(x = "Age (Ma)", y = "Norm. Filter & Solution",
+         colour = "") +
+    ## theme(legend.pos = c(.64, .864),
+    ##       legend.direction = "horizontal") +
+    scale_x_reverse(breaks = seq(80, 50, -1),
+                    minor_breaks = seq(80, 50, -0.1)) +
+    scale_y_continuous(breaks = c(-4, 0, 4)) +
+    scale_linewidth_continuous(range = c(1.2, 0.8)) +
+    scale_alpha_continuous(range = c(1, 0.4)) +
+    scale_colour_manual(values = c("Astronomical Solution" = "black",
+                                   "Data"="purple"),
+                        guide = guide_legend(override.aes = list(alpha = 1))) +
+    geom_vline(aes(xintercept = age1),
+               colour = "darkgray",
+               data = kpg_ages |>
+                 filter(sln != "La11") |>
+                 rename(sol = sln)) +
+    # plot all fits as thin lines
+    ## geom_line(linewidth = .1, alpha = .3) +
+    # add the BEST fits for each segment/proxy/solution
+    geom_line(aes(## linewidth = RMSD,
+                  ## alpha = SD,
+                  colour = "Data"
+                  ), data = baoo) +
+
+    # annotate astronomical solution
+    geom_line(aes(x = age * 1e-3, y = scl, group = sol,
+                  colour = "Astronomical Solution"),
+              inherit.aes = FALSE,
+              data = slns |>
+                filter(sln != "La11") |>
+                filter(age > 65800) |>
+                filter(age < 71300) |>
+                rename(sol = sln)) #+
+    # this has some ugly dups
+    ## geom_line(aes(y = ecc_sln, colour = "Astronomical Solution"),
+    ##           data = \(x) x |>
+    ##                       distinct(sol, proxy, comb, age, depth_chunk, ecc_sln, .keep_all = TRUE) |>
+    ##                       filter(depth_chunk == "full record",
+    ##                              proxy == "Lstar",
+    ##                              comb == "1:1")) +
+    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
+
+    ## # annotate overall best fit scores
+    ## geom_errorbar(aes(xmin = 71.1, xmax = 65.9, x = 71, y = 9,
+    ##                   group = sol),
+    ##               colour = "gray",
+    ##               data = overal_best_sol |>
+    ##                 filter(proxy == "Lstar", comb == "1:1")) +
+    ## geom_text(aes(x = 65.9 + (71.1 - 65.9) / 2, y = 10,
+    ##               label = round(RMSD, 3), group = sol),
+    ##           colour = "black",
+    ##           size = 2, show.legend = FALSE,
+    ##           data = overal_best_sol |>
+    ##                 filter(proxy == "Lstar", comb == "1:1")) +
+    ## ## geom_text(aes(x = 65.9 + (71.1 - 65.9) / 2, y = 11,
+    ## ##               label = paste(detrend_type, window), group = sol),
+    ## ##           size = 2, show.legend = FALSE,
+    ## ##           colour = "black",
+    ## ##           data = overal_best_sol |>
+    ## ##                 filter(proxy == "Lstar", comb == "1:1")) +
+
+    ## # best fits for subsets of the data
+    ## geom_errorbarh(aes(xmin = lwr * 1e-3,
+    ##                    xmax = upr * 1e-3,
+    ##                    y = -7 +
+    ##                      14 * as.integer(depth_chunk == "full record") +
+    ##                      -0.5 * as.integer(site == "Sopelana")),
+    ##                height = 1, alpha = .4,
+    ##                data = best_age_optim_one |>
+    ##                  my_filt() |>
+    ##                  mutate(
+    ##                    age = map_dbl(the_best,
+    ##                                  \(x) mean(x$matched$age,
+    ##                                            na.rm = TRUE)),
+    ##                    lwr = map_dbl(the_best,
+    ##                                  \(x) min(x$matched$age,
+    ##                                           na.rm = TRUE)),
+    ##                    upr = map_dbl(the_best,
+    ##                                  \(x) max(x$matched$age,
+    ##                                           na.rm = TRUE)))) +
+    ## ## geom_line(aes(y = -7 + 14 * as.integer(depth_chunk == "full record")),
+    ## ##           linewidth = 1, alpha = .05,
+    ## ##           data = \(x) x |> distinct(sol, proxy, site, depth_chunk, age, .keep_all = TRUE)) +
+    ## geom_text(aes(x = age * 1e-3, y = -6 +
+    ##                                 12 * as.integer(depth_chunk == "full record") +
+    ##                                 -0.5 * as.integer(site == "Sopelana"),
+    ##               label = round(RMSD, 3)),
+    ##           size = 2, show.legend = FALSE,
+    ##           data = best_age_optim_one |>
+    ##             my_filt() |>
+    ##             mutate(age = map_dbl(the_best,
+    ##                                  \(x) mean(x$matched$age,
+    ##                                              na.rm = TRUE)))) #+
+    ## ## geom_text(aes(x = age * 1e-3, y = -8 +
+    ## ##                                 16 * as.integer(depth_chunk == "full record") +
+    ## ##                                 -0.5 * as.integer(site == "Sopelana"),
+    ## ##               label = paste(site, detrend_type, window)),
+    ## ##           size = 2, show.legend = FALSE,
+    ## ##           data = best_age_optim_one |>
+    ## ##             my_filt() |>
+    ## ##             mutate(age = map_dbl(the_best,
+    ## ##                                  \(x) mean(x$matched$age,
+    ## ##                                              na.rm = TRUE)))) #+
+
+    ## ## annotate ages of 405 kyr minima
+    ## geom_point(aes(x = age * 1e-3, y = -3.5),
+    ##            inherit.aes = FALSE,
+    ##            data = sln_peaks |>
+    ##              rename(sol = sln) |>
+    ##              filter(sol != "La11") |>
+    ##              filter(age > 65.8e3) |>
+    ##              filter(age < 71.4e3)) +
+
+    ## # annotate depths of tweaked tiepoints
+    ## geom_point(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4),
+    ##            ## shape = ".",
+    ##           data = best_age_optim |>
+    ##             filter(comb == "1:1") |>
+    ##             filter(proxy == "Lstar") |>
+    ##             filter(detrend_type == "lin_scl_med") |>
+    ##             filter(depth_chunk == "full record") |>
+    ##             mutate(m = map(the_best, "summary")) |>
+    ##             unnest(m))
+    ## geom_text(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4.5,
+    ##               label = paste(strat_bot, tie_err)),
+    ##           size = 1.8,
+    ##           show.legend = FALSE,
+    ##           data = best_age_optim |>
+    ##             filter(comb == "1:1") |>
+    ##             filter(proxy == "Lstar") |>
+    ##             filter(detrend_type == "lin_scl_fine") |>
+    ##             mutate(m = map(the_best, "summary")) |>
+    ##             unnest(m))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Zumaia_Lstar_1-1_solutions_simple.pdf]]
 
 **** illustration of how different detrending results in different output
 :PROPERTIES:
@@ -11626,42 +11905,6 @@ and for MS
 
 #+RESULTS:
 [[file:imgs/sol_SD.pdf]]
-
-**** cumulative SD from young to old
-:PROPERTIES:
-:CREATED:  [2024-03-21 Thu 16:14]
-:END:
-don't know why Lstar sopelana is off-rails now
-#+begin_src R :results output graphics file :file imgs/cumulative_rRMSD_all.pdf :width 5 :height 6
-  overall_sd |>
-    ## tidylog::inner_join(best_age_optim_one |> select(-the_best)) |>
-    ## filter(proxy == "Lstar") |>
-    tidylog::filter(depth_chunk == "full record") |>
-    tidylog::filter(roll == 1e10,
-                    #frac == 0.25
-                    frac == 0.3,
-                    window == "taner",
-                    detrend_type == "lin_scl_med",
-           ) |>
-    arrange(age) |>
-    mutate(rRMSD = sqrt(cumsum(SD)),
-           .by = c(proxy, detrend_type, depth_chunk, comb, sol)) |>
-    ggplot(aes(x = age * 1e-3)) +
-    labs(x = "Age (Ma)",
-         y = "cumulative RMSD",
-         colour = "Orbital\nSolution") +
-    scale_colour_brewer(type = "qual", palette = 3) +
-    facet_grid(rows = vars(proxy),
-               space = "free_y", scales = "free_y") +
-    scale_x_reverse(breaks = seq(75, 55, -1)) +
-    scale_y_continuous(breaks = seq(0, 50, 10), sec.axis = sec_axis(transform = \(x) x)) +
-    geom_line(aes(y = rRMSD, colour = sol,
-                  group = paste(sol, proxy))) +
-    theme(strip.placement = "outside")
-#+end_src
-
-#+RESULTS:
-[[file:imgs/cumulative_rRMSD_all.pdf]]
 
 **** COMMENT rerun the best fits with detailed output
 :PROPERTIES:
@@ -12850,204 +13093,6 @@ contrast the filter to a real gaussian to see where the \minus\sigma and \plus\s
 
 #+RESULTS:
 [[file:imgs/Zumaia_d13C_1-1_solutions.png]]
-
-**** simplified plot of matched records and solutions
-:PROPERTIES:
-:CREATED:  [2024-01-15 Mon 15:22]
-:END:
-# #+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.png :width 2400 :height 2000 :res 300
-# #+begin_src R :results output graphics file :file imgs/Zumaia_d13C_1-1_solutions_simple.pdf :width 9.6 :height 8
-# #+begin_src R :results output graphics file :file imgs/Zumaia_MS_1-1_solutions_simple.pdf :width 9.6 :height 8
-#+begin_src R
-  my_filt <- \(x) x |>
-                    filter(comb == "1:1") |>
-                    filter(proxy == "Lstar") |>
-                    ## filter(proxy == "MS") |>
-                    ## filter(proxy == "d13C") |>
-                    # I think I may have re-run the ZB20a < 109 lin_scl_fine
-                    tidylog::distinct(sol, site, proxy, depth_chunk, comb,
-                                      detrend_type, #window,
-                             .keep_all = TRUE) |>
-                    ## filter(window == "gaussian") |>
-                    filter(depth_chunk == "full record")
-
-  baoo <- best_age_optim_one |>
-    my_filt() |>
-    mutate(m = map(the_best, "matched")) |>
-    unnest(m)
-#+end_src
-
-#+RESULTS:
-: distinct: no rows removed
-
-#+begin_src R :results output graphics file :file imgs/Zumaia_Lstar_1-1_solutions_simple.pdf :width 9.6 :height 8
-  another <- best_age_optim |>
-  ## rolling_age_optim |>
-    my_filt() |>
-    mutate(m = map(the_best, "matched")) |>
-    unnest(m)
-
-  another_crit <- another |>
-    filter(site == "Sopelana") |>
-    summarize(min_age = min(age),
-              .by = c(proxy, sol))
-
-  another <- another |>
-    tidylog::left_join(another_crit) |>
-    tidylog::filter(!(site == "Zumaia" & age > min_age))
-
-  another |>
-    ggplot(aes(x = age * 1e-3,
-               y = sign_405 * ecc,
-               ## colour = site,
-               ## colour = detrend_type,
-               ## colour = paste(site, depth_chunk),
-               ## linetype = window,
-               group = paste(sol,
-                             site, proxy,
-                             detrend_type,
-                             depth_chunk## ,
-                             ## window
-                             ))) +
-    facet_grid(rows = vars(sol)) +
-    labs(x = "Age (Ma)", y = "Norm. Filter & Solution",
-         colour = "") +
-    ## theme(legend.pos = c(.64, .864),
-    ##       legend.direction = "horizontal") +
-    scale_x_reverse(breaks = seq(80, 50, -1),
-                    minor_breaks = seq(80, 50, -0.1)) +
-    scale_y_continuous(breaks = c(-4, 0, 4)) +
-    scale_linewidth_continuous(range = c(1.2, 0.8)) +
-    scale_alpha_continuous(range = c(1, 0.4)) +
-    scale_colour_manual(values = c("Astronomical Solution" = "black",
-                                   "Data"="purple"),
-                        guide = guide_legend(override.aes = list(alpha = 1))) +
-    geom_vline(aes(xintercept = age1),
-               colour = "darkgray",
-               data = kpg_ages |>
-                 filter(sln != "La11") |>
-                 rename(sol = sln)) +
-    # plot all fits as thin lines
-    ## geom_line(linewidth = .1, alpha = .3) +
-    # add the BEST fits for each segment/proxy/solution
-    geom_line(aes(## linewidth = RMSD,
-                  ## alpha = SD,
-                  colour = "Data"
-                  ), data = baoo) +
-
-    # annotate astronomical solution
-    geom_line(aes(x = age * 1e-3, y = scl, group = sol,
-                  colour = "Astronomical Solution"),
-              inherit.aes = FALSE,
-              data = slns |>
-                filter(sln != "La11") |>
-                filter(age > 65800) |>
-                filter(age < 71300) |>
-                rename(sol = sln)) #+
-    # this has some ugly dups
-    ## geom_line(aes(y = ecc_sln, colour = "Astronomical Solution"),
-    ##           data = \(x) x |>
-    ##                       distinct(sol, proxy, comb, age, depth_chunk, ecc_sln, .keep_all = TRUE) |>
-    ##                       filter(depth_chunk == "full record",
-    ##                              proxy == "Lstar",
-    ##                              comb == "1:1")) +
-    ## geom_line(aes(y = SD, linewidth = RMSD, alpha = RMSD)) +
-
-    ## # annotate overall best fit scores
-    ## geom_errorbar(aes(xmin = 71.1, xmax = 65.9, x = 71, y = 9,
-    ##                   group = sol),
-    ##               colour = "gray",
-    ##               data = overal_best_sol |>
-    ##                 filter(proxy == "Lstar", comb == "1:1")) +
-    ## geom_text(aes(x = 65.9 + (71.1 - 65.9) / 2, y = 10,
-    ##               label = round(RMSD, 3), group = sol),
-    ##           colour = "black",
-    ##           size = 2, show.legend = FALSE,
-    ##           data = overal_best_sol |>
-    ##                 filter(proxy == "Lstar", comb == "1:1")) +
-    ## ## geom_text(aes(x = 65.9 + (71.1 - 65.9) / 2, y = 11,
-    ## ##               label = paste(detrend_type, window), group = sol),
-    ## ##           size = 2, show.legend = FALSE,
-    ## ##           colour = "black",
-    ## ##           data = overal_best_sol |>
-    ## ##                 filter(proxy == "Lstar", comb == "1:1")) +
-
-    ## # best fits for subsets of the data
-    ## geom_errorbarh(aes(xmin = lwr * 1e-3,
-    ##                    xmax = upr * 1e-3,
-    ##                    y = -7 +
-    ##                      14 * as.integer(depth_chunk == "full record") +
-    ##                      -0.5 * as.integer(site == "Sopelana")),
-    ##                height = 1, alpha = .4,
-    ##                data = best_age_optim_one |>
-    ##                  my_filt() |>
-    ##                  mutate(
-    ##                    age = map_dbl(the_best,
-    ##                                  \(x) mean(x$matched$age,
-    ##                                            na.rm = TRUE)),
-    ##                    lwr = map_dbl(the_best,
-    ##                                  \(x) min(x$matched$age,
-    ##                                           na.rm = TRUE)),
-    ##                    upr = map_dbl(the_best,
-    ##                                  \(x) max(x$matched$age,
-    ##                                           na.rm = TRUE)))) +
-    ## ## geom_line(aes(y = -7 + 14 * as.integer(depth_chunk == "full record")),
-    ## ##           linewidth = 1, alpha = .05,
-    ## ##           data = \(x) x |> distinct(sol, proxy, site, depth_chunk, age, .keep_all = TRUE)) +
-    ## geom_text(aes(x = age * 1e-3, y = -6 +
-    ##                                 12 * as.integer(depth_chunk == "full record") +
-    ##                                 -0.5 * as.integer(site == "Sopelana"),
-    ##               label = round(RMSD, 3)),
-    ##           size = 2, show.legend = FALSE,
-    ##           data = best_age_optim_one |>
-    ##             my_filt() |>
-    ##             mutate(age = map_dbl(the_best,
-    ##                                  \(x) mean(x$matched$age,
-    ##                                              na.rm = TRUE)))) #+
-    ## ## geom_text(aes(x = age * 1e-3, y = -8 +
-    ## ##                                 16 * as.integer(depth_chunk == "full record") +
-    ## ##                                 -0.5 * as.integer(site == "Sopelana"),
-    ## ##               label = paste(site, detrend_type, window)),
-    ## ##           size = 2, show.legend = FALSE,
-    ## ##           data = best_age_optim_one |>
-    ## ##             my_filt() |>
-    ## ##             mutate(age = map_dbl(the_best,
-    ## ##                                  \(x) mean(x$matched$age,
-    ## ##                                              na.rm = TRUE)))) #+
-
-    ## ## annotate ages of 405 kyr minima
-    ## geom_point(aes(x = age * 1e-3, y = -3.5),
-    ##            inherit.aes = FALSE,
-    ##            data = sln_peaks |>
-    ##              rename(sol = sln) |>
-    ##              filter(sol != "La11") |>
-    ##              filter(age > 65.8e3) |>
-    ##              filter(age < 71.4e3)) +
-
-    ## # annotate depths of tweaked tiepoints
-    ## geom_point(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4),
-    ##            ## shape = ".",
-    ##           data = best_age_optim |>
-    ##             filter(comb == "1:1") |>
-    ##             filter(proxy == "Lstar") |>
-    ##             filter(detrend_type == "lin_scl_med") |>
-    ##             filter(depth_chunk == "full record") |>
-    ##             mutate(m = map(the_best, "summary")) |>
-    ##             unnest(m))
-    ## geom_text(aes(x = (age_floating + kpg_age + age_slider) * 1e-3, y = -4.5,
-    ##               label = paste(strat_bot, tie_err)),
-    ##           size = 1.8,
-    ##           show.legend = FALSE,
-    ##           data = best_age_optim |>
-    ##             filter(comb == "1:1") |>
-    ##             filter(proxy == "Lstar") |>
-    ##             filter(detrend_type == "lin_scl_fine") |>
-    ##             mutate(m = map(the_best, "summary")) |>
-    ##             unnest(m))
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Zumaia_Lstar_1-1_solutions_simple.pdf]]
 
 **** COMMENT simplified plot of filters
 :PROPERTIES:
