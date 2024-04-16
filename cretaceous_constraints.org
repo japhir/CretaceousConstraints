@@ -9974,11 +9974,12 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ##        comb == "1:1", site == "Zumaia",
     ##        ## depth >= 109.26) |> # this is for the lower part with a different sedrate
     ##        depth < 109.26) |> # this is for the upper part
-    filter(comb == "1:1") |>
+    ## filter(comb == "1:1") |>
     ## filter(proxy == "Lstar") |>
-    filter(proxy != "Lstar") |>
+    ## filter(proxy != "Lstar") |>
     ## filter(proxy != "Lstar") |>
     ## filter(site == "Zumaia") |>
+    filter(comb != "1:1") |>
     ## filter(!detrend_type %in% c("scl", "lin_scl_med")) |>
     filter(detrend_type == "lin_scl_med") |> # default
     ## filter(detrend_type == "lin_scl_fine") |> # sensitivity
@@ -10049,7 +10050,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_3x.rds")
     ## write_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25_3x.rds")
     ## write_rds("out/2024-03-28_rolling_age_optim_d13C-MS_lin-scl-med_gauss_narrow-0.25_3x.rds")
-    write_rds("out/2024-03-28_rolling_age_optim_d13C_MS_lin-scl-med_taner_narrow-0.25.rds")
+    ## write_rds("out/2024-03-28_rolling_age_optim_d13C_MS_lin-scl-med_taner_narrow-0.25.rds")
+    write_rds("out/2024-04-08_rolling_age_optim_d13C_MS_Lstar_lin-scl-med_taner_narrow-0.25_all-comb.rds")
   message("current time: ", lubridate::now())
   message("duration: ", round(lubridate::now() - nw, 2))
   rm(wrap_age_model) # rm so we can get back the one from the package
@@ -10277,6 +10279,12 @@ write_rds("out/2024-03-28_rolling_age_optim_d13C_MS_lin-scl-med_taner_narrow-0.2
 > current time: 2024-03-28 17:41:35.271726
 > duration: 14.54
 
+write_rds("out/2024-04-08_rolling_age_optim_d13C_MS_Lstar_lin-scl-med_taner_narrow-0.25_all-comb.rds")
+> current time: 2024-04-08 15:35:01.913837
+fail, removed comb 1:1
+> current time: 2024-04-15 11:49:46.500872
+> current time: 2024-04-15 14:28:34.353611
+> duration: 2.65 hours
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -10417,6 +10425,7 @@ new runs after changing to a taner filter currently with roll = 1e10.
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.24.rds") |> mutate(roll = 1e10, frac = 0.24),
       ## read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.245.rds") |> mutate(roll = 1e10, frac = 0.245), # this might be excessive
       read_rds("out/2024-03-28_rolling_age_optim_d13C_MS_lin-scl-med_taner_narrow-0.25.rds") |> mutate(roll = 1e10, frac = 0.25),
+      read_rds("out/2024-04-08_rolling_age_optim_d13C_MS_Lstar_lin-scl-med_taner_narrow-0.25_all-comb.rds") |> mutate(roll = 1e10, frac = 0.25),
     ) |>
     mutate(window = as_factor("taner") |> fct_relevel(c("rectangular", "gaussian", "taner"))) |>
     mutate(detrend_type = as_factor(detrend_type) |>
@@ -10471,7 +10480,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: filter: removed 136 rows (42%), 186 rows remaining
+: filter: removed 136 rows (23%), 466 rows remaining
 
 **** COMMENT plot improvement after optimization after algorithm revision
 # #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
@@ -10758,8 +10767,8 @@ old
 
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac, window)`
-: filter: removed 2,124 rows (1%), 207,085 rows remaining
-: filter: removed 105 rows (83%), 21 rows remaining
+: filter: removed 4,972 rows (1%), 416,672 rows remaining
+: + + filter: removed 273 rows (93%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -10796,8 +10805,10 @@ old
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window)`
-: filter: removed 23,552 rows (5%), 493,687 rows remaining
+: Error: object 'rolling_age_optim_old' not found
+: Error: object 'rolling_age_optim_old' not found
+: Error: object 'overall_sd_old' not found
+: Error: object 'overall_best_old' not found
 
 **** COMMENT recompute RMSD for the ~scl~ taner filter
 :PROPERTIES:
