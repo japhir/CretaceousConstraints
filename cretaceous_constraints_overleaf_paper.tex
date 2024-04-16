@@ -916,9 +916,11 @@ We suggest that future studies generate new astronomical solutions with similar 
   \centering \includegraphics[width=\textwidth]{full_RMSD_comb_comparison.png}
   \caption{\label{fig:full-RMSD-comb}
     \textbf{Sensitivity analysis of different weights for long- and short eccentricity.}
+    Different astronomical solutions (colours) show very similar patterns,
+    where most combinations of the short and long eccentricity filters other than 1:1 result in lower \gls{RMSD} scores.
+    Still we use the 1:1 weights in the main text because they preserve the relative filter amplitudes from the data.
     This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization.
-    The taner filters have the main-text roll parameter of \num{e10}.
-    While different combinations of the short and long eccentricity filters result in lower \gls{RMSD} scores, we use the 1:1 weights in the main text because they preserve the relative filter amplitudes from the data.
+    The taner filters have the main-text roll parameter of \num{e10} and a filter fraction of \num{0.25}.
     }
 \end{figure}
 
