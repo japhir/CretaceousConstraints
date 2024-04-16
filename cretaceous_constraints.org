@@ -7,7 +7,6 @@
 #+EXCLUDE_TAGS: noexport nolatex
 #+visibility: folded
 
-\newpage
 * libraries
 #+begin_src R :results none
   library(tidyverse) # data wrangling + plotting
@@ -5654,6 +5653,164 @@ R^2 = 69.81% ;  empirical tau (over all): 691/1361 = 0.5077149 (target tau= 0.5)
 #+RESULTS:
 [[file:imgs/fancyfit_mtm.png]]
 
+**** eemd
+empirical mode decomposition
+:PROPERTIES:
+:CREATED:  [2024-04-11 Thu 14:15]
+:END:
+#+begin_src R
+  wide <- comp |>
+     ## filter(proxy == "Lstar") |>
+    filter(site == "Zumaia") |>
+    pivot_wider(names_from = proxy) |>
+    tidylog::filter(## !is.na(d13C),
+               !is.na(MS), !is.na(Lstar)) |>
+    arrange(depth) |>
+    select(-comment,
+           -d13C)
+#+end_src
+
+ensemble mode decomposition
+***** with ~hht::EEMD~
+was recently updated [2023-03-13 Mon]
+
+this cites the same [cite:@Wu2009] paper
+
+#+begin_src R
+  trials <- 10
+  nimf <- 10
+  noise.amp <- 6.4e-7
+  trials.dir <- "test"
+  LEEMD <- hht::EEMD(wide$Lstar, wide$depth, noise.amp, trials, nimf, trials.dir = trials.dir)
+  EEMD.result <- hht::EEMDCompile(trials.dir, trials, nimf)
+  time.span <- range(wide$depth)
+  imf.list <- 1:5
+  hht::PlotIMFs(EEMD.result, time.span, imf.list, TRUE, TRUE)
+
+  # they also do CEEMD!
+  LCEEMD <- hht::CEEMD(wide$Lstar, wide$depth, noise.amp, trials)
+
+  hht::PlotIMFs(LCEEMD, imf.list = 2:6, time.span = range(wide$depth))
+#+end_src
+
+***** with ~Rlibeemd::eemd~
+or "complete variant" ~Rlibeemd::ceemdan~
+
+the C-backend libeemd was most recently updated on [2019-01-11 Fri]
+
+this cites more recent papers [cite:@Huang1999,@Torres2011]
+
+#+begin_src R
+  simp <- wide |>
+    select(depth, Lstar) |>
+    ## filter(depth <= 109.26) |>
+    select(depth, Lstar) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE)
+
+  Leemd <- simp$Lstar |>
+    Rlibeemd::eemd(num_imfs = 8)
+
+  Lceemdan <- simp$Lstar |>
+    Rlibeemd::ceemdan(#num_imfs = 10, # 1 residual (the weird trend) and 3 core cycles
+                noise_strength = 0.9,
+                threads = 4)
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R :results output graphics file :file imgs/CEEMDAN_base.png :width 2200 :height 1900 :res 300
+  par(mfrow = c(5, 1), mar = c(0.5, 4, 0.5, 0), oma = c(5, 4, 4, 0))
+  # raw data
+  plot(-simp$depth, simp$Lstar |> as.ts(), col = "gray", type = "l", ylab = "Data - IMF 1-7", xaxt = "n", xlab = "")
+  lines(-simp$depth, simp$Lstar - rowSums(Lceemdan[, 1:7]), col = "red") # all the smallest components subtracted
+  abline(v = -agem_simple$strat_bot, col = "gray")
+  ## plot(Lceemdan[, 1], type = "l") # ??
+  ## plot(Lceemdan[, 2], type = "l") # ??
+  plot(-simp$depth, Lceemdan[, 3], type = "l", col = "navyblue", ylab = "IMF 3", xaxt = "n", xlab = "") # precession?
+  abline(v = -agem_simple$strat_bot, col = "gray")
+  plot(-simp$depth, Lceemdan[, 4], type = "l", col = "darkgreen", ylab = "IMF 4", xaxt = "n", xlab = "") # obliquity?
+  abline(v = -agem_simple$strat_bot, col = "gray")
+  # the ecc compontents?
+  plot(-simp$depth, Lceemdan[, 5], type = "l", col = "indianred",
+       ylab = "IMF 5 and 6", xaxt = "n", xlab = "") # pretty much 100 kyr
+  abline(v = -agem_simple$strat_bot, col = "gray")
+  lines(-simp$depth, Lceemdan[, 6]) # seems like a 200 kyr cycle?
+  plot(-simp$depth, Lceemdan[, 7], type = "l", col = "orange", xlab = "Depth (m)", ylab = "IMF 7") # pretty much 405 kyr
+  ## lines(-simp$depth, Lceemdan[, 8])
+  ## lines(-simp$depth, Lceemdan[, 9])
+  abline(v = -agem_simple$strat_bot, col = "gray")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/CEEMDAN_base.png]]
+
+# #+begin_src R :results output graphics file :file imgs/CEEMDAN.png :width 2200 :height 1900 :res 300
+#+begin_src R :results output graphics file :file imgs/CEEMDAN.pdf :width 5 :height 5
+  (
+  wide |>
+    ggplot(aes(x = depth, y = Lstar)) +
+    scale_x_reverse() +
+    geom_line() +
+    geom_vline(aes(xintercept = strat_bot),
+               data = agem_simple |> filter(strat_bot < 140),
+               colour = "gray") +
+    geom_line(colour = "red", data = simp)
+  ) / (
+    # contrast to bandpass filters
+    filts |>
+    filter(site == "Zumaia",
+           proxy == "Lstar",
+           depth_chunk == "full record",
+           detrend_type == "value"
+           ## detrend_type == "lin_scl_med"
+           ) |>
+    ggplot(aes(x = depth, y = filter)) +
+    facet_grid(rows = vars(target), scales = "free_y", space = "free_y") +
+    scale_x_reverse() +
+    geom_vline(aes(xintercept = strat_bot),
+               data = agem_simple |> filter(strat_bot < 140),
+               colour = "gray") +
+    geom_line(colour = "blue")
+  ) / (
+    Lceemdan |> as_tibble() |> mutate(idx = 0:(n() - 1)) |>
+    pivot_longer(cols = matches("(IMF)|(Resid)")) |>
+    separate(name, sep = " ", into = c("x", "imf")) |>
+    mutate(imf = parse_integer(imf)) |>
+    filter(imf > 2, imf < 8) |>
+    ggplot(aes(x = idx, y = value)) +
+    scale_x_reverse() +
+    geom_line() +
+    facet_grid(rows = vars(imf), scales = "free_y", space = "free_y")
+  ) + plot_layout(axes = "collect", heights = c(1, 1, 3))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/CEEMDAN.pdf]]
+
+5 6 and 7 seem to have the core eccentricity components
+#+begin_src R
+  plot(-simp$depth, ## simp$Lstar - # take the raw data
+                    ## rowSums(Lceemdan[, 1:4]) - # subtract all the high-frequency noise
+                    ## rowSums(Lceemdan[, 8:10]), # then subtract all the low frequency trends
+                    rowSums(Lceemdan[, c(5,7)]),
+       type = 'l')
+#+end_src
+
+#+RESULTS:
+
+but the combination is messy still
+#+RESULTS:
+
+***** SOME using the floating age model?
+:PROPERTIES:
+:CREATED:  [2024-04-11 Thu 16:08]
+:END:
+:LOGBOOK:
+- State "SOME"       from              [2024-04-11 Thu 17:03]
+:END:
+#+begin_src R
+
+#+end_src
 **** combine the trend removal dataframes into smooth_pred
 :PROPERTIES:
 :CREATED:  [2023-09-28 Thu 14:26]
