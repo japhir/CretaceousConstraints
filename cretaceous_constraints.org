@@ -634,10 +634,10 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 [[file:imgs/ZB20a_spectrum.png]]
 
 *** plot_spectrum for all astronomical solutions
-#+begin_src R :results graphics file output :file imgs/astronomical_solution_spectrum.png :width 2400 :height 1000 :res 300 :eval never
-  plot_spectrum(slns_specs, group = "sln") +
+#+begin_src R :results graphics file output :file imgs/astronomical_solution_spectrum.png :width 2400 :height 1000 :res 300
+  plot_spectrum(slns_specs, group = "sln", domain = "time") +
     ## coord_cartesian(xlim = c(1/3000, 0.06), ylim = c(0, 6e-6)) + # show precession as well
-    coord_cartesian(xlim = c(0, 0.015), ylim = c(0, 6e-6)) +
+    coord_cartesian(xlim = c(0, 0.012), ylim = c(0, 6e-6)) +
     scale_colour_brewer(type = "qual", palette = 2) +
     scale_fill_brewer(type = "qual", palette = 2) +
     ## coord_cartesian(xlim = c(0.0071, 0.011)) + # zoom on 100 kyr peaks
