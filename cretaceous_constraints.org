@@ -4322,6 +4322,39 @@ very short record, Ma405_{-3} to Ma405_{4} and a bit
 #+RESULTS:
 [[file:imgs/Zumaia_CaCO3_bandpass_filters.png]]
 
+**** COMMENT d13C Dinares-Turell 2014
+:PROPERTIES:
+:CREATED:  [2024-04-18 Thu 10:52]
+:END:
+this is only the younger part, even though they also describe the upper Maastrichtian in the paper
+#+begin_src R
+  DT14 <- pangaear::pg_data("10.1594/PANGAEA.835396")[[1]]$data
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/Dinares-Turell2014_Zumaia_stable-isotopes.png :width 800
+  (
+  DT14 |>
+  ggplot(aes(
+    ## x = `Section [m]`,
+    x = `Age [ka BP]` * 1e-3,
+    y = `δ13C carb [‰ PDB]`)) +
+    geom_line() +
+    scale_x_reverse()
+  ) /
+  (
+  DT14 |>
+    ggplot(aes(
+    ## x = `Section [m]`,
+    x = `Age [ka BP]` * 1e-3,
+    y = `δ18O carb [‰ PDB]`)) +
+    geom_line() +
+    scale_x_reverse()
+  ) + plot_layout(axes = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Dinares-Turell2014_Zumaia_stable-isotopes.png]]
+
 *** create tables with ranges of bp filters in depth domain
 :PROPERTIES:
 :CREATED:  [2023-09-27 Wed 10:05]
