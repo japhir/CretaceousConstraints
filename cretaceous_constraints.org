@@ -14154,6 +14154,44 @@ https://doi.pangaea.de/10.1594/PANGAEA.834794
   (setq org-cite-export-processors '((latex biblatex) (t csl)))
 #+end_src
 
+* can you get low amplitude in 100 kyr filter from noise?
+:PROPERTIES:
+:CREATED:  [2024-04-16 Tue 12:02]
+:END:
+#+begin_src R
+  dat <- tibble(x = 1:1000, y = astrochron::ar1(1000, genplot = FALSE)$V2, s = rnorm(1000), z = y + s)
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/2024-04-16_ar1+white_noise_spectrum.png :width 800
+  dat |>
+    spectral_analysis(x = x, y = z) |>
+    plot_spectrum(confidence = TRUE, logy = TRUE) +
+    annotate("rect", xmin = 0.015, xmax = 0.03, ymin = 1e-5, ymax = 1e-1, fill = "red", alpha = .3) +
+    annotate("rect", xmin = 0.038, xmax = 0.045, ymin = 1e-5, ymax = 1e-1, fill = "red", alpha = .3)
+    ## coord_cartesian(xlim = c(0, 0.2))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/2024-04-16_ar1+white_noise_spectrum.png]]
+
+#+begin_src R
+  flt <- dat |>
+    taner_filter(frequencies = tibble(target = c("one", "two"), flow = c(0.015, 0.038), fhigh = c(0.03, 0.045)), x = x, y = z)
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/2024-04-16_ar1+white_noise_filter.png :width 800
+  dat |>
+    ggplot(aes(x = x, y = y)) +
+    geom_line() +
+    geom_line(aes(y = filter, colour = target), linewidth = 2, data = flt)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/2024-04-16_ar1+white_noise_filter.png]]
+
+so what did I learn here?
+
+My question was:
 * latex settings that I haven't settled on yet         :noexport:
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 13:08]
