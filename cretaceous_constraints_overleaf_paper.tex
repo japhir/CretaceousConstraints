@@ -297,8 +297,8 @@ This means that providing absolute ages of Maastrichtian records based on tuning
 The implications for this when comparing absolute astronomical ages to Ar/Ar and Ur/Pb ages \ijk{TODO}.
 
 
-One of the key differentiating factors between different astronomical solutions is the timing of \acrpl{VLN}.
-When the individual components that make up the short eccentricity cycle (i.e., \appr\qtylist{95;99.7;124;132.5}{\kiloyear}) interfere to cancel each outher out, only the long eccentricity component (\appr\qty{405}{\kyr}) remains clearly visible.
+One of the key differentiating factors between different astronomical solutions is the timing of \gls{VLN}.
+When the individual components that make up the short eccentricity cycle (i.e., \appr\qtylist{95;99.7;124;132.5}{\kiloyear}) interfere to cancel each outher out, only the long eccentricity component (\appr\qty{405}{\kiloyear}) remains clearly visible.
 
 
 \section{Material and Methods}\label{sec:mm}
@@ -489,7 +489,6 @@ Then we calculated how well the filtered records matched the astronomical soluti
 \end{equation}
 where \(e\) is the scaled eccentricity of the astronomical solution and \(f\) is the scaled and filtered combination of long- and short eccentricity.
 
-\ijk{TODO:\ make a new figure demonstrating this?---it's running now.}
 To study the effect of the two eccentricity cycles on the match with the astronomical solution
 we assigned different weights to the two filtered signals
 (relative weights of 1:0, 1:0.25, 1:0.5, 1:0.75, 1:1, 0.75:1, 0.5:1, 0.25:1, and 0:1 for the long and short eccentricity cycles respectively).
@@ -629,37 +628,39 @@ Together, these descriptions of the patterns in our eccentricity constructs and 
 
 \subsection{Sensitivity Analysis}
 \rez{[this section needs to be fleshed out with text and highlight the important effects. it IS important that differences in the methods lead to different results!]}
-\ijk{wrote a first draft of this now.}
+\ijk{[wrote a first draft of this now.]}
 
 Our results were relatively sensitive to the choices of which proxy archive we used, how we detrended the record to subtract non-cyclical patterns, and how we performed bandpass filtering.
 % proxy
-We show the eccentricity constructs based on \gls{MS} and \gls{d13C} against the astronomical solutions in the time domain in the appendix (\cref{fig:rolling-age-MS,fig:rolling-age-d13C}) and includ their \gls{RMSD} scores in \cref{fig:full-RMSD-all}.
+We show the eccentricity constructs based on \gls{MS} and \gls{d13C} against the astronomical solutions in the time domain in the appendix (\cref{fig:rolling-age-MS,fig:rolling-age-d13C}) and included their \gls{RMSD} scores in \cref{fig:full-RMSD-all}.
+See the methods for a reflection on why we prefer the \gls{L*} archive.
 % boot
-One approach to get a sense of the uncertainty of our \gsl{RMSD} scores is to perform bootstrapping.
+One approach to get a sense of the uncertainty of our \gls{RMSD} scores is to perform bootstrapping.
 The data were randomly resampled (with the same size as the original data with repeated sampling enabled) and the \gls{RMSD} scores were calculated many (i.e., \num{e5}) times.
 This resulted in a distribution of \gls{RMSD} scores for each proxy against each astronomical solution (\ref{fig:full-RMSD-boot}).
 These bootstrapped scores indicate that the differences in scores for the \gls{d13C} proxy were likely not significant, while the lower score for the \gls{L*} ZB20a solution likely was.
-We hesitate to perform statistical testing, however, since the next few sections will show how sensitive our \gls{RMSD} scores were to different parameter choices.
+We hesitate to perform statistical testing, however, since the next sections will show how sensitive our \gls{RMSD} scores were to different parameter choices that resulted in a different alignment between the proxy record and the astronomical solutions.
 
 % tie-point tweaking
 The algorithm that allowed changing the depth of each long eccentricity minimum as identified in the field improved the \gls{RMSD} scores quite dramatically \cref{fig:full-RMSD-tie}.
 However, it is sensitive to the extent to which we allowed the tiepoint depths to vary and by how much we shifted the record in order to arrive at the best fit.
-For example, if we let the record shift by up to \qty{400}{\kiloyear} instead of the \qty{200}{\kiloyear} used throughout the manuscript, an offset of one long eccentricity cycle was often observed for some astronomical solutions.
+For example, if we let the record shift by up to \qty{400}{\kiloyear} instead of the \qty{200}{\kiloyear} used throughout the manuscript, as one would expect, an offset of more than one long eccentricity cycle was often observed for some astronomical solutions.
 This is probably incorrect but happened to result in a better fit with those particular astronomical solutions.
-Furthermore, allowing each tiepoint depth to vary by larger distance than the \qty{1.6}{\metre} shown in the main text, \ijk{oh snap, usually this results in a better fit that looks nicer and gets a better RMSD score... But could their 400 kyr minima idenification really be off by up to 5 meters?}
-As a quality control, we visualized the \gls{RMSD} scores for each tiepoint adjustment against depth to make sure that a local minimum was found, and that the tiepoint was not adjusted by too much.
-% hmmm this was instructive but time consuming XD
+Furthermore, allowing each tiepoint depth to vary by larger distance than the \qty{1.6}{\metre} shown in the main text, \ijk{[oh snap, changing this to 4 or 5 meters usually results in a better fit that looks nicer and gets a better RMSD score. But could their 400 kyr minima idenification really be off by up to 5 meters?]}
+\ijk{[talk about short ecc count offset between \cite{Batenburg2012} and \cite{Dinares-Turell2013}. Not sure if this should be discussion.]}
+As a quality control, we visualized the \gls{RMSD} scores for each tiepoint adjustment against depth to make sure that a local minimum was found and that the resulting eccentricity construct did not show any too rapid changes in sedimentation rate (see \cref{fig:tiepoint-RMSD-optima} for an example).
 
 % detrend
 Different ways of detrending the proxy records to subtract non-cyclical patterns also lead to different results (\cref{fig:detrend,fig:full-RMSD-detrend,fig:Lstar-detrend}).
-Overall, the different ways of detrending the record resulted in similar patterns but the \gls{RMSD} scores for some solutions varied more between different ways of detrending than between different astronomical solutions.
+Overall, the different ways of detrending the record showed similar patterns, but the \gls{RMSD} scores for some solutions varied more between different ways of detrending than between different astronomical solutions.
 
 % filter
 % window: gaussian, rectangular, taner
-The bandpass filtering window also affected the results (\cref{fig:filter-windows}).
+Which bandpass filtering window was used also affected the results (\cref{fig:filter-windows}).
 The gaussian window performed worst (after rescaling it so the comparison uses similar filter widths, see \cref{fig:filter-windows}), followed by a rectangular filter, with the taner filter with intermediate roll parameters performing best.
 % taner roll parameter: more rectangular to more gaussian to more t-dist
-Taner roll parameters with a relatively smooth window (\texttt{roll}\( \ge 10^{8}\) and \(\le 10^{12}\)), made our algorithm shift the eccentricity construct by one short eccentricity cycle against the ZB20a solution, resulting in a much better fit (\cref{fig:full-RMSD-filter,fig:filter-windows}).
+As one would expect, taner filters with a very high roll parameter (\num{e100}) performed very similar to the rectangular filter.
+Taner roll parameters with a relatively smooth window (\(\texttt{roll} \ge 10^{8}\) and \(\le 10^{12}\)), made our algorithm shift the eccentricity construct by one short eccentricity cycle against the ZB20a solution, resulting in a much better fit (\cref{fig:full-RMSD-filter,fig:filter-windows}).
 % frac: window width, ±XX% of the target frequency
 The same shift occured when we changed the width of the filters (\cref{fig:full-RMSD-frac}).
 
@@ -915,6 +916,18 @@ We suggest that future studies generate new astronomical solutions with similar 
     }
 \end{figure}
 
+% Appendix Figure: RMSD scores before and after tie-point adjustments
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{tiepoint_RMSD_optima.png}
+  \caption{\label{fig:tiepoint-RMSD-optima}
+    \textbf{Illustration of how RMSD scores change by performing tie-point depth optimization.}
+    The \gls{RMSD} scores as they evolve when each tiepoint is iteratively shifted for the \gls{L*} record of Zumaia (top panel).
+    We show the eccentricity construct (black) versus the astronomical solution (yellow).
+    This uses the taner filter from the main text on the piecewise linearly detrended record.
+    }
+\end{figure}
+
+
 % Appendix Figure: RMSD scores for different ways of detrending
 \begin{figure}[htb]
   \centering \includegraphics[width=\textwidth]{full_RMSD_detrend_comparison.png}
@@ -957,6 +970,20 @@ We suggest that future studies generate new astronomical solutions with similar 
     The bottom panel contrasts \gls{RMSD} scores for the \texttt{lin\_scl\_med} detrended \gls{L*} data with tie-point depth optimization.
     }
 \end{figure}
+
+% Appendix Figure:  RMSD scores for different filter strategies
+\begin{figure}[htb]
+  \centering \includegraphics[width=\textwidth]{full_RMSD_frac.pdf}
+  \caption{\label{fig:full-RMSD-frac}
+    \textbf{Sensitivity analysis of different bandpass filter widths.}
+    The frac parameter is the fraction that determines the upper and lower boundaries of the target frequency.
+    %% For example, targeting the \(\frac{1}{405}}\)\si{\per\kiloyear} frequency \(\pm\texttt{frac}\times\texttt{freq}\).
+    %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
+    This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization.
+    The taner filter has the main-text roll parameter of \num{e10}.
+    }
+\end{figure}
+
 
 
 % Appendix Figure:  RMSD scores for different weights of long- and short ecc
