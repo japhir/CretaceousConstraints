@@ -633,36 +633,61 @@ Together, these descriptions of the patterns in our eccentricity constructs and 
 Our results were relatively sensitive to the choices of which proxy archive we used, how we detrended the record to subtract non-cyclical patterns, and how we performed bandpass filtering.
 % proxy
 We show the eccentricity constructs based on \gls{MS} and \gls{d13C} against the astronomical solutions in the time domain in the appendix (\cref{fig:rolling-age-MS,fig:rolling-age-d13C}) and included their \gls{RMSD} scores in \cref{fig:full-RMSD-all}.
-See the methods for a reflection on why we prefer the \gls{L*} archive.
+The \gls{d13C} archive from Zumaia shows a better match with ZB20c and La10b, but the differences are very minor.
+Visually, differences between the fits to different astronomical solutions are hard to distinguish in the time domain (\cref{fig:rolling-age-d13C}).
+The \gls{MS} proxy results in the best fits with ZB20d, ZB20c, and to a lesser extent La10c, ZB18a, and La10b.
+This could be because the \gls{MS} record shows a high amplitude in \ma{6}, whereas ZB20a, ZB20b, and La10c have a \gls{VLN} here.
+There is also a high amplitude during \ma{8}, which coincides with a \gls{VLN} in ZB20c, ZB18a, and to a lesser extent La10b.
+Finally, \ma{10} and \ma{11} also show high amplitude, which rules out ZB20b and La10c.
+See the methods for reasons to prefer the \gls{L*} proxy over the \gls{MS} and \gls{d13C} proxies for our purposes.
+
 % boot
 One approach to get a sense of the uncertainty of our \gls{RMSD} scores is to perform bootstrapping.
-The data were randomly resampled (with the same size as the original data with repeated sampling enabled) and the \gls{RMSD} scores were calculated many (i.e., \num{e5}) times.
-This resulted in a distribution of \gls{RMSD} scores for each proxy against each astronomical solution (\ref{fig:full-RMSD-boot}).
+The data were randomly resampled (with the same size as the original data with repeat sampling) and the \gls{RMSD} scores were calculated many (i.e., \num{e5}) times.
+This resulted in a distribution of \gls{RMSD} scores for each proxy against each astronomical solution (\cref{fig:full-RMSD-boot}).
 These bootstrapped scores indicate that the differences in scores for the \gls{d13C} proxy were likely not significant, while the lower score for the \gls{L*} ZB20a solution likely was.
-We hesitate to perform statistical testing, however, since the next sections will show how sensitive our \gls{RMSD} scores were to different parameter choices that resulted in a different alignment between the proxy record and the astronomical solutions.
+For a simple average of the bootstrapped values across all proxies, the means against all astronomical solutions overlapped at the \qty{68}{\percent} confidence level.
+After excluding the \gls{d13C} proxy, all astronomical solutions except for ZB20b showed a similar overlap.
+We hesitate to perform further statistical testing, however, since the next sections will show how sensitive our \gls{RMSD} scores were to different parameter choices that resulted in a different alignment between the proxy record and the astronomical solutions.
 
-% tie-point tweaking
-The algorithm that allowed changing the depth of each long eccentricity minimum as identified in the field improved the \gls{RMSD} scores quite dramatically \cref{fig:full-RMSD-tie}.
-However, it is sensitive to the extent to which we allowed the tiepoint depths to vary and by how much we shifted the record in order to arrive at the best fit.
-For example, if we let the record shift by up to \qty{400}{\kiloyear} instead of the \qty{200}{\kiloyear} used throughout the manuscript, as one would expect, an offset of more than one long eccentricity cycle was often observed for some astronomical solutions.
+% tie-points
+The algorithm that allowed changing the depth of each long eccentricity minimum as identified in the field improved the \gls{RMSD} scores quite dramatically (\cref{fig:full-RMSD-tie}).
+However, it is sensitive to the extent to which we shifted the record in order to arrive at the best fit and to which we allowed the tiepoint depths to vary.
+% shift
+For example, if we let the record shift by up to \qty{400}{\kiloyear} instead of the \qty{200}{\kiloyear} used throughout the manuscript, as one would expect, an offset of more than one long eccentricity cycle was often observed.
 This is probably incorrect but happened to result in a better fit with those particular astronomical solutions.
-Furthermore, allowing each tiepoint depth to vary by larger distance than the \qty{1.6}{\metre} shown in the main text, \ijk{[oh snap, changing this to 4 or 5 meters usually results in a better fit that looks nicer and gets a better RMSD score. But could their 400 kyr minima idenification really be off by up to 5 meters?]}
-\ijk{[talk about short ecc count offset between \cite{Batenburg2012} and \cite{Dinares-Turell2013}. Not sure if this should be discussion.]}
+Shifting the record by anywhere between \qtyrange{100}{300}{\kiloyear} typically resulted in an identical fit, however.
+
+% tiepoint tweaks
+Furthermore, allowing each tiepoint depth to vary by larger distance than our default value of \qty{1.6}{\metre} usually results in slightly better \gls{RMSD} scores (\cref{fig:full-RMSD-tie-error}).
+\ijk{[Do I want \emph{another} figure of the RMSD scores vs. the tiepoint error? I've included it but might want to omit it.]}
+Furthermore, a tiepoint error of up to 3 meters can result in an \gls{RMSD} score for the ZB18a solution that is similar to that of the ZB20a solution.
+Visually, the presence of the \gls{VLN} in \ma{8} in ZB18a coincident with the large amplitude does not agree with the simple score, however.
 As a quality control, we visualized the \gls{RMSD} scores for each tiepoint adjustment against depth to make sure that a local minimum was found and that the resulting eccentricity construct did not show any too rapid changes in sedimentation rate (see \cref{fig:tiepoint-RMSD-optima} for an example).
 
+% Changing this to 3, 4, or 5 meters usually results in a better fit that looks nicer and gets a better RMSD score
+% 200 kyr + 3 m offset always gives visually similar results but with better RMSD scores.
+%For ZB20a, our 1.6 m result goes from \num{1.02} to 3 m \num{0.986}.
+%For ZB18a, our 1.6 m result goes from \num{1.08} to 3 m \num{0.989} and is then on-par with ZB20a.
+%Setting it to 3, 4, or 5 m would move the K/T boundary up by 3 m, and the same for the minimum after Ma405-1 for ZB18a
+%But could their 400 kyr minima idenification really be off by that much?]}
+\ijk{[talk about short ecc count offset between \cite{Batenburg2012} and \cite{Dinares-Turell2013}. Not sure if this should be discussion.]}
+
 % detrend
-Different ways of detrending the proxy records to subtract non-cyclical patterns also lead to different results (\cref{fig:detrend,fig:full-RMSD-detrend,fig:Lstar-detrend}).
-Overall, the different ways of detrending the record showed similar patterns, but the \gls{RMSD} scores for some solutions varied more between different ways of detrending than between different astronomical solutions.
+Different ways of detrending the proxy records to subtract non-cyclical patterns also lead to different results (\cref{fig:full-RMSD-detrend}).
+Overall, the different ways of detrending the record (\cref{fig:detrend}) showed similar patterns, but the \gls{RMSD} scores for some solutions varied more between different ways of detrending than between different astronomical solutions (\cref{fig:full-RMSD-detrend}).
+The large changes in lithology result in a very large amplitude of the short eccentricity filter in the simple detrending approach.
+For most solutions, this simply results in a worse fit, but for ZB20a and La10b it makes our algorithm shift the long- eccentricity tiepoint depths enough that it gets offset by about one short-eccentricty cycle (\cref{fig:Lstar-detrend}), resulting in an even worse fit.
 
 % filter
 % window: gaussian, rectangular, taner
 Which bandpass filtering window was used also affected the results (\cref{fig:filter-windows}).
-The gaussian window performed worst (after rescaling it so the comparison uses similar filter widths, see \cref{fig:filter-windows}), followed by a rectangular filter, with the taner filter with intermediate roll parameters performing best.
+The gaussian window performed worst (after rescaling it so the comparison uses similar filter widths, see \cref{fig:filter-windows}), followed by a rectangular filter, while the taner filter with intermediate roll parameters performing best.
 % taner roll parameter: more rectangular to more gaussian to more t-dist
-As one would expect, taner filters with a very high roll parameter (\num{e100}) performed very similar to the rectangular filter.
+As one would expect, taner filters with a very high roll parameter (i.e., \num{e100}) performed very similar to the rectangular filter.
 Taner roll parameters with a relatively smooth window (\(\texttt{roll} \ge 10^{8}\) and \(\le 10^{12}\)), made our algorithm shift the eccentricity construct by one short eccentricity cycle against the ZB20a solution, resulting in a much better fit (\cref{fig:full-RMSD-filter,fig:filter-windows}).
 % frac: window width, ±XX% of the target frequency
-The same shift occured when we changed the width of the filters (\cref{fig:full-RMSD-frac}).
+The same type of shift occurred when we changed the width of the filters (\cref{fig:full-RMSD-frac}).
 
 % comb: weight of long and short ecc
 When we applied a different weighting to the long- and short eccentricity filters, we typically got better \gls{RMSD} scores than the 1:1 combination (\cref{fig:full-RMSD-comb}).
@@ -670,6 +695,7 @@ However, these effects seemed relatively uniform across all astronomical solutio
 We therefore prefer using the 1:1 solution so that the relative filter amplitude is preserved from the original data.
 
 Together, these sensitivity analyses show that arbitrarily picking a detrending strategy and filter criteria may result in different findings than if you explore the parameter space for robustness and correctness.
+Furthermore, they may indicate that at this moment we do not have a Maastrichtian record that is able to distinguish between the astronomical solutions that are available at present.
 
 
 
@@ -677,13 +703,19 @@ Together, these sensitivity analyses show that arbitrarily picking a detrending 
 
 This study aims to find out which, if any, astronomical solutions best match the highest-quality Maastrichtian proxy records of the Zumaia and Sopelana sites, in order to arrive at an astronomically calibrated time scale.
 
+
+
+Solutions La10b and La10c showed a poorer match already in the late Cretaceous, where they did not show a very long eccentricity node at around \qty{61}{\millionyearago} whereas the Walvis Ridge data did~\cite{ZeebeLourens2022EPSL}.
 % whoops was writing results in the discussion here...
 %% The youngest interval for Zumaia shows a slight preference for solutions La10b, ZB20a, and ZB20b (\cref{fig:cum-RMSD}).
 %% For the deeper/older part of the Zumaia record, only La10c (and to a lesser extent La10b) and ZB20b have good scores because ZB20a does not have a very long eccentricity node at \ma{8} (\appr\qty{68.9}{\millionyearago}), whereas the record clearly does.
 %% The record shows an exceptional peak within this bundle though.
+Our analysis shows that solutions ZB18a and ZB20c and to a lesser extent La10b are incompatible with the high amplitude in the data at \ma{5}.
+Then, as we move to the older part of the record, the Sopelana data results in a best score for ZB20a because ZB20b has a very long eccentricity node at \ma{10} (\appr\qty{69.7}{\millionyearago}), whereas the amplitude of the record is large there.
+Therefore, the ZB20a solution is most compatible with the available Maastrichtian data up to \appr\qty{71}{\millionyearago}.
 
-\ijk{TODO: literature comparison, only visual}
-Also observe a high amplitude of the short-eccentricity cycle in \ma{8} in ODP Site 1262 and to a lesser extent in 1209.
+\ijk{TODO: Can we look at multiple sites? literature comparison, only visual}
+%Previous studies have also indicated the presence of a high amplitude of the short-eccentricity cycle in \ma{8} in ODP Site 1262 and to a lesser extent in 1209. % where did I see this?
 Contrast to: Zumaia, ODP 1262, and 1267 \ma{1} and \ma{2}~\cite{Westerhold2008} figure 4.
 % this is all Husson2011:
 525A gray level bundle 1 (fig 4)
@@ -694,19 +726,10 @@ Contrast to: Zumaia, ODP 1262, and 1267 \ma{1} and \ma{2}~\cite{Westerhold2008} 
 1258A MS \ma{8--14} (fig 3) no recovery in 10
 of~\citeA{Husson2011}.
 
-Can we look at multiple sites?
-
-
-Solutions La10b and La10c showed a poorer match already in the late Cretaceous, where they did not show a very long eccentricity node at around \qty{61}{\millionyearago} whereas the Walvis Ridge data did~\cite{ZeebeLourens2022EPSL}.
-Then as we move to the older section the Sopelana data results in a best score for ZB20a because ZB20b has a very long eccentricity node at \ma{10} (\appr\qty{69.7}{\millionyearago}), whereas the amplitude of the record is large there.
-Therefore, we prefer the ZB20b solution up to \appr\qty{69.2}{\millionyearago}.
-For studies working with data older than this we must conclude that the data from Zumaia and Sopelana do not support any of the currently available astronomical solutions.
-
-We suggest that future studies generate new astronomical solutions with similar initial settings to the ZB20b solution and, using appropriate parameter variations, attempt to reproduce the patterns in the \gls{L*} record of the Sopelana site.
-
-
-
-
+Our sensitivity analysis showed that the approach is quite sensitive to parameter choices.
+This may be the result of the proxy archive itself, which is not able to robustly distinguish which astronomical solution across the Maastrichtian.
+Therefore, future studies could focus on generating high resolution proxy records that capture amplitude variability across this critical interval.
+We further suggest that future studies generate new astronomical solutions with similar initial settings to the ZB20a solution and, using appropriate parameter variations, explore this crucial chaotic horizon of the solar system.
 
 %%
 
@@ -826,6 +849,11 @@ We suggest that future studies generate new astronomical solutions with similar 
 % We show some more combinations of \cref{fig:full-RMSD-all} in \cref{fig:full-RMSD-detrend}.
 % We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:rolling-age-MS}) and for \gls{d13C} (\cref{fig:rolling-age-d13C}).
 
+% it actually didn't reset the figure numbers
+\renewcommand\thefigure{A\arabic{figure}}
+\setcounter{figure}{0}
+% maybe some of this needs to be digital supplement rather than appendix?
+
 % Appendix Figure: MS filters vs solutions
 \begin{figure}[htb]
   \centering
@@ -885,8 +913,6 @@ We suggest that future studies generate new astronomical solutions with similar 
     Illustration of how simple scaling of \gls{L*} with subsequent linear detrending (lower opacity lines)
     compares to the piecewize linear detrending strategy used in the main manuscript.
     Both use the same taner filter to extract long and short eccentricity components.
-    The large changes in lithology result in a very large amplitude filter in the simple detrending approach.
-    For most solutions, this simply results in a worse fit, but for ZB20a and La10b it makes our algorithm shift the long-eccentricity tiepoint depths enough that it gets offset by about one short-eccentricty cycle, resulting in an even worse fit.
     }
 \end{figure}
 
@@ -918,11 +944,21 @@ We suggest that future studies generate new astronomical solutions with similar 
 
 % Appendix Figure: RMSD scores before and after tie-point adjustments
 \begin{figure}[htb]
+  \centering \includegraphics[width=0.7\textwidth]{full_RMSD_tiepoint-error.pdf}
+  \caption{\label{fig:full-RMSD-tie-error}
+    \textbf{Changing RMSD scores after a wider range of tie-point depth optimization.}
+    Note the two alternative \gls{RMSD} scores for a maximum adjustment size of \qty{3}{\metre} for La10c are the result of a shift of \qty{200}{\kiloyear} (bottom point, better score) or \qty{300}{\kiloyear} (top point).
+    This uses the \gls{L*} record with a taner filter from the main text on the piecewise linearly detrended record.
+    }
+\end{figure}
+
+% Appendix Figure: RMSD scores with different tie-point adjustments
+\begin{figure}[htb]
   \centering \includegraphics[width=\textwidth]{tiepoint_RMSD_optima.png}
   \caption{\label{fig:tiepoint-RMSD-optima}
     \textbf{Illustration of how RMSD scores change by performing tie-point depth optimization.}
-    The \gls{RMSD} scores as they evolve when each tiepoint is iteratively shifted for the \gls{L*} record of Zumaia (top panel).
-    We show the eccentricity construct (black) versus the astronomical solution (yellow).
+    The \gls{RMSD} scores as they evolve when each tiepoint is iteratively shifted for the \gls{L*} record of Zumaia (top panel) against ZB18a.
+    We show the eccentricity construct (black) versus ZB18a (yellow).
     This uses the taner filter from the main text on the piecewise linearly detrended record.
     }
 \end{figure}
@@ -973,14 +1009,14 @@ We suggest that future studies generate new astronomical solutions with similar 
 
 % Appendix Figure:  RMSD scores for different filter strategies
 \begin{figure}[htb]
-  \centering \includegraphics[width=\textwidth]{full_RMSD_frac.pdf}
+  \centering \includegraphics[width=0.7\textwidth]{full_RMSD_frac.pdf}
   \caption{\label{fig:full-RMSD-frac}
     \textbf{Sensitivity analysis of different bandpass filter widths.}
     The frac parameter is the fraction that determines the upper and lower boundaries of the target frequency.
     %% For example, targeting the \(\frac{1}{405}}\)\si{\per\kiloyear} frequency \(\pm\texttt{frac}\times\texttt{freq}\).
     %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
-    This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization.
-    The taner filter has the main-text roll parameter of \num{e10}.
+    This uses \gls{L*} proxy with the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization.
+    The taner filter has a roll parameter of \num{e10}.
     }
 \end{figure}
 
