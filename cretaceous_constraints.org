@@ -9986,7 +9986,8 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
         tiepoint_uncertainty =
           ## c(-5, -4, -3, -2, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2,
           ##   0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2, 3, 4, 5),
-          c(seq(-5, 0, 0.5), seq(0.5, 5, 0.5)),
+          ## c(seq(-5, 0, 0.5), seq(0.5, 5, 0.5)),
+          c(seq(-10, 0, 0.5), seq(0.5, 10, 0.5)),
         target_periods = c("405 kyr" = 405, "100 kyr" = 110),
         ## frequency_fraction = 0.3, # default
         ## frequency_fraction = 0.1, # sensitivity
@@ -10013,7 +10014,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
         ## max_error_range = 1.6, # ~ 10% of 16m cycle default
         ## max_error_range = 3, # way larger
         ## max_error_range = 4, # way way larger
-        max_error_range = 5, # way way larger
+        ## max_error_range = 5, # way way larger
+        ## max_error_range = 10, # way way way larger -> crashes
+        max_error_range = 7.5, # way way way larger
         RMSD_threshold = 0.005,
         genplot = TRUE,
         output = "full")
@@ -10130,7 +10133,10 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_large-tie-error_slide-300.rds")
     ## write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_large-tie-error_slide-200.rds")
     ## write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error4_slide-200.rds")
-    write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error5_slide-300.rds")
+    ## write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error5_slide-300.rds")
+    ## write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error10_slide-300.rds")
+    ## write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error10f_slide-300.rds") -> failed
+    write_rds("out/2024-04-21_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error7.5_slide-300.rds")
   message("current time: ", lubridate::now())
   message("duration: ", round(lubridate::now() - nw, 2))
   rm(wrap_age_model) # rm so we can get back the one from the package
@@ -10391,6 +10397,23 @@ write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_
 > current time: 2024-04-19 17:31:16.717029
 > current time: 2024-04-19 17:42:47.689047
 > duration: 11.52
+write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error10_slide-300.rds")
+> current time: 2024-04-21 12:13:12.668745
+> current time: 2024-04-21 12:32:37.521443
+> duration: 19.41
+
+write_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error10f_slide-300.rds")
+> current time: 2024-04-21 12:39:27.650907
+Caused by error in `mutate()` at R/taner_filter.R:7:3:
+ℹ In argument: `lt = purrr::map(...)`.
+looks like it selected overlapping tiepoints here
+> current time: 2024-04-21 12:52:09.533604
+> duration: 12.7
+
+write_rds("out/2024-04-21_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error7.5_slide-300.rds")
+> current time: 2024-04-21 14:28:53.658001
+> current time: 2024-04-21 14:48:51.09094
+> duration: 19.96
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -10564,6 +10587,13 @@ new runs after changing to a taner filter currently with roll = 1e10.
         mutate(max_age_slider = 200, tiepoint_error = 4.0),
       read_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error5_slide-300.rds") |>
         mutate(max_age_slider = 300, tiepoint_error = 5.0),
+      read_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error10_slide-300.rds") |>
+      # oh shit I set it to calculate up to 10 m but limited the search to 5 m
+        mutate(max_age_slider = 300, tiepoint_error = 5.0),
+     ## read_rds("out/2024-04-18_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error10f_slide-300.rds") |>
+        ## mutate(max_age_slider = 300, tiepoint_error = 10.0),
+     read_rds("out/2024-04-21_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25_tie-error7.5_slide-300.rds") |>
+        mutate(max_age_slider = 300, tiepoint_error = 7.5),
      ) |>
      # these all use the new defaults
      mutate(
@@ -10611,72 +10641,6 @@ new runs after changing to a taner filter currently with roll = 1e10.
 : filter: no rows removed
 : filter: no rows removed
 
-**** inspect the tiepoint optimization plots
-:PROPERTIES:
-:CREATED:  [2024-04-18 Thu 17:02]
-:END:
-this will create new plots for each solution, we can analyze them quickly to see if any of them go terribly wrong somewhere
-and identify the ones where this happens based on the table that I put in
-#+begin_src R
-  library(ggpmisc)
-
-  print(best_age_optim, n = Inf)
-  ## for (i in seq_along(best_age_optim)) {# everything all at once, a bit too much
-
-  # First all the sopelana chunks:
-  sopelana_ids <- c(8, 22, 36, 50, 64, 78)
-  zumaia_ids <- c(1, 15, 29, 43, 57, 71)
-
-  ## for (i in sopelana_ids) {# sopelana Lstar La10b # shift of 200, 300, 400 all fine, this shifts 13 a lot but doesn't result in a different fit...
-  ## for (i in sopelana_ids + 1) {# sopelana Lstar La10c # shift 300 and 400 are off by a lot, larger error better
-  ## for (i in sopelana_ids + 2) {# sopelana Lstar ZB18a # shift doesn't matter, visually error doesn't matter but you do get a better RMSD score if you make it large... ???
-  ## for (i in sopelana_ids + 3) {# sopelana Lstar ZB20a # 400 shift too much, the rest identical
-  ## for (i in sopelana_ids + 4) {# sopelana Lstar ZB20b # 400 shift too much, the rest visually identical with >3 m better RMSD
-  ## for (i in sopelana_ids + 5) {# sopelana Lstar ZB20c # 400 shift too much, 1.6 visually better but worse score
-  ## for (i in sopelana_ids + 6) {# sopelana Lstar ZB20d # 400 shift too much, >1.6 better but somehow 4 puts 13 all the way to the left, resulting in a way better RMSD without changing anything visually (1.09 vs 1.06)
-  # now the Zumaia chunks
-  ## for (i in zumaia_ids) {# zumaia Lstar La10b # shift 400 too much, rest fine, greater tie err is better but maybe I prefer the other local minimum for tiepoint 7? (but this never gets selected, also not with 1.6)
-  ## for (i in zumaia_ids + 1) {# zumaia Lstar La10b # 400 too much, 6 is very /-like, this one might actually get wrecked by anything >1.6 (better score, visually worse match). tiepoint 4 should not move this much.
-  ## for (i in zumaia_ids + 2) {# zumaia Lstar ZB18a # even 400 is fine! larger def better 3 is fine, 4 identical but better RMSD (only tiepoint 10 shifts)
-  ## for (i in zumaia_ids + 3) {# zumaia Lstar ZB20a # 400 bad, 3 or 4 m shifts tiepoint 5 by quite a bit making the fit way nicer
-  ## for (i in zumaia_ids + 4) {# zumaia Lstar ZB20b # 400 bad, 1.6 ugly, 3 fine, 4 m best
-  for (i in zumaia_ids + 5) {# zumaia Lstar ZB20c # 400 same, 3 m makes younger part better? 4 might also be ok? these are all very different!
-  ## for (i in zumaia_ids + 6) {# zumaia Lstar ZB20d # 400 bad, rest very subtle visually but better with 4 m. 0 m goes \ though... I'd prefer 6 to jump to the other side maybe?
-    # create a new plot
-    x11()
-    # gotta print it if called from a for-loop
-    print(
-      # it's a combination of two subplots (from patchwork)
-      (
-        # plot the tiepoint optimizations
-        best_age_optim$the_best[[i]]$plot +
-        coord_cartesian(xlim = rev(range(best_age_optim$the_best[[i]]$summary$strat_bot)) * c(1.02, 0.98)) +
-        # with ggpmisc we can annotate a table so we know exactly which one we're looking at
-        annotate("table", x = Inf, y = Inf, hjust = 0,
-                 label = best_age_optim[i, c(1:5, 10, 12:18)])
-      ) / (
-        # plot the ecc construct in the time domain
-        best_age_optim$the_best[[i]]$matched |>
-        ggplot(aes(x = age * 1e-3, y = -ecc)) +
-        labs(x = "Age (Ma)") +
-        scale_x_reverse() +
-        # add the new optimized tiepoint ages
-        geom_vline(aes(xintercept = 1e-3 * (kpg_age + age_floating + age_slider)),
-                   colour = "gray", data = best_age_optim$the_best[[i]]$summary) +
-        # add the solution
-        geom_line(aes(y = ecc_sln), colour = "gold", linewidth = 2) +
-        # add the eccentricity construct
-        geom_line() #+
-        ## annotate("table", x = -Inf, y = Inf, hjust = 1, label = best_age_optim[i,] |> select(-"the_best"))
-        )
-    )
-    ## ggsave() # SOME
-  }
-#+end_src
-
-#+RESULTS:
-
-conclusions: I think I can increase the shift to 300 and the
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
 :CREATED:  [2024-02-21 Wed 23:11]
@@ -10693,6 +10657,166 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+RESULTS:
 : filter: no rows removed
 
+**** recompute RMSD for the full stack
+:PROPERTIES:
+:CREATED:  [2024-02-28 Wed 13:55]
+:END:
+#+begin_src R
+  # find youngest age of the sopelana site, so we can filter out
+  # Zumaia's oldest part
+  cutoff <- best_age_optim |>
+    filter(site == "Sopelana") |>
+    mutate(match = map(the_best, "matched")) |>
+    unnest(match) |>
+    summarize(max_age_sopelana = min(age),
+              .by = c(proxy, detrend_type, depth_chunk, comb, sol, window, frac,
+                      tiepoint_error, max_age_slider # temp?
+                      ))
+
+  # get summary
+  overall_sd <- best_age_optim |>
+    mutate(match = map(the_best, "matched")) |>
+    filter(depth_chunk == "full record") |>
+    unnest(match) |>
+    left_join(cutoff) |>
+    # have to explicitly NOT filter out d13C because we only have it for Zumaia
+    # so no age max_age_sopelana there!
+    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
+                    (site == "Zumaia" & age < max_age_sopelana))
+
+  overall_best <- overall_sd |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, detrend_type,
+                      comb, sol, window, roll, frac,
+                      tiepoint_error, max_age_slider # temp?
+                      ))
+
+  overal_best_sol <- overall_best |>
+    tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
+#+end_src
+
+#+RESULTS:
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, max_age_slider, tiepoint_error, frac, window)`
+: filter: removed 1,846 rows (2%), 92,682 rows remaining
+: filter: removed 42 rows (86%), 7 rows remaining
+
+**** recompute RMSD for all the other detrend types etc.
+:PROPERTIES:
+:CREATED:  [2024-03-25 Mon 10:01]
+:END:
+#+begin_src R
+  # find youngest age of the sopelana site, so we can filter out
+  # Zumaia's oldest part
+  cutoff <- rolling_age_optim_old |>
+    filter(site == "Sopelana") |>
+    mutate(match = map(the_best, "matched")) |>
+    unnest(match) |>
+    summarize(max_age_sopelana = min(age),
+              .by = c(proxy, # NOT SITE
+                      detrend_type, depth_chunk, comb, sol, window,
+                      ))
+
+  # get summary
+  overall_sd_old <- rolling_age_optim_old |>
+    mutate(match = map(the_best, "matched")) |>
+    filter(depth_chunk == "full record") |>
+    unnest(match) |>
+    left_join(cutoff) |>
+    # have to explicitly NOT filter out d13C because we only have it for Zumaia
+    # so no age max_age_sopelana there!
+    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
+                    (site == "Zumaia" & age < max_age_sopelana))
+
+  overall_best_old <- overall_sd_old |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, detrend_type, comb, sol, window, frac))
+
+  overal_best_sol_old <- overall_best_old |>
+    filter(RMSD == min(RMSD), .by = c(sol, proxy))
+#+end_src
+
+#+RESULTS:
+: Error: object 'rolling_age_optim_old' not found
+: Error: object 'rolling_age_optim_old' not found
+: Error: object 'overall_sd_old' not found
+: Error: object 'overall_best_old' not found
+
+**** [#B] inspect the tiepoint optimization plots
+:PROPERTIES:
+:CREATED:  [2024-04-18 Thu 17:02]
+:END:
+this will create new plots for each solution, we can analyze them quickly to see if any of them go terribly wrong somewhere
+and identify the ones where this happens based on the table that I put in
+#+begin_src R
+  library(ggpmisc)
+
+  print(best_age_optim, n = Inf)
+  ## for (i in seq_along(best_age_optim)) {# everything all at once, a bit too much
+
+  # First all the sopelana chunks:
+  sopelana_ids <- c(8, 22, 36, 50, 64, 78, 92, 106)
+  zumaia_ids <- c(1, 15, 29, 43, 57, 71, 85, 99)
+
+  ## for (i in sopelana_ids) {# sopelana Lstar La10b # shift of 200, 300, 400 all fine, this shifts 13 a lot but doesn't result in a different fit...
+  ## for (i in sopelana_ids + 1) {# sopelana Lstar La10c # shift 300 and 400 are off by a lot, larger error better
+  ## for (i in sopelana_ids + 2) {# sopelana Lstar ZB18a # shift doesn't matter, visually error doesn't matter but you do get a better RMSD score if you make it large... ???
+  ## for (i in sopelana_ids + 3) {# sopelana Lstar ZB20a # 400 shift too much, the rest identical
+  ## for (i in sopelana_ids + 4) {# sopelana Lstar ZB20b # 400 shift too much, the rest visually identical with >3 m better RMSD
+  ## for (i in sopelana_ids + 5) {# sopelana Lstar ZB20c # 400 shift too much, 1.6 visually better but worse score
+  ## for (i in sopelana_ids + 6) {# sopelana Lstar ZB20d # 400 shift too much, >1.6 better but somehow 4 puts 13 all the way to the left, resulting in a way better RMSD without changing anything visually (1.09 vs 1.06)
+  # now the Zumaia chunks
+  ## for (i in zumaia_ids) {# zumaia Lstar La10b # shift 400 too much, rest fine, greater tie err is better but maybe I prefer the other local minimum for tiepoint 7? (but this never gets selected, also not with 1.6)
+  ## for (i in zumaia_ids + 1) {# zumaia Lstar La10b # 400 too much, 6 is very /-like, this one might actually get wrecked by anything >1.6 (better score, visually worse match). tiepoint 4 should not move this much.
+  ## for (i in zumaia_ids + 2) {# zumaia Lstar ZB18a # even 400 is fine! larger def better 3 is fine, 4 identical but better RMSD (only tiepoint 10 shifts)
+  for (i in zumaia_ids + 3) {# zumaia Lstar ZB20a # 400 bad, 3 or 4 m shifts tiepoint 5 by quite a bit making the fit way nicer
+  ## for (i in zumaia_ids + 4) {# zumaia Lstar ZB20b # 400 bad, 1.6 ugly, 3 fine, 4 m best
+  ## for (i in zumaia_ids + 5) {# zumaia Lstar ZB20c # 400 same, 3 m makes younger part better? 4 might also be ok? these are all very different!
+  ## for (i in zumaia_ids + 6) {# zumaia Lstar ZB20d # 400 bad, rest very subtle visually but better with 4 m. 0 m goes \ though... I'd prefer 6 to jump to the other side maybe?
+    # create a new plot
+    x11()
+    # gotta print it if called from a for-loop
+    ## i <- 45 # of interest
+    i <- 10
+    ## i <- 52 # of interest
+    print(
+      # it's a combination of two subplots (from patchwork)
+      (
+        # plot the tiepoint optimizations
+        best_age_optim$the_best[[i]]$plot +
+        scale_colour_viridis_d() +
+        labs(colour = "Ma405") +
+        coord_cartesian(xlim = rev(range(best_age_optim$the_best[[i]]$summary$strat_bot)) * c(1.02, 0.98)) +
+        # with ggpmisc we can annotate a table so we know exactly which one we're looking at
+        annotate("table", x = Inf, y = Inf, hjust = 0,
+                 label = best_age_optim[i, c(1:5, 10, 12:18)])
+      ) / (
+        # plot the ecc construct in the time domain
+        best_age_optim$the_best[[i]]$matched |>
+        ggplot(aes(x = age * 1e-3, y = -ecc)) +
+        labs(x = "Age (Ma)", y = "Norm. eccentricity and filtered proxy") +
+        scale_x_reverse() +
+        # add the new optimized tiepoint ages
+        geom_vline(aes(xintercept = 1e-3 * (kpg_age + age_floating + age_slider)),
+                   colour = "gray", data = best_age_optim$the_best[[i]]$summary) +
+        # add the solution
+        geom_line(aes(y = ecc_sln), colour = "gold", linewidth = 2) +
+        # add the eccentricity construct
+        geom_line() #+
+        ## annotate("table", x = -Inf, y = Inf, hjust = 1, label = best_age_optim[i,] |> select(-"the_best"))
+        )
+    ) + plot_layout(guides = "collect")
+    ## ggsave() # SOME
+  }
+#+end_src
+
+#+RESULTS:
+#+begin_src R
+  ggsave("imgs/tiepoint_RMSD_optima.png", width = 12, height = 6)
+#+end_src
+
+#+RESULTS:
+
+conclusions: I think I can increase the shift to 300 and the
 **** COMMENT plot improvement after optimization after algorithm revision
 # #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.png :width 2400 :height 2000 :res 300
 #+begin_src R :results output graphics file :file imgs/new_rolling_improvement.pdf :width 8 :height 5
@@ -10941,90 +11065,6 @@ old
 
 #+RESULTS:
 
-**** recompute RMSD for the full stack
-:PROPERTIES:
-:CREATED:  [2024-02-28 Wed 13:55]
-:END:
-#+begin_src R
-  # find youngest age of the sopelana site, so we can filter out
-  # Zumaia's oldest part
-  cutoff <- best_age_optim |>
-    filter(site == "Sopelana") |>
-    mutate(match = map(the_best, "matched")) |>
-    unnest(match) |>
-    summarize(max_age_sopelana = min(age),
-              .by = c(proxy, detrend_type, depth_chunk, comb, sol, window, frac,
-                      tiepoint_error, max_age_slider # temp?
-                      ))
-
-  # get summary
-  overall_sd <- best_age_optim |>
-    mutate(match = map(the_best, "matched")) |>
-    filter(depth_chunk == "full record") |>
-    unnest(match) |>
-    left_join(cutoff) |>
-    # have to explicitly NOT filter out d13C because we only have it for Zumaia
-    # so no age max_age_sopelana there!
-    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
-                    (site == "Zumaia" & age < max_age_sopelana))
-
-  overall_best <- overall_sd |>
-    summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, detrend_type,
-                      comb, sol, window, roll, frac,
-                      tiepoint_error, max_age_slider # temp?
-                      ))
-
-  overal_best_sol <- overall_best |>
-    tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
-#+end_src
-
-#+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, max_age_slider, tiepoint_error, frac, window)`
-: filter: removed 1,179 rows (2%), 46,321 rows remaining
-: + + filter: removed 16 rows (57%), 12 rows remaining
-
-**** recompute RMSD for all the other detrend types etc.
-:PROPERTIES:
-:CREATED:  [2024-03-25 Mon 10:01]
-:END:
-#+begin_src R
-  # find youngest age of the sopelana site, so we can filter out
-  # Zumaia's oldest part
-  cutoff <- rolling_age_optim_old |>
-    filter(site == "Sopelana") |>
-    mutate(match = map(the_best, "matched")) |>
-    unnest(match) |>
-    summarize(max_age_sopelana = min(age),
-              .by = c(proxy, # NOT SITE
-                      detrend_type, depth_chunk, comb, sol, window,
-                      ))
-
-  # get summary
-  overall_sd_old <- rolling_age_optim_old |>
-    mutate(match = map(the_best, "matched")) |>
-    filter(depth_chunk == "full record") |>
-    unnest(match) |>
-    left_join(cutoff) |>
-    # have to explicitly NOT filter out d13C because we only have it for Zumaia
-    # so no age max_age_sopelana there!
-    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
-                    (site == "Zumaia" & age < max_age_sopelana))
-
-  overall_best_old <- overall_sd_old |>
-    summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, detrend_type, comb, sol, window, frac))
-
-  overal_best_sol_old <- overall_best_old |>
-    filter(RMSD == min(RMSD), .by = c(sol, proxy))
-#+end_src
-
-#+RESULTS:
-: Error: object 'rolling_age_optim_old' not found
-: Error: object 'rolling_age_optim_old' not found
-: Error: object 'overall_sd_old' not found
-: Error: object 'overall_best_old' not found
-
 **** COMMENT recompute RMSD for the ~scl~ taner filter
 :PROPERTIES:
 :CREATED:  [2024-03-25 Mon 11:10]
@@ -11126,6 +11166,10 @@ filter: removed 88 rows (1%), 11,917 rows remaining
 [[file:imgs/full_RMSD_complex.pdf]]
 
 **** simple plot of RMSD vs solution
+:LOGBOOK:
+- Note taken on [2024-04-22 Mon 11:01] \\
+  outdated, would need to reload the other data quickly
+:END:
 #+begin_src R :results output graphics file :file imgs/full_RMSD_scores.pdf :width 5 :height 2
   pl_rmsd_full <- overall_best |>
     filter(comb == "1:1") |>
@@ -11138,10 +11182,11 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     labs(x = "Astronomical Solution",
          colour = ""
          ) +
-    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac)),
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac, max_age_slider, tiepoint_error)),
                   alpha = .3) +
+    scale_colour_viridis_d() +
     geom_point() +
-    theme(legend.position.inside = c(.13, .95),
+    theme(legend.position.inside = c(.13, .92),
           legend.position = "inside",
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm"))
@@ -11235,6 +11280,39 @@ another attempt to visualize if the RMSD scores differ significantly between sol
 
 #+RESULTS:
 [[file:imgs/bootstrapped_halfeyes.png]]
+
+**** plot of RMSD vs solution: tiepoint depth adjustments
+perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
+#+begin_src R :results output graphics file :file imgs/full_RMSD_tiepoint-error.pdf :width 5 :height 2
+  pl_rmsd_tie <- overall_best |>
+    filter(max_age_slider < 400) |> # this is off by 400 kyr often
+    filter(tiepoint_error < 7.5) |> # this is sometimes merging a full LEC
+    filter(comb == "1:1") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(roll == 1e10) |>
+    filter(frac == 0.25) |> # new default
+    ggplot(aes(x = sol, y = RMSD,
+               ## colour = proxy,
+               colour = factor(tiepoint_error),
+               ## linetype = factor(max_age_slider),
+               )) +
+    labs(x = "Astronomical Solution",
+         colour = ""
+         ) +
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac, max_age_slider, tiepoint_error)),
+                  alpha = .3) +
+    scale_colour_viridis_d() +
+    geom_point() +
+    theme(legend.position.inside = c(.13, .92),
+          legend.position = "inside",
+          legend.background = element_blank(),
+          legend.key.height = unit(.1, "mm")
+          )
+  pl_rmsd_tie
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_RMSD_tiepoint-error.pdf]]
 
 **** plot of RMSD vs frac: filter window size
 :PROPERTIES:
@@ -11739,6 +11817,7 @@ rectangular only
 #+begin_src R :results output graphics file :file imgs/sol_SD.pdf :width 7 :height 7
   pl_age_matches <- overall_sd |>
     filter(depth_chunk == "full record") |>
+    filter(max_age_slider == 200, tiepoint_error == 4.0) |>
     filter(roll == 1e10, frac == 0.25) |>
     filter(proxy == "Lstar") |>
     ggplot(aes(x = age * 1e-3)) +
