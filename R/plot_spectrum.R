@@ -103,36 +103,29 @@ plot_spectrum <- function(spec,
     }
   }
 
-  if (logx && logy) {
-    pl <- pl + ggplot2::annotation_logticks() +
-      ggplot2::scale_y_log10() +
-      ggplot2::scale_x_log10(
-        sec.axis = ggplot2::sec_axis(breaks = periods,
-                                     trans = \(x) 1 / x,
-                                     name = sec_xlab))
-  } else if (logx){
-    pl <- pl + ggplot2::annotation_logticks(sides = "b") +
-      ggplot2::scale_x_log10(
-        sec.axis = ggplot2::sec_axis(breaks = periods,
-                                     trans = \(x) 1 / x,
-                                     name = sec_xlab))
-  } else if (logy) {
-    pl <- pl +
-      ggplot2::annotation_logticks(sides = "l") +
-      ggplot2::scale_y_log10() +
-      ggplot2::scale_x_continuous(
-        sec.axis = ggplot2::sec_axis(breaks = periods,
-                                     trans = \(x) 1 / x,
-                                     name = sec_xlab))
-  } else {# neither
+  if (!logx){
     pl <- pl +
       ggplot2::scale_x_continuous(
         sec.axis = ggplot2::sec_axis(breaks = periods,
                                      trans = \(x) 1 / x,
                                      name = sec_xlab))
+  } else {
+    pl <- pl +
+      ggplot2::scale_x_continuous(transform = "log10",
+                                  guide = guide_axis_logticks(long = 2, mid = 1, short = 0.5),
+                                  sec.axis = ggplot2::sec_axis(breaks = periods,
+                                                               trans = \(x) 1 / x,
+                                                               name = sec_xlab))
   }
 
-  pl <- pl +
+
+  if (logy) {
+    pl <- pl +
+      ggplot2::scale_y_continuous(transform = "log10",
+                                  guide = guide_axis_logticks(long = 2, mid = 1, short = 0.5))
+  }
+
+   pl <- pl +
     ggplot2::geom_line() +
     ggplot2::labs(x = xlab,
                   y = "Spectral power (-)")
