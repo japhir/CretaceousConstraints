@@ -10773,8 +10773,6 @@ new runs after changing to a taner filter currently with roll = 1e10.
 #+end_src
 
 #+RESULTS:
-: filter: no rows removed
-: filter: no rows removed
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -10833,7 +10831,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac, window)`
 : filter: removed 4,972 rows (1%), 416,672 rows remaining
-: filter: removed 273 rows (93%), 21 rows remaining
+: + + filter: removed 273 rows (93%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -10873,7 +10871,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window)`
-: filter: removed 25,904 rows (5%), 543,469 rows remaining
+: filter: removed 26,466 rows (4%), 569,037 rows remaining
 
 **** [#B] inspect the tiepoint optimization plots
 :PROPERTIES:
@@ -11695,10 +11693,10 @@ everything
     # manual fiddling to add gauss
     geom_line(aes(group = "all"), colour = "darkred",
               data = overall_best_old |>
-                filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian", near(frac, 0.25 * 2.15 * gauss_corr, 0.001))) +
+                filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian", near(frac, 0.25, 0.001))) +
     geom_point(colour = "darkred", shape = "triangle",
                data = overall_best_old |>
-                 filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian", near(frac, 0.25 * 2.15 * gauss_corr, 0.001))) +
+                 filter(detrend_type == "lin_scl_med", proxy == "Lstar", window == "gaussian", near(frac, 0.25, 0.001))) +
 
     # add original narrow gauss
     ## geom_line(aes(group = "all"), colour = "darkred",
@@ -11776,20 +11774,27 @@ everything
     ##           data = overall_best_old |>
     ##             filter(detrend_type == "lin_scl_med",
     ##                    window == "gaussian",
-    ##                    near(frac, 0.25 * 2.15 * gauss_corr, 0.001))) +
-    ## # I think in the paper I don't want to show the narrow ones too here
+    ##                    near(frac, 0.25 * gauss_corr, 0.01))) +
     ## geom_point(aes(shape = window), colour = "darkred",
     ##            data = overall_best_old |>
     ##              filter(detrend_type == "lin_scl_med",
     ##                     window == "gaussian",
-    ##                     near(frac, 0.25 * 2.15 * gauss_corr, 0.001))) +
+    ##                     near(frac, 0.25 * gauss_corr, 0.001))) +
 
     # all the taner filters
     geom_line(aes(group = paste(proxy, detrend_type, comb, window, roll, frac)),
                   alpha = .3) +
     geom_point() +
+    ## # other roll parameters
+    ## geom_line(aes(group = paste(proxy, detrend_type, comb, window, roll, frac)),
+    ##           alpha = .3,
+    ##           data = overall_best |>
+    ##             filter(comb == "1:1") |>
+    ##             filter(detrend_type == "lin_scl_med") #|>
+    ##             ## filter(frac == 0.25)
+    ##           ) +
 
-    theme(legend.position.inside = c(.1, .20),
+    theme(legend.position.inside = c(.1, .62),
           legend.position = "inside",
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm")) #+
