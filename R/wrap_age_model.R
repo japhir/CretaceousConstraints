@@ -141,8 +141,13 @@ wrap_age_model <- function(data,
 
   # convert input frequency to tibble with desired frequency ranges
   if (bandpass_window == 1) {# experimentally found out that this
-    # should make lower and upper boundaries correspond to -\sigma and +\sigma
-    frequency_fraction <- 3 * frequency_fraction
+    # should make lower and upper boundaries correspond to -2\sigma and +2\sigma
+    # we have experimentally established that this should be about 1.5,
+    # so that 0.25 becomes 0.375 so that the 95% CI is draped over the original 0.25
+    ## frequency_fraction <- 1.5
+    frequency_fraction <- #2.15 # this scales it up a little more,
+      # experimentally this matches the taner 1e4 roll parameter with the same intervals
+      2.1227 # from our reprex, this should be an even tighter fit (matches taner roll 1e5 best?)
   }
   my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
                                 p = target_periods) |>
@@ -160,7 +165,7 @@ wrap_age_model <- function(data,
                                                       agemodel$strat_bot,
                                                       agemodel$age_floating,
                                                       xout = .x)$y),
-                  .after = .data$depth)
+                  .after = "depth")
 
   # data median timestep in kyr
   data_dt <- median(diff(tmp$age_floating))
@@ -185,14 +190,14 @@ wrap_age_model <- function(data,
   if (bandpass_window %in% c(0, 1)) {
     flt <- tmp |>
       bandpass_filter(frequencies = my_filt_age,
-                      x = .data$age_floating, y = .data$value,
+                      x = age_floating, y = value,
                       linterp = TRUE, linterp_dt = linterp_dt,
                       add_depth = TRUE,
                       window = bandpass_window)
   } else {#999
     flt <- tmp |>
       taner_filter(frequencies = my_filt_age,
-                   x = .data$age_floating, y = .data$value,
+                   x = age_floating, y = value,
                    add_depth = TRUE,
                    genplot = FALSE, verbose = FALSE,
                    linterp_dt = linterp_dt,
@@ -211,7 +216,7 @@ wrap_age_model <- function(data,
     construct_eccentricity(id_cols = c("depth",
                                        "age_floating",
                                        "value"),
-                           f = .data$filter,
+                           f = filter,
                            # I'm now forcing sign = 1 here!
                            sign = 1,
                            weights = eccentricity_weights)
@@ -222,12 +227,12 @@ wrap_age_model <- function(data,
 
   # then optimize tiepoint uncertainty
   esd <- ecc |>
-    dplyr::mutate(kpg_age = kpg_age, .after = .data$age_floating) |>
-    dplyr::mutate(age_slider = list(age_error), .after = .data$kpg_age) |>
+    dplyr::mutate(kpg_age = kpg_age, .after = "age_floating") |>
+    dplyr::mutate(age_slider = list(age_error), .after = "kpg_age") |>
     tidyr::unnest("age_slider") |>
     dplyr::mutate(age = .data$kpg_age +
                     .data$age_slider + .data$age_floating,
-                  .after = .data$age_slider) |>
+                  .after = "age_slider") |>
     # linearly interpolate the astronomical solution eccentricity
     dplyr::mutate(
              ecc_sln = stats::approx(astronomical_solution$age,
@@ -311,14 +316,25 @@ wrap_age_model <- function(data,
                                  xout = .x)$y),
                  .after = "depth")
 
-        flt <- tmp |>
+        if (bandpass_window %in% c(0, 1)) {
+          flt <- tmp |>
           # I think this is a hidden badly-written for-loop!
-          taner_filter(frequencies = my_filt_age,
-                          x = .data$age_floating, y = .data$value,
-                       add_depth = TRUE,
-                       genplot = FALSE, verbose = FALSE,
-                       roll = taner_roll,
-                       linterp_dt = linterp_dt)
+            bandpass_filter(frequencies = my_filt_age,
+                            x = age_floating, y = value,
+                            linterp = TRUE, linterp_dt = linterp_dt,
+                            add_depth = TRUE,
+                            window = bandpass_window)
+        } else {#999
+          flt <- tmp |>
+          # I think this is a hidden badly-written for-loop!
+            taner_filter(frequencies = my_filt_age,
+                         x = age_floating, y = value,
+                         add_depth = TRUE,
+                         genplot = FALSE, verbose = FALSE,
+                         linterp_dt = linterp_dt,
+                         padfac = 3,
+                         roll = taner_roll)
+        }
 
         ecc <- flt |>
           # NOTE: this assumes that the frequencies tibble had column target
