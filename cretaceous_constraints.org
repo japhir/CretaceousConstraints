@@ -644,7 +644,10 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
     ## geom_vline(xintercept = c(1/405, 1/132.5, 1/124, 1/99.7, 1/95))
     geom_rect(aes(xmin = flow, xmax = fhigh, ymin = -Inf, ymax = Inf),
               fill = "yellow", alpha = .1,
-              inherit.aes = FALSE, data = my_filt_age)
+              inherit.aes = FALSE, data = my_filt_age) +
+    # annotate periods of interest
+    geom_vline(xintercept = 1 / c(405, 95, 99.7, 124, 132.5)) +
+    geom_vline(xintercept = 1 / c(405, 95, 99, 124, 131), colour = "red", linetype = "dashed")
 #+end_src
 
 #+name: fig:astronomical-solutions-spec
@@ -652,6 +655,102 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 #+RESULTS:
 [[file:imgs/astronomical_solution_spectrum.png]]
 
+*** plot spectrum for 0--20 Ma
+:PROPERTIES:
+:CREATED:  [2024-05-06 Mon 13:40]
+:END:
+#+begin_src R :results graphics file output :file imgs/astronomical_solution_spectrum_0-20Ma.png :width 2400 :height 1000 :res 300
+  full_slns |>
+    filter(age < 20e3) |>
+    nested_spectral_analysis(nest = "sol", method = "MTM", x = "age", y = "ecc") |>
+    plot_spectrum(group = "sol", domain = "time") +
+    scale_colour_brewer(type = "qual", palette = 2) +
+    scale_fill_brewer(type = "qual", palette = 2) +
+    coord_cartesian(xlim = c(0, 0.012)) +
+    geom_vline(xintercept = 1 / c(405, 95, 99.7, 124, 132.5)) +
+    geom_vline(xintercept = 1 / c(405, 95, 99, 124, 131), colour = "red", linetype = "dashed")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/astronomical_solution_spectrum_0-20Ma.png]]
+
+*** plot spectrum for full solutions in 20 Myr chunks
+:PROPERTIES:
+:CREATED:  [2024-05-06 Mon 13:41]
+:END:
+#+begin_src R
+  full_spec <- full_slns |>
+    tidylog::filter(age <= 100e3) |>
+    mutate(age_chunk = cut(age, breaks = seq(-1, 101e3, 20e3))) |> # 10 Myr time slices
+    tidylog::filter(!is.na(age_chunk)) |>
+    nest(.by = c(sol, age_chunk)) |>
+    mutate(spc = map(data, spectral_analysis, x = "age", y = "ecc"))
+#+end_src
+
+#+RESULTS:
+: filter: removed 923,000 rows (64%), 512,507 rows remaining
+: filter: removed 7 rows (<1%), 512,500 rows remaining
+
+#+begin_src R :results output graphics file :file imgs/full_solution_spectra_20-myr_chunks.png :width 2200 :height 2000 :res 300
+  full_spec |>
+    mutate(N = map_int(data, nrow)) |>
+    tidylog::filter(N >= 12.5e3) |> # remove final slices that have too few datapoints for La10b and La10c
+    select(-data) |>
+    mutate(age_chunk = factor(age_chunk, labels = paste0(seq(0, 80, 20), "–", seq(20, 100, 20), " Ma"))) |>
+    unnest(spc) |>
+    tidylog::distinct(sol, age_chunk, frequency, power, .keep_all = TRUE) |>
+    plot_spectrum(group = "age_chunk", domain = "time") +
+    facet_grid(rows = vars(sol)) +
+    scale_colour_viridis_d() +
+    coord_cartesian(xlim = c(0.006, 0.012), ylim = c(0, 5e-6))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/full_solution_spectra_20-myr_chunks.png]]
+
+make an interactive copy
+#+begin_src R
+  plotly::toWebGL(plotly::ggplotly(p = ggplot2::last_plot() + labs(x = "freq", y = "pow")))
+#+end_src
+
+#+RESULTS:
+: There were 35 warnings (use warnings() to see them)
+
+*** eha on solutions
+:PROPERTIES:
+:CREATED:  [2024-05-06 Mon 14:55]
+:END:
+#+begin_src R
+  full_ehas <- full_slns |>
+    nest(.by = sol) |>
+    mutate(eha = map(data, astrochron::eha, step = 1000, win = 20e3, output = 1, genplot = FALSE, verbose = FALSE))
+
+  full_ehas |> write_rds("out/full_slns_eha.rds")
+#+end_src
+
+this is too big and crashes R
+
+#+begin_src R
+  full_ehas <- read_rds("out/full_slns_eha.rds")
+
+  tidy_eha <- full_ehas |>
+    filter(sol == "ZB20a") |>
+    select(-data) |>
+    unnest(eha) |>
+    unnest(eha)
+
+    ## pivot_longer(cols = X10000:X290000, names_to = c("x", "slice"), names_pattern = "(X)(.*)") |>
+    ## select(-x) |>
+    ## mutate(slice = str_replace(slice, "e.0", "e")) |>
+    ## mutate(slice = parse_double(slice))
+
+  ggplot() +
+    geom_raster(data = tidy_eha,
+                aes(x = freq, y = ))
+    ggplot(aes(x = freq, y = slice, fill = value)) +
+    geom_raster() +
+    scale_fill_viridis_c()
+#+end_src
 ** bandpass filters on astronomical solutions
 :PROPERTIES:
 :CREATED:  [2023-11-14 Tue 16:31]
