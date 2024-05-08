@@ -37,30 +37,28 @@ plot_spectrum <- function(spec,
 
   if (is.null(periods)) {
     if (domain == "time") {
-      periods <- c(405, 132.5, 124, 99.7, 95)
+      periods <- c(405, 131, 124, 99, 95)
     } else if (domain == "depth") {
       sec_xlab <- ""
     }
+  }
+
+  if (confidence) {
+      if (!"background_fit" %in% colnames(spec)) {
+        cli::cli_warn("{.q background_fit} not found in {colnames(spec)}.")
+      }
   }
 
   if ("none" %in% group) {
     pl <- spec |>
       ggplot2::ggplot(ggplot2::aes(x = .data$frequency, y = .data$power))
     if (confidence) {
-      if ("ar1_fit" %in% colnames(spec)) {
-        pl <- pl +
-          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
-                                            ymax = .data$ar1_power,
-                                            linetype = NA, group = .data$.width),
-                               alpha = .1)
-      } else if ("lowspec_fit" %in% colnames(spec)) {
-        pl <- pl +
-          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
-                                            ymax = .data$lowspec_power,
-                                            linetype = NA,
-                                            group = .data$.width),
-                               alpha = .1)
-      }
+      pl <- pl +
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$background_fit,
+                                          ymax = .data$background_power,
+                                          group = .data$.width),
+                             outline.type = "lower",
+                             alpha = .1)
     }
   } else {
     pl <- spec |>
@@ -68,40 +66,51 @@ plot_spectrum <- function(spec,
                                    y = .data$power,
                                    colour = .data[[group]]))
     if (confidence) {
-      if ("ar1_fit" %in% colnames(spec)) {
+      if ((spec[[group]] |> unique() |> length()) == 1) {
         pl <- pl +
-          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$ar1_fit,
-                                            ymax = .data$ar1_power,
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$background_fit,
+                                            ymax = .data$background_power,
                                             fill = .data[[group]],
-                                            linetype = NA,
-                                            group = paste(c(.data[[group]],
-                                                            .data$.width))),
+                                            group = .data$.width,
+                                            ),
+                               outline.type = "lower",
                                alpha = .1)
-      } else if ("lowspec_fit" %in% colnames(spec)) {
+      } else {
         pl <- pl +
-          # this is a bit silly, cannot pass group = paste(group, .width)
-          # so have to repeat myself
-          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
-                                            ymax = .data$lowspec_power,
+          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$background_fit,
+                                            ymax = .data$background_power,
                                             fill = .data[[group]],
-                                            linetype = NA),
-                       alpha = .1,
-                       data = \(x) x |> filter(.width == .9)) +
-          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
-                                            ymax = .data$lowspec_power,
-                                            fill = .data[[group]],
-                                            linetype = NA),
-                               alpha = .1,
-                               data = \(x) x |> filter(.width == .95)) +
-          ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
-                                            ymax = .data$lowspec_power,
-                                            fill = .data[[group]],
-                                            linetype = NA),
-                               alpha = .1,
-                               data = \(x) x |> filter(.width == .99))
+                                            group = paste(.data$.width, .data[[group]]),
+                                            ),
+                               outline.type = "lower",
+                               alpha = .1)
       }
     }
   }
+    ##   } else if ("lowspec_fit" %in% colnames(spec)) {
+    ##     pl <- pl +
+    ##       # this is a bit silly, cannot pass group = paste(group, .width)
+    ##       # so have to repeat myself
+    ##       ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+    ##                                         ymax = .data$lowspec_power,
+    ##                                         fill = .data[[group]],
+    ##                                         linetype = NA),
+    ##                    alpha = .1,
+    ##                    data = \(x) x |> filter(.width == .9)) +
+    ##       ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+    ##                                         ymax = .data$lowspec_power,
+    ##                                         fill = .data[[group]],
+    ##                                         linetype = NA),
+    ##                            alpha = .1,
+    ##                            data = \(x) x |> filter(.width == .95)) +
+    ##       ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lowspec_fit,
+    ##                                         ymax = .data$lowspec_power,
+    ##                                         fill = .data[[group]],
+    ##                                         linetype = NA),
+    ##                            alpha = .1,
+    ##                            data = \(x) x |> filter(.width == .99))
+    ##   }
+    ## }
 
   if (!logx){
     pl <- pl +
@@ -118,14 +127,13 @@ plot_spectrum <- function(spec,
                                                                name = sec_xlab))
   }
 
-
   if (logy) {
     pl <- pl +
       ggplot2::scale_y_continuous(transform = "log10",
                                   guide = guide_axis_logticks(long = 2, mid = 1, short = 0.5))
   }
 
-   pl <- pl +
+  pl <- pl +
     ggplot2::geom_line() +
     ggplot2::labs(x = xlab,
                   y = "Spectral power (-)")

@@ -1,4 +1,4 @@
-taner_filter <- function(data, frequencies, x, y, ...,
+taner_filter <- function(data, frequencies, x = NULL, y = NULL, ...,
                          ## linterp = TRUE,
                          linterp_dt = NULL,
                          roll = 1e3,
@@ -8,19 +8,35 @@ taner_filter <- function(data, frequencies, x, y, ...,
     mutate(filt = list(frequencies)) |>
     unnest("filt") |>
     nest(.by = all_of(colnames(frequencies))) |>
-    mutate(lt = purrr::map(data, \(d) d |> dplyr::select({{x}}, {{y}}) |>
-                                        astrochron::linterp(genplot = FALSE,
-                                                            verbose = FALSE,
-                                                            dt = linterp_dt)),
-           bp = purrr::pmap(list(lt, flow, fhigh),
-                            \(d, l, h)
-                            d |>
-                              astrochron::taner(flow = l, fhigh = h,
-                                                roll = roll,
-                                                ...) |>
-                              dplyr::select(filter = {{y}}))) |>
-    select(-"data") |>
-    unnest(cols = c("lt", "bp"))
+    mutate(lt = purrr::map(data, \(d) {
+      if (is.null(x) & is.null(y)) {
+        d <- d[, 1:2]
+      } else {
+        d <- d |>
+          dplyr::select({{x}}, {{y}})
+      }
+      d |>
+        astrochron::linterp(genplot = FALSE,
+                            verbose = FALSE,
+                            dt = linterp_dt)}),
+      bp = purrr::pmap(list(lt, flow, fhigh),
+                       \(d, l, h) {
+
+                       d <- d |>
+                         astrochron::taner(flow = l, fhigh = h,
+                                           roll = roll,
+                                           ...)
+
+                       if (is.null(x) && is.null(y)) {
+                         d <- rename(d, filter = 2)
+                       } else {
+                         d <- d |> dplyr::select(filter = {{y}})
+                       }
+                       d |> pull(2)
+                       })
+      ) |>
+  unnest(cols = c("lt", "bp"))
+
 
   # interpolate depth back to new age scale
   if (add_depth) {
@@ -31,7 +47,8 @@ taner_filter <- function(data, frequencies, x, y, ...,
                     .before = {{x}})
   }
 
-  out
+  out |>
+    select(-"data")
 }
 
 nested_taner_filter <- function(data, frequencies, x, y, nest, ...) {
@@ -47,8 +64,8 @@ nested_taner_filter <- function(data, frequencies, x, y, nest, ...) {
                \(d) d |>
                     taner_filter(frequencies = frequencies,
                                     x = {{x}}, y = {{y}},
-                                 ...) |>
-                      select(-nest) # otherwise it'll get duplicated
+                                 ...) ## |>
+                      ## select(-nest) # otherwise it'll get duplicated
                )) |>
     tidyr::unnest("bp") |>
     dplyr::select(-"data")
