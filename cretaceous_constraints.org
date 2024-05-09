@@ -13269,16 +13269,26 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
   # using artificial data
   # make sure it's pretty big so that the astrochron window output is smoother
   ## simple <- tibble::tibble(age_floating = 1:1e5, value = rnorm(1e5))
-  simple <- tibble::tibble(age_floating = seq_len(N) - 1,
-                           value = astrochron::cycles(freqs = c(1 / pl, 1 / ps), start = 0, end = N - 1, genplot = FALSE)$value,
-                           noise = rnorm(N),
-                           res = value + noise)
+  ## simple <- tibble::tibble(age_floating = seq_len(N) - 1,
+  ##                          value = astrochron::cycles(
+  ##                                                ## freqs = c(1 / pl, 1 / ps), # first example simple peak
+  ##                                                freqs = c(1 / pl, 1 / c(95, 131)), # widest 100 kyr components
+  ##                                                start = 0, end = N - 1,
+  ##                                                genplot = FALSE)$value,
+  ##                          noise = rnorm(N),
+  ##                          res = value + noise)
+
+  # use a real solution instead
+  simple <- snvecR::get_solution("ZB20a") |>
+    slice(1:N) |>
+    rename(age_floating = time, value = ecc) |>
+    mutate(noise = rnorm(N), res = scale(value)[, 1] + noise)
 
   simple |>
-    ggplot(aes(x = age_floating, y = value)) +
-    geom_line() +
+    ggplot(aes(x = age_floating, y = scale(value)[, 1])) +
     ## geom_line(aes(y = noise), colour = "blue") +
-    geom_line(aes(y = res), colour = "red")
+    geom_line(aes(y = res), colour = "red", alpha = .2) +
+    geom_line()
 
   windows <- windows |>
     mutate(win = map(roll,
@@ -13354,6 +13364,9 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
       astrochron::bandpass(flow = 1/ps - fac * gfac * (1/ps),
                            fhigh = 1/ps + fac * gfac * (1 / ps),
+                           ## alpha = 3, # default
+                           ## alpha = 1, # ±1σ
+                           alpha = 5, # ±1σ
                            genplot = FALSE, verbose = FALSE,
                            win = 1, output = 2) |>
       mutate(window = "gaussian", target = "100 kyr") |>
@@ -13364,6 +13377,8 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
   ## gfac <- qnorm(1 - (1 - 0.95) / 2) / 2 # this is approximately 1.96
   ## gfac <- 1.5 # to get it to ±2σ
   gfac <- 2.1227 # to get it to intersect with taner and rect boundaries
+  ## gfac <- 2 * sqrt(2 * log(2)) # this should be the half-width in terms of 1 σ
+  gfac <- gfac / 3 * 5
   gauss <-
     bind_rows(
       simple[, c("age_floating", "value")] |>
@@ -13371,6 +13386,8 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
       astrochron::bandpass(flow = 1/pl - fac * gfac *(1/pl),
                            fhigh = 1/pl + fac * gfac *(1/pl),
                            genplot = FALSE, verbose = FALSE,
+                           ## alpha = 3, # default
+                           alpha = 5,
                            win = 1, output = 2) |>
       mutate(window = "gaussian", target = "405 kyr") |>
       rename(frequency = bpfreq, amplitude = taper),
@@ -13379,6 +13396,7 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
       astrochron::bandpass(flow = 1/ps - fac * gfac * (1/ps),
                            fhigh = 1/ps + fac * gfac * (1 / ps),
                            genplot = FALSE, verbose = FALSE,
+                           alpha = 5,
                            win = 1, output = 2) |>
       mutate(window = "gaussian", target = "100 kyr") |>
       rename(frequency = bpfreq, amplitude = taper))
@@ -13496,6 +13514,12 @@ we want the -2 \sigma and +2\sigma to be at the edges of the rectangular filter
   pl_windows +
     ## coord_cartesian(xlim = c(0.0068181, 0.00681825), ylim = c(0.3678, 0.368)) # a little far?
     coord_cartesian(xlim = c(0.0068, 0.00684), ylim = c(0.35, 0.38)) # zoomed out a bit
+
+  # zoom in on the peak
+  pl_windows +
+    ## coord_cartesian(xlim = c(0.0068181, 0.00681825), ylim = c(0.3678, 0.368)) # a little far?
+    coord_cartesian(xlim = c(0.008, 0.010), ylim = c(.99, 1))
+
 #+end_src
 
 #+RESULTS:
@@ -13508,10 +13532,11 @@ contrast the filter to a real gaussian to see where the \minus\sigma and \plus\s
   to <- simple |>
     select(age_floating, res) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-    astrochron::taner(flow = ll,
-                      fhigh = hl,
-                      roll = 1e5,
-                      xmax = 0.004,
+    astrochron::taner(flow = ls,
+                      fhigh = hs,
+                      roll = 1e4,
+                      xmin = ls - 0.003,
+                      xmax = hs + 0.003,
                       genplot = TRUE, verbose = FALSE,
                       output = 1)
 
@@ -13519,21 +13544,28 @@ contrast the filter to a real gaussian to see where the \minus\sigma and \plus\s
   go <- simple |>
     select(age_floating, res) |>
     astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
-    astrochron::bandpass(flow = 1/pl - fac * gfac *(1/pl),
-                         fhigh = 1/pl + fac * gfac *(1/pl),
+    astrochron::bandpass(flow = 1/ps - fac * gfac *(1/ps), # ls,
+                         fhigh = 1/ps + fac * gfac *(1/ps), # hs,
+                         ## alpha = 1,
+                         # full width at half maximum (FWHM) = 2 * sqrt(2 * log(2)) * \sigma,
+                         # but I see that this only works if I halve it first.
+                         ## alpha = 0.5 * 2 * sqrt(2 * log(2)), # but this is not how taner is defined
+                         alpha = 5,
                          win = 1,
-                         xmax = 0.004,
+                         xmin = ls - 0.003,
+                         xmax = hs + 0.003,
                          genplot = TRUE, verbose = FALSE,
                          output = 1)
 
   # plot diffs
-  bind_cols(to |> rename(to = value), go |> select(go = value)) |>
+  bind_cols(to |> rename(to = res), go |> select(go = res)) |>
     as_tibble() |>
     mutate(diff = to - go) |>
     ggplot(aes(x = age_floating, y = diff)) +
-    geom_line() +
     geom_line(aes(y = to, colour = "to")) +
-    geom_line(aes(y = go, colour = "go"))
+    geom_line(aes(y = go, colour = "go"),
+              linetype = "dashed") +
+    geom_line()
 #+end_src
 
 

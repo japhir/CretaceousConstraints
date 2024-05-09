@@ -147,7 +147,7 @@ wrap_age_model <- function(data,
     ## frequency_fraction <- 1.5
     frequency_fraction <- #2.15 # this scales it up a little more,
       # experimentally this matches the taner 1e4 roll parameter with the same intervals
-      2.1227 # from our reprex, this should be an even tighter fit (matches taner roll 1e5 best?)
+      2.1227 / 3 * 5# from our reprex, this should be an even tighter fit
   }
   my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
                                 p = target_periods) |>
@@ -193,6 +193,7 @@ wrap_age_model <- function(data,
                       x = age_floating, y = value,
                       linterp = TRUE, linterp_dt = linterp_dt,
                       add_depth = TRUE,
+                      alpha = 5,
                       window = bandpass_window)
   } else {#999
     flt <- tmp |>
@@ -322,6 +323,7 @@ wrap_age_model <- function(data,
             bandpass_filter(frequencies = my_filt_age,
                             x = age_floating, y = value,
                             linterp = TRUE, linterp_dt = linterp_dt,
+                            alpha = 5,
                             add_depth = TRUE,
                             window = bandpass_window)
         } else {#999
