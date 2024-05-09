@@ -10239,7 +10239,9 @@ see if we can plot this better/figure out how to not mess up Ma_{405}7,8
     ## write_rds("out/2024-05-06_rolling_age_optim_Lstar_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds")
     ## write_rds("out/2024-05-06_rolling_age_optim_d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds")
     ## write_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds")
-    write_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_tweak.rds") # 2.1227x (new value found after playing around with sim)
+    ## write_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_tweak.rds") # 2.1227x (new value found after playing around with sim)
+    # a few of the previous results where I messed around with frequency_fraction were WRONG! Overwriting the one from today
+    write_rds("out/2024-05-08_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_alpha5.rds") # 2.1227x (new value found after playing around with sim)
   message("current time: ", lubridate::now())
   message("duration: ", round(lubridate::now() - nw, 2))
   ## rm(wrap_age_model) # rm so we can get back the one from the package
@@ -10541,6 +10543,13 @@ write_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25
 > current time: 2024-05-07 17:35:25.45052
 > duration: 28.5
 
+write_rds("out/2024-05-08_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_alpha5.rds") # 2.1227x (new value found after playing around with sim)
+> current time: 2024-05-08 14:35:12.4611
+> current time: 2024-05-08 14:59:29.666715
+> duration: 24.29
+whoops frequency_fraction was OFFFF redoing it! 3x was still OK
+> current time: 2024-05-08 15:42:59.393914
+
 **** [#B] load cached results
 :PROPERTIES:
 :CREATED:  [2023-12-12 Tue 10:59]
@@ -10599,7 +10608,7 @@ write_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25
 
 ***** rolling_age_optim_old: gaussian and rectangular filters
 #+begin_src R
-  gauss_corr <- 1 / 1.5 # the gaussian filters reflect the full range, so if I want to make a fair
+  ## gauss_corr <- 1 / 1.5 # the gaussian filters reflect the full range, so if I want to make a fair
   # comparison to rectangular and taner filters,
   # I should narrow the frac by a factor of 1.5 to arrive at the edges of the 95% CI
 
@@ -10607,38 +10616,40 @@ write_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25
   rolling_age_optim_old <-
     # first read all the rectangular filtered output
     bind_rows(
-      read_rds("out/2024-02-14_rolling_age_optim_full_indep.rds"),
-      read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds"),
-      read_rds("out/2024-02-15_rolling_age_optim_comb.rds"), # 1:0.5
-      read_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds"),
-      read_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds"),
-      read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds"),
-      read_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds"),
-      read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds"),
-      read_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds"),
-      read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"),
+      read_rds("out/2024-02-14_rolling_age_optim_full_indep.rds") |> mutate(date = ymd("2024-02-14"), .before = "proxy"),
+      read_rds("out/2024-02-14_rolling_age_optim_full_indep_detrend.rds") |> mutate(date = ymd("2024-02-14"), .before = "proxy"),
+      read_rds("out/2024-02-15_rolling_age_optim_comb.rds") |> mutate(date = ymd("2024-02-15"), .before = "proxy"), # 1:0.5
+      read_rds("out/2024-02-15_rolling_age_optim_comb_0.5-1.rds") |> mutate(date = ymd("2024-02-15"), .before = "proxy"),
+      read_rds("out/2024-02-15_rolling_age_optim_lin-scl-med.rds") |> mutate(date = ymd("2024-02-15"), .before = "proxy"),
+      read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_sopelana.rds") |> mutate(date = ymd("2024-02-21"), .before = "proxy"),
+      read_rds("out/2024-02-21_rolling_age_optim_scl_rectangular_addition.rds") |> mutate(date = ymd("2024-02-21"), .before = "proxy"),
+      read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_rectangular.rds") |> mutate(date = ymd("2024-02-21"), .before = "proxy"),
+      read_rds("out/2024-02-24_rolling_age_optim_all_remainder_rectangular.rds") |> mutate(date = ymd("2024-02-24"), .before = "proxy"),
+      read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds") |> mutate(date = ymd("2024-02-25"), .before = "proxy"),
       ) |>
     mutate(window = "rectangular", frac = 0.3) |>
     # then read all the gauss filtered output
     bind_rows(
       bind_rows(
         # frac as the astrochron::bandpass(win = 1) gets it! different from all the others
-        read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr),
-        read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr),
-        read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr),
-        read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr),
+        read_rds("out/2024-02-21_rolling_age_optim_lin-scl-med_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr) |> mutate(date = ymd("2024-02-21"), .before = "proxy"),
+        read_rds("out/2024-02-21_rolling_age_optim_scl_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr) |> mutate(date = ymd("2024-02-21"), .before = "proxy"),
+        read_rds("out/2024-02-21_rolling_age_optim_all_Sopelana_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr) |> mutate(date = ymd("2024-02-21"), .before = "proxy"),
+        read_rds("out/2024-02-24_rolling_age_optim_all_remainder_gaussian.rds") |> mutate(frac = 0.3 * gauss_corr) |> mutate(date = ymd("2024-02-24"), .before = "proxy"),
         ## read_rds("out/2024-02-25_rolling_age_optim_all_Lstar_detrend-types_rectangular.rds"), # this was here before! :O moved up
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds") |> mutate(frac = 0.22 * gauss_corr), # I don't recall if this was tweaked already or not...
-        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.rds") |> mutate(frac = 0.25 * gauss_corr),
-        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss.rds") |> mutate(frac = 0.3 * 0.5 * gauss_corr), # I think this was accidentally at 0.5x because I had my logic reversed
-        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_2x.rds") |> mutate(frac = 0.3 * 2 * gauss_corr), # this was for sure at 2x
-        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_3x.rds") |> mutate(frac = 0.3 * 3 * gauss_corr), # I think 3x is the key!
-        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25_3x.rds") |> mutate(frac = 0.25 * 3 * gauss_corr), # still 3x
-        read_rds("out/2024-03-28_rolling_age_optim_d13C-MS_lin-scl-med_gauss_narrow-0.25_3x.rds") |> mutate(frac = 0.25 * 3 * gauss_corr), # still 3x
-        read_rds("out/2024-05-06_rolling_age_optim_Lstar_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds") |> mutate(frac = 0.25 * 1.5 * gauss_corr), # scaled by 1.5x
-        read_rds("out/2024-05-06_rolling_age_optim_d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds") |> mutate(frac = 0.25 * 1.5 * gauss_corr), # 1.5x
-        read_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds") |> mutate(frac = 0.25 * 2.15 * gauss_corr), # 2.15x
-        read_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_tweak.rds") |> mutate(frac = 0.25 * 2.1227 * gauss_corr), # 2.1227x (new value found after playing around with sim)
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.22.rds") |> mutate(frac = 0.22 * gauss_corr) |> mutate(date = ymd("2024-03-27"), .before = "proxy"), # I don't recall if this was tweaked already or not...
+        read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25.rds") |> mutate(frac = 0.25 * gauss_corr) |> mutate(date = ymd("2024-03-27"), .before = "proxy"),
+        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss.rds") |> mutate(frac = 0.3 * 0.5 * gauss_corr) |> mutate(date = ymd("2024-03-28"), .before = "proxy"), # I think this was accidentally at 0.5x because I had my logic reversed
+        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_2x.rds") |> mutate(frac = 0.3 * 2 * gauss_corr) |> mutate(date = ymd("2024-03-28"), .before = "proxy"), # this was for sure at 2x
+        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_3x.rds") |> mutate(frac = 0.3 * 3 * gauss_corr) |> mutate(date = ymd("2024-03-28"), .before = "proxy"), # I think 3x is the key!
+        read_rds("out/2024-03-28_rolling_age_optim_Lstar_lin-scl-med_gauss_narrow-0.25_3x.rds") |> mutate(frac = 0.25 * 3 * gauss_corr) |> mutate(date = ymd("2024-03-28"), .before = "proxy"), # still 3x
+        read_rds("out/2024-03-28_rolling_age_optim_d13C-MS_lin-scl-med_gauss_narrow-0.25_3x.rds") |> mutate(frac = 0.25 * 3 * gauss_corr) |> mutate(date = ymd("2024-03-28"), .before = "proxy"), # still 3x
+        # ignoring the below since they are WRONG
+        ## read_rds("out/2024-05-06_rolling_age_optim_Lstar_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds") |> mutate(frac = 0.25 * 1.5 * gauss_corr) |> mutate(date = ymd("2024-05-06"), .before = "proxy"), # scaled by 1.5x
+        ## read_rds("out/2024-05-06_rolling_age_optim_d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds") |> mutate(frac = 0.25 * 1.5 * gauss_corr) |> mutate(date = ymd("2024-05-06"), .before = "proxy"), # 1.5x
+        ## read_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300.rds") |> mutate(frac = 0.25 * 2.15 * gauss_corr) |> mutate(date = ymd("2024-05-07"), .before = "proxy"), # 2.15x
+        ## read_rds("out/2024-05-07_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_tweak.rds") |> mutate(frac = 0.25 * 2.1227 * gauss_corr) |> mutate(date = ymd("2024-05-07"), .before = "proxy"), # 2.1227x (new value found after playing around with sim)
+        read_rds("out/2024-05-08_rolling_age_optim_Lstar-d13C-MS_lin-scl-med_gauss_0.25_tie-error-1.6_slide-300_alpha5.rds") |> mutate(frac = 0.25 * 2.1227 / 3 * 5) |> mutate(date = ymd("2024-05-08"), .before = "proxy"), # notice no gauss corr b/c I don't know how to do this
       ) |>
       mutate(window = "gaussian")) |>
     # turn into factors so that plotting is in the correct order
@@ -10773,6 +10784,8 @@ new runs after changing to a taner filter currently with roll = 1e10.
 #+end_src
 
 #+RESULTS:
+: filter: no rows removed
+: filter: no rows removed
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -10831,7 +10844,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac, window)`
 : filter: removed 4,972 rows (1%), 416,672 rows remaining
-: + + filter: removed 273 rows (93%), 21 rows remaining
+: filter: removed 273 rows (93%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -10845,7 +10858,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
     mutate(match = map(the_best, "matched")) |>
     unnest(match) |>
     summarize(max_age_sopelana = min(age),
-              .by = c(proxy, # NOT SITE
+              .by = c(date, proxy, # NOT SITE
                       detrend_type, depth_chunk, comb, sol, window,
                       ))
 
@@ -10863,7 +10876,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 
   overall_best_old <- overall_sd_old |>
     summarize(RMSD = sqrt(mean(SD)),
-              .by = c(proxy, detrend_type, comb, sol, window, frac))
+              .by = c(date, proxy, detrend_type, comb, sol, window, frac))
 
   overal_best_sol_old <- overall_best_old |>
     filter(RMSD == min(RMSD), .by = c(sol, proxy))
@@ -10871,7 +10884,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window)`
-: filter: removed 26,466 rows (4%), 569,037 rows remaining
+: filter: removed 27,583 rows (4%), 594,065 rows remaining
 
 **** [#B] inspect the tiepoint optimization plots
 :PROPERTIES:

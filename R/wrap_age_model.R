@@ -147,8 +147,9 @@ wrap_age_model <- function(data,
     ## frequency_fraction <- 1.5
     frequency_fraction <- #2.15 # this scales it up a little more,
       # experimentally this matches the taner 1e4 roll parameter with the same intervals
-      2.1227 / 3 * 5# from our reprex, this should be an even tighter fit
+      frequency_fraction * 2.1227 / 3 * 5# from our reprex, this should be an even tighter fit
   }
+
   my_filt_age <- tibble::tibble(target = c("405 kyr", "100 kyr"),
                                 p = target_periods) |>
     dplyr::mutate(f = 1 / .data$p,
