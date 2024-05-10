@@ -32,6 +32,16 @@
 % I'll use this to highlight sections that I want to focus your attention on!
 \newcommand{\ijk}{\textcolor{blue}}
 
+% write Hawaiʻi correctly
+% https://tex.stackexchange.com/questions/424535/how-to-type-a-proper-hawai%CA%BBian-%CA%BBokina
+\DeclareRobustCommand{\okina}{%
+  \raisebox{\dimexpr\fontcharht\font`A-\height}{%
+    \scalebox{0.8}{`}%
+  }%
+}
+% commented this out b/c they don't use lualatex or xelatex, so can't use UTF-8 directly (?)
+%\newunicodechar{ʻ}{\okina}
+
 % normally I strongly prefer biblatex, but the AGU template allows us to use \cite,
 % \citeA, and \nocite from apacite :(
 % \usepackage[giveninits=true,uniquename=false,uniquelist=false,date=year,hyperref=true,mincitenames=1,maxcitenames=2,backend=biber,backref,doi=true,url=false,isbn=false]{biblatex}
@@ -154,7 +164,7 @@ per-mode=symbol,
 \authors{I. J. Kocken\affil{1} and R. E. Zeebe\affil{1}}
 \affiliation{1}{
 School of Ocean and Earth Science and Technology,
-University of Hawaii at Manoa,
+University of Hawai\okina{}i at M\=anoa,
 1000 Pope Road, MSB 629, Honolulu, HI 96822, USA}
 
 % \affiliation{2}{Second Affiliation}
