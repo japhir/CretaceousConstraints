@@ -194,7 +194,7 @@ wrap_age_model <- function(data,
                       x = age_floating, y = value,
                       linterp = TRUE, linterp_dt = linterp_dt,
                       add_depth = TRUE,
-                      alpha = 5,
+                      alpha = 5, # default is 3, but we make it larger so that we don't truncate the distribution tails
                       window = bandpass_window)
   } else {#999
     flt <- tmp |>

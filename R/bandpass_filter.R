@@ -5,11 +5,12 @@
 ##'   Can contain multiple rows for multiple frequency filtering.
 ##' @param x Column name in `data` that holds the depth/age information.
 ##' @param y Column name in `data` that holds the proxy variable name.
-##' @param ... Additional parameters, yet to be determined.
+##' @param ... Additional parameters, passed on to [astrochron::bandpass()].
 ##' @param linterp If `TRUE`, linearly interpolate.
 ##' @param linterp_dt Resolution to linearly interpolate to.
 ##' @param window Window type for bandpass filter: 0 = rectangular, 1 = Gaussian, 2 = Cosine-tapered window (a.k.a. Tukey window).
 ##' @param add_depth Defaults to `FALSE`. If `TRUE`, find column `depth` in original and interpolate it back from age.
+##' @returns A [tibble::tibble()]
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
 ##'                       b = 11:20,
@@ -19,7 +20,7 @@
 ##'                 tibble::tibble(flow = 1, fhigh = 2, target = "group"),
 ##'                 x = a, y = c)
 ##' @export
-##' @seealso [astrochron::bandpass], [astrochron::linterp]
+##' @seealso [astrochron::bandpass] for the original implementation, [astrochron::linterp] for linearly interpolating.
 bandpass_filter <- function(data, frequencies,
                             x, y, ...,
                             linterp = TRUE,
@@ -38,13 +39,15 @@ bandpass_filter <- function(data, frequencies,
   }
   if (! all(c("fhigh", "flow", "target") %in% colnames(frequencies))) {
     cli::cli_abort(c("{.var frequencies} must have columns `flow`, `fhigh`, and `target`.",
-                     "i" = "{.var frequencies} has column{?s} {.val {colnames(frequencies)}}"))
+                    "i" = "{.var frequencies} has column{?s} {.val {colnames(frequencies)}}"))
   }
 
   out <- data |>
     dplyr::mutate(filt = list(frequencies)) |>
     tidyr::unnest("filt") |>
     tidyr::nest(.by = tidyr::all_of(colnames(frequencies)))
+
+  # TODO: default to columns 1 and 2 if x and y are NULL
 
   if (linterp) {
     out <- out |>
