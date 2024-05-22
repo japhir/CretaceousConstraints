@@ -1,20 +1,37 @@
 ##' Spectral Analysis
 ##'
-##' @param data Dataframe with input data.
-##' @param x Column in `data`, i.e. `depth`, `height`, or `age`.
-##' @param y Column in `data` with variable of interest.
-##' @param method Spectral analysis method to apply: `"MTM"` or `"LOWSPEC"`.
-##' @param ... Additional arguments to pass to spectral analysis method.
-##' @return A [tibble::tibble()] with spectral outcome.
+##' @param data Dataframe with input data. Data will get linearly interpolated to equally-spaced data by default.
+##' @param x Column in `data`, i.e. `depth`, `height`, or `age`. If `NULL` (default), use the first column in the data.
+##' @param y Column in `data` with variable of interest, i.e. `magsus` or `CaCO3`. If `NULL` (default), use the second column in the data.
+##' @param method Spectral analysis method to apply.
+##'    Must be one of:
+##'    - `"FFT"` for an AR1 background estimate, equivalent to `"FFT AR1"`,
+##'    - `"FFT PL"` for a power law spectral background estimate,
+##'    - `"MTM"` for an AR1 background estimate, equivalent to `"MTM AR1"`,
+##'    - `"MTM PL"` for a power law spectral background estimate,
+##'    - `"MTM ML96"` for the astrochron reimplementation of the Mann and Lees (1996) robust red noise analysis,
+##'    - `"LOWSPEC"` .
+##' @param ... Additional arguments passed to the spectral analysis method.
+##' @returns A [tibble::tibble()] with spectral outcome.
+##' Columns are consistently named with snake_case and the data are in a [tidy format](https://r4ds.had.co.nz/tidy-data.html).
+##' - `frequency` The frequency.
+##' - `amplitude` The spectral amplitude (for FFT).
+##' - `power` The spectral power.
+##' - `phase` The phase (for the periodogram/FFT).
+##' - `harmonic_cl`, Harmonic confidence level (for MTM and LOWSPEC).
+##' - `background_fit`, The fit to the background of the spectrum. This can be the AR1, Power Law, or LOWSPEC fit.
+##' - `background_cl`, The confidence level of the background fit (i.e. the value).
+##' - `.width` The width of the confidence interval. CIs of 0.9, 0.95, and 0.99.
 ##' @examples
 ##' dat <- tibble::tibble(a = 1:10,
 ##'                       b = 11:20,
 ##'                       c = stats::rnorm(10),
 ##'                       d = sample(letters[1:3], 10, TRUE))
-##' spectral_analysis(dat, x = a, y = c)
-##' @seealso plot_spectrum
+##' spectral_analysis(dat, x = a, y = c, method = "MTM AR1")
+##' @seealso [plot_spectrum()]
+##' @seealso [astrochron::linterp()], [astrochron::periodogram()], [astrochron::mtm()], [astrochron::mtmPL()], [astrochron::mtmML96()], [astrochron::lowspec()] are the backend functions that we wrap here to provide consistent output names and format.
 ##' @export
-spectral_analysis <- function(data, x = NULL, y = NULL, method = "MTM", ...) {
+spectral_analysis <- function(data, x = NULL, y = NULL, method = "FFT", ...) {
   supported_methods <- c("FFT", "FFT AR1", "FFT PL",
                          "MTM", "MTM AR1", "MTM PL", "MTM ML96",
                          "LOWSPEC")
