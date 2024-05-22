@@ -121,7 +121,7 @@ plot_spectrum <- function(spec,
   } else {
     pl <- pl +
       ggplot2::scale_x_continuous(transform = "log10",
-                                  guide = guide_axis_logticks(long = 2, mid = 1, short = 0.5),
+                                  guide = ggplot2::guide_axis_logticks(long = 2, mid = 1, short = 0.5),
                                   sec.axis = ggplot2::sec_axis(breaks = periods,
                                                                trans = \(x) 1 / x,
                                                                name = sec_xlab))
@@ -130,7 +130,7 @@ plot_spectrum <- function(spec,
   if (logy) {
     pl <- pl +
       ggplot2::scale_y_continuous(transform = "log10",
-                                  guide = guide_axis_logticks(long = 2, mid = 1, short = 0.5))
+                                  guide = ggplot2::guide_axis_logticks(long = 2, mid = 1, short = 0.5))
   }
 
   pl <- pl +

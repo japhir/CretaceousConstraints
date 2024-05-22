@@ -15,26 +15,70 @@
 ##' @seealso plot_spectrum
 ##' @export
 spectral_analysis <- function(data, x = NULL, y = NULL, method = "MTM", ...) {
-  supported_methods <- c("MTM", "MTM AR1", "LOWSPEC", "MTM PL", "MTM ML96")
-  ## if ("MTM" != method) {
-  ##   cli::cli_abort(c("Only method MTM is currently supported.",
-  ##                    "i" = "Other methods I may implement:",
-  ##                    "*" = "FFT = periodogram",
-  ##                    "*" = "Blackman-Tukey",
-  ##                    "*" = "MTLS?"))
-  ## }
-  # TODO: come up with uniform names for elements of the output so that I can always use the same simple plotting function?
+  supported_methods <- c("FFT", "FFT AR1", "FFT PL",
+                         "MTM", "MTM AR1", "MTM PL", "MTM ML96",
+                         "LOWSPEC")
   if (!method %in% supported_methods) {
     cli::cli_abort(c("Method {.q {method}} is not currently supported.",
                      "i" = "Supported methods are {.q {supported_methods}}."))
   }
 
-  if (is.null(x) && is.null(y)) {
+  null_tracker <- 0L
+  if (rlang::quo_is_null(rlang::enquo(x))) {
+    null_tracker <- null_tracker + 1
+  }
+  if (rlang::quo_is_null(rlang::enquo(y))) {
+    null_tracker <- null_tracker + 1
+  }
+  if (null_tracker == 1L) {
+    stop("Must provide either both 'x' and 'y', or neither.")
+  }
+
+  if (null_tracker == 2L) {
     data <- data[, 1:2]
+  } else {
+    data <- data |>
+      dplyr::select(c({{x}}, {{y}}))
   }
 
   # TODO switch from if else if else if else to switch?
-  if (method == "MTM" || method == "MTM AR1") {
+  if (method == "FFT" || method == "FFT AR1" || method == "periodogram") {
+    out <- data |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::periodogram(genplot = FALSE, verbose = FALSE, output = 1, background = 1, ...) |>
+      tidyr::pivot_longer(c(.data$AR1_90_power,
+                            .data$AR1_95_power,
+                            .data$AR1_99_power),
+                          names_to = c("AR1", ".width"),
+                          names_pattern = "^(AR1)_(9[950])",
+                          values_to = "background_power") |>
+      dplyr::select(-"AR1") |>
+      dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+      dplyr::rename(frequency = .data$Frequency,
+                    amplitude = .data$Amplitude,
+                    power = .data$Power,
+                    phase = .data$Phase,
+                    background_cl = .data$AR1_CL,
+                    background_fit = .data$AR1_Fit)
+  } else if (method == "FFT PL") {
+    out <- data |>
+      astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+      astrochron::periodogram(genplot = FALSE, verbose = FALSE, output = 1, background = 2, ...) |>
+      tidyr::pivot_longer(c(.data$PwrLaw_90_power,
+                            .data$PwrLaw_95_power,
+                            .data$PwrLaw_99_power),
+                          names_to = c("PL", ".width"),
+                          names_pattern = "^(PwrLaw)_(9[950])",
+                          values_to = "background_power") |>
+      dplyr::select(-"PL") |>
+      dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
+      dplyr::rename(frequency = .data$Frequency,
+                    amplitude = .data$Amplitude,
+                    power = .data$Power,
+                    phase = .data$Phase,
+                    background_cl = .data$PwrLaw_CL,
+                    background_fit = .data$PwrLaw_Fit)
+  } else if (method == "MTM" || method == "MTM AR1") {
     out <- data |>
       astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
       astrochron::mtm(output = 1, genplot = FALSE, verbose = FALSE, ...) |>
