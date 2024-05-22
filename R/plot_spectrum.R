@@ -23,9 +23,9 @@
 plot_spectrum <- function(spec,
                           group = "none",
                           logx = FALSE,
-                          logy = FALSE,
+                          logy = TRUE,
                           domain = "depth",
-                          confidence = FALSE,
+                          confidence = TRUE,
                           periods = NULL) {
   if (domain == "depth") {
     xlab <- "Frequency (cycles" ~ m^{-1} * ")"
