@@ -160,6 +160,7 @@ spectral_analysis <- function(data, x = NULL, y = NULL, method = "FFT", ...) {
       dplyr::mutate(.width = readr::parse_double(paste0(".", .data$.width))) |>
       dplyr::rename(frequency = .data$Frequency,
                     power = .data$Power,
+                    median_smoothed_power = .data$Median_Smoothed_Power,
                     harmonic_cl = .data$Harmonic_CL,
                     background_cl = .data$AR1_CL,
                     background_fit = .data$AR1_fit)
