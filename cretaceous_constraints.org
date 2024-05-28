@@ -10577,7 +10577,10 @@ try again after tweaking taner_filter func
 > current time: 2024-05-10 10:28:36.350382
 and some more tweaking
 > current time: 2024-05-10 10:36:29.262773
+ok now?
 > current time: 2024-05-10 10:40:24.708112
+> current time: 2024-05-10 10:54:13.249264
+> duration: 13.81
 
 **** [#B] load cached results
 :PROPERTIES:
@@ -10836,7 +10839,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: filter: removed 108 rows (18%), 494 rows remaining
+: filter: removed 150 rows (24%), 466 rows remaining
 
 **** recompute RMSD for the full stack
 :PROPERTIES:
@@ -10865,6 +10868,9 @@ out of all the detrend types and gaussian/rectangular filters (window)
     tidylog::filter(proxy == "d13C" | site == "Sopelana" |
                     (site == "Zumaia" & age < max_age_sopelana))
 
+  rm(cutoff)
+  rm(best_age_optim)
+
   overall_best <- overall_sd |>
     summarize(RMSD = sqrt(mean(SD)),
               .by = c(proxy, detrend_type,
@@ -10877,9 +10883,9 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, date, frac, window)`
-: filter: removed 4,957 rows (1%), 416,687 rows remaining
-: filter: removed 273 rows (93%), 21 rows remaining
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac, window)`
+: filter: removed 5,991 rows (1%), 427,460 rows remaining
+: filter: removed 280 rows (93%), 21 rows remaining
 
 **** recompute RMSD for all the other detrend types etc.
 :PROPERTIES:
@@ -10907,7 +10913,10 @@ out of all the detrend types and gaussian/rectangular filters (window)
     # so no age max_age_sopelana there!
     tidylog::filter(proxy == "d13C" | site == "Sopelana" |
                     (site == "Zumaia" & age < max_age_sopelana))
-  rm(rolling_age_optim_old) # less chance of running out of memory
+
+  # less chance of running out of memory
+  rm(cutoff)
+  rm(rolling_age_optim_old)
 
   overall_best_old <- overall_sd_old |>
     summarize(RMSD = sqrt(mean(SD)),
@@ -10920,6 +10929,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+RESULTS:
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window, frac)`
 : filter: removed 24,839 rows (4%), 570,715 rows remaining
+: filter: removed 417 rows (95%), 24 rows remaining
 
 **** [#B] inspect the tiepoint optimization plots
 :PROPERTIES:
@@ -11703,7 +11713,7 @@ everything
 #+RESULTS:
 [[file:imgs/full_RMSD_boot_comparison.png]]
 
-**** simple comparison of taner roll parameter
+**** [#B] simple comparison of taner roll parameter
 #+begin_src R :results output graphics file :file imgs/full_RMSD_roll_comparison.pdf :width 3.3 :height 2
   pl_rmsd_taner <- overall_best |>
     filter(comb == "1:1") |>
@@ -13286,7 +13296,9 @@ https://github.com/AndyBunn/dplR/issues/9
 a taner filter with a roll of 1e4 is almost identical to a gaussian
 #+begin_src R :tangle /tmp/reprex.R
   library(tidyverse)
+#+end_src
 
+#+begin_src R :tangle /tmp/reprex.R
   windows <- tibble(roll = c(
                       1e3,
                       1e4, # didn't include, very similar to upscaled gauss
@@ -13332,13 +13344,21 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
     slice(1:N) |>
     rename(age_floating = time, value = ecc) |>
     mutate(noise = rnorm(N), res = scale(value)[, 1] + noise)
+#+end_src
 
+#+RESULTS:
+
+#+begin_src R :tangle /tmp/reprex.R
   simple |>
     ggplot(aes(x = age_floating, y = scale(value)[, 1])) +
     ## geom_line(aes(y = noise), colour = "blue") +
     geom_line(aes(y = res), colour = "red", alpha = .2) +
     geom_line()
+#+end_src
 
+#+RESULTS:
+
+#+begin_src R :tangle /tmp/reprex.R
   windows <- windows |>
     mutate(win = map(roll,
                      \(x) {
@@ -13374,6 +13394,7 @@ a taner filter with a roll of 1e4 is almost identical to a gaussian
 
 #+RESULTS:
 
+meh
 #+begin_src R :eval never
   # maybe precession will be higher res?
     pp <- 23
@@ -13501,11 +13522,16 @@ we want the -2 \sigma and +2\sigma to be at the edges of the rectangular filter
     ) +
     scale_y_continuous(breaks = c(0, 1)) +
     labs(x = "Frequency (cycles/kyr)",
-         y = "",
-         colour = "Filter", fill = "Filter") +
+         y = "") +
     annotate("text", x = 1 / c(405, 110), y = 1,
              label = c("405", "110"), vjust = -0.5) +
-    ## scale_fill_manual(values = c("rectangular" = "gray", "gaussian" = "pink", "taner" = "blue")) +
+
+    # rectangles
+    ## geom_step(aes(x = value, y = y), data = mfa) +
+    annotate("rect", fill = NA, colour = "black", xmin = ll, xmax = hl, ymin = 0, ymax = 1) +
+    annotate("rect", fill = NA, colour = "black", xmin = ls, xmax = hs, ymin = 0, ymax = 1) +
+
+  ## scale_fill_manual(values = c("rectangular" = "gray", "gaussian" = "pink", "taner" = "blue")) +
     ## # reall gaussian, not limited by weird parametrization
     ## ggdist::stat_slab(aes(xdist = true_normal),
     ##                   inherit.aes = FALSE,
@@ -13519,14 +13545,11 @@ we want the -2 \sigma and +2\sigma to be at the edges of the rectangular filter
     scale_colour_manual("Window",
                         values = c(
                           "rectangular" = "gray",
-                          "gaussian" = "darkred",
-                          "gaussian rescaled" = "red"## ,
+                          "gaussian" = "red",
+                          "gaussian rescaled" = "darkred"## ,
                           ## "taner" = "green"
                         )) +
-    # rectangles
-    ## geom_step(aes(x = value, y = y), data = mfa) +
-    annotate("rect", fill = NA, colour = "black", xmin = ll, xmax = hl, ymin = 0, ymax = 1) +
-    annotate("rect", fill = NA, colour = "black", xmin = ls, xmax = hs, ymin = 0, ymax = 1) +
+
     # gauss
     ## ggdist::stat_halfeye(aes(xdist = true_normal_s,
     ##                          alpha = after_stat(ggdist::cut_cdf_qi(cdf, .width = c(.68, .95, 1)))),
@@ -13544,20 +13567,26 @@ we want the -2 \sigma and +2\sigma to be at the edges of the rectangular filter
               data = gauss |> mutate(window = "gaussian rescaled")) +
     geom_line(aes(group = paste(window, target), colour = window),
               data = orig_gauss |> mutate(window = "gaussian")) +
+
     # taners
     ggnewscale::new_scale_colour() +
-    scale_colour_viridis_d() +
-    labs(colour = "Taner roll") +
+    scale_colour_viridis_d("Taner roll") +
     geom_line(aes(colour = factor(format(roll, scientific = TRUE)),
-                  group = paste(roll, window, target)),
+                  group = paste(roll, window, target), shape = NULL),
               position = "identity") +
-    # annotate astronomical solutions spectra
+
+        # annotate astronomical solutions spectra
     geom_area(aes(x = frequency, y = power / max(power)),
+              inherit.aes = FALSE,
               fill = "black",
               colour = NA,
               position = "identity",
-              data = slns_specs |> filter(frequency < 0.02) |> mutate(window = "sol"))
+              data = slns_specs |> filter(frequency < 0.02))
+#+end_src
 
+#+RESULTS:
+
+#+begin_src R :tangle /tmp/reprex.R
   pl_windows
 
   # zoom waay in on the intersection for the 1e5 version
@@ -13592,6 +13621,20 @@ contrast the filter to a real gaussian to see where the \minus\sigma and \plus\s
                       genplot = TRUE, verbose = FALSE,
                       output = 1)
 
+  # this is what happens when you just change alpha
+  go0 <- simple |>
+    select(age_floating, res) |>
+    astrochron::linterp(genplot = FALSE, verbose = FALSE) |>
+    astrochron::bandpass(flow = ls,
+                         fhigh = hs,
+                         alpha = 3 / 2.1227,
+                         win = 1,
+                         xmin = ls - 0.003,
+                         xmax = hs + 0.003,
+                         genplot = TRUE, verbose = FALSE,
+                         output = 1)
+
+
   ## x11() # open up a new window so we can compare the two native plots
   go <- simple |>
     select(age_floating, res) |>
@@ -13610,14 +13653,20 @@ contrast the filter to a real gaussian to see where the \minus\sigma and \plus\s
                          output = 1)
 
   # plot diffs
-  bind_cols(to |> rename(to = res), go |> select(go = res)) |>
+  bind_cols(to |> rename(to = res),
+            go0 |> select(go0 = res),
+            go |> select(go = res)) |>
     as_tibble() |>
-    mutate(diff = to - go) |>
-    ggplot(aes(x = age_floating, y = diff)) +
+    mutate(togo = to - go) |>
+    mutate(togo0 = to - go0) |>
+    mutate(gogo0 = go - go0) |>
+    ggplot(aes(x = age_floating)) +
     geom_line(aes(y = to, colour = "to")) +
-    geom_line(aes(y = go, colour = "go"),
-              linetype = "dashed") +
-    geom_line()
+    geom_line(aes(y = go0, colour = "go0"), linetype = "dotted") +
+    geom_line(aes(y = go, colour = "go"), linetype = "dashed") +
+    geom_line(aes(y = togo0, colour = "togo0")) +
+    geom_line(aes(y = gogo0, colour = "gogo0")) +
+    geom_line(aes(y = togo, colour = "togo"))
 #+end_src
 
 
