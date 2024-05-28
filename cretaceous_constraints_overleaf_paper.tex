@@ -25,6 +25,8 @@
 %\makeglossaries % not needed if we don't want to print them at the end
 \usepackage[section]{placeins} % figures were jumping to the end, I prefer them closer
 
+\usepackage{threeparttable} % for table footnotes
+
 \newcommand{\appr}{\raise.17ex\hbox{\(\scriptstyle\sim\)}} % approximately symbol
 \newcommand{\ma}[1]{Ma\(_{405}\)#1} % Ma\(_{405}\)8 was a hassle to type
 
@@ -39,6 +41,7 @@
     \scalebox{0.8}{`}%
   }%
 }
+
 % commented this out b/c they don't use lualatex or xelatex, so can't use UTF-8 directly (?)
 %\newunicodechar{ʻ}{\okina}
 
@@ -70,14 +73,14 @@ per-mode=symbol,
 % this makes it so the first use spells it out, the next uses the abbreviation!
 \newacronym{d13C}{\ensuremath{\delta}\ce{^13C}}{carbon isotope ratio}
 \newacronym{MS}{MS}{magnetic susceptibility}
-\newacronym{L*}{L*}{total light reflectance}
+\newacronym{L*}{\(L^*\)}{total light reflectance}
 
 \newacronym{RMSD}{RMSD}{root mean square deviation}
 % do we need RCSSD?
-\newacronym{VLN}{VLN}{very long eccentricity nodes}
+\newacronym{VLN}{VLN}{very long eccentricity node}
 % TODO: we may need a SEC and LEC for short eccentricity and long eccentricity? Or maybe e_{l} and e_{s}
 
-\newacronym{KT}{K/T}{Cretaceous--Paleogene boundary}
+\newacronym{KT}{KTB}{Cretaceous--Paleogene boundary}
 \newacronym{PETM}{PETM}{Paleocene--Eocene thermal maximum}
 
 \newacronym{GAM}{GAM}{generalized additive model}
@@ -233,7 +236,7 @@ Here, we adopt and extend this approach into the latest Cretaceous, by re-analyz
 %Results
 We find that the filtered \gls{L*} record is most compatible with the astronomical solution ZB20a.
 However, these results are sensitive to parameter choices in our algorithm, which we describe in detail.
-Nevertheless, \acrshortpl{VLN} in the astronomical solutions that coincide with large amplitudes in the short eccentricity-related peaks in the filtered proxy record give a clear indication on why the ZB20a solution should be favored when performing cyclostratigraphy for the latest Cretaceous.
+Nevertheless, \acrlongpl{VLN} in the astronomical solutions that coincide with large amplitudes in the short eccentricity-related peaks in the filtered proxy record give a clear indication on why the ZB20a solution should be favored when performing cyclostratigraphy for the latest Cretaceous.
 % decided to not focus on the \gls{KT} age for now.
 \end{abstract}
 
@@ -483,7 +486,7 @@ and to adjust the depth for each of the long eccentricity minima tie-points (see
 \caption{Properties of astronomical solutions.\tnote{a}}
 \centering
 \begin{tabular}{lcccc}
-\(\Delta{}t\)\tnote{b} (days) & \(J_{2}\times10^{7}\) & \(N_{\text{ast}}\) & \(N_{\text{LWP}}\) \\
+ & \(\Delta{}t\) (days) & \(J_{2}\tnote{b}~\times10^{7}\) & \(N_{\text{ast}}\) & \(N_{\text{LWP}}\) \\
 \hline
 ZB18a & 2 & \num{1.3050} & 10 & 0 \\
 ZB20a & 2 & \num{1.4700} & 50 & 40 \\
@@ -492,8 +495,8 @@ ZB20c & 2 & \num{1.1708} & 10 & 0 \\
 ZB20d & 6 & \num{1.3050} & 33 & 33 \\
 \end{tabular}
 \begin{tablenotes}
-  \item [a] \(\Delta{}t\) = timestep, \(J_{2}\) = solar quadrupole moment, \(N_{\text{ast}}\) = No of asteroids, NLWP = No of lightweight particles (see Appendix A).
-  \item [b] For discussion of \(J_{2}\) values, see \citeA{ZeebeLourens2022EPSL}}
+  \item [a] \(\Delta{}t\) = timestep, \(J_{2}\) = solar quadrupole moment, \(N_{\text{ast}}\) = N\textsuperscript{o} of asteroids, NLWP = N\textsuperscript{o} of lightweight particles \cite<table adapted from>[]{ZeebeLourens2022EPSL}.
+  \item [b] For discussion of \(J_{2}\) values, see \citeA{ZeebeLourens2022EPSL} section A1.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -793,7 +796,7 @@ The key intervals of \ma{5}, \ma{8}, and \ma{10} are XXX.
 
 
 Future studies should aim to generate high resolution proxy records that have recorded the expression of both long and short eccentricity and connect to the oldest geologically constrained parts of the astronomical solutions.
-It may be wise to target low latitudes for this, since eccentricity-related cyclicity tends to dominate in the tropics~\cite<Fig. 7a>[]{LaeppleLohmann2009}. % during the late Pleistocene (750 ka to present) in model
+It may be wise to target low latitudes for this, since eccentricity-related cyclicity tends to dominate in the tropics~\cite<Fig. 7a in>[]{LaeppleLohmann2009}. % during the late Pleistocene (750 ka to present) in model
 % but of course the above depends on which proxy you're looking at... cut the sentence out?
 We further suggest that future studies generate new astronomical solutions with similar initial settings to the ZB20a solution and, using appropriate parameter variations, explore this crucial chaotic horizon of the solar system.
 
@@ -1037,7 +1040,7 @@ We further suggest that future studies generate new astronomical solutions with 
     \textbf{Sensitivity analysis of various ways of detrending the data.}
     This uses optimized tie-point depths and limits the results to a rectangular filter.
     We show main-paper taner filters for \texttt{lin\_scl\_med} with different colours for each proxy for context.
-    Note that the \texttt{lin\_scl\_fine} for the taner filter is very similar to the one for \texttt{lin\_scl\_med}.
+    %Note that the \texttt{lin\_scl\_fine} for the taner filter is very similar to the one for \texttt{lin\_scl\_med}.
     }
 \end{figure}
 
@@ -1049,7 +1052,7 @@ We further suggest that future studies generate new astronomical solutions with 
     %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
     This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization with a target frequency fraction of \qty{25}{\percent}.
     The taner filter has the main-text roll parameter of \num{e10}.
-    Note that the way \texttt{astrochron} parametrizes the gaussian window width (dark red triangles) is not directly comparable to the taner (black circles) and rectangular (grey squares) filters.
+    Note that the way \texttt{astrochron} parametrizes the gaussian (dark red triangles) window width is not directly comparable to the taner (black circles) and rectangular (grey squares) filters.
     Therefore, we have reparametrized the gaussian filter so that it intersects the taner filters where they cross the rectangular filter,
     % the upper and lower boundaries correspond to \(\pm2\sigma\). -> that was frac * 1.5
     by multiplying the fraction (\qty{25}{\percent})
@@ -1057,7 +1060,7 @@ We further suggest that future studies generate new astronomical solutions with 
     or by \(\frac{2.1227}{3}\times5\) for an alpha of 5.
     This results in a gaussian filter that is comparable to a taner filter with roll parameter \num{e4}.
     % We also show the original for \gls{L*} but this is effectively a narrower filter range.
-    See \cref{fig:filter-windows} for illustrations of filter windows and alternative roll parameters.
+    See \cref{fig:filter-windows} for illustrations of filter windows and alternative taner roll parameters.
     }
 \end{figure}
 
@@ -1066,23 +1069,23 @@ We further suggest that future studies generate new astronomical solutions with 
   \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
   \caption{\label{fig:filter-windows}
     \textbf{Sensitivity analysis for taner filter roll parameters.}
-    Illustration of different taner roll parameter filter windows and the rectangular and gaussian filter windows (top panel).
-    The rectangular (black/gray), gaussian (dark red, red), and taner filters (dark blue to green to yellow)
-    use the same filter boundary frequencies of \(\frac{1}{405}\) and \(\frac{1}{110}\)~\si[per-mode=power]{\per\kiloyear} \qty{\pm25}{\percent} as in the main text.
-    The taner filters go from the pointy \num{e3} (narrowest peak, widest shoulders, dark blue)
-    moving outwards from the peak to \num{e6}, \num{e8},
+    Illustration of different taner roll parameter filter windows and the rectangular and gaussian filter windows (top panel)
+    % The rectangular (black/gray), gaussian (dark red, red), and taner filters (dark blue to green to yellow)
+    useing the same filter boundary frequencies of \(\frac{1}{405}\) and \(\frac{1}{110}\)~\si[per-mode=power]{\per\kiloyear} \qty{\pm25}{\percent} as in the main text.
+    The taner filters go from the pointy \num{e3} (narrowest peak, widest shoulders, deep purple)
+    moving outwards from the peak to \num{e4}, \num{e6}, \num{e8}, (shades of blue)
     \num{e10} (the preferred choice in the main text),
-    \num{e12}, and \num{e100} (yellow), approaching the rectangular filter (black).
+    \num{e12} (shades of green), and \num{e100} (yellow),
+    approaching the rectangular filter (black).
     Note that the way \texttt{astrochron} parameterizes the Gaussian window width is not directly comparable to the taner and rectangular filters.
-    Setting the Gaussian filter alpha to a value to match the width of the taners could work,
-    but would cut off any lower/higher frequencies.
+    %Setting the Gaussian filter alpha to a value to match the width of the taners could work, but would cut off any lower/higher frequencies.
     Therefore, we also show a reparametrized Gaussian filter
     %where the upper and lower boundaries correspond to \(\pm2\sigma\) (darkred gaussian).
-    that intersects with where the taner filters cross each other and the rectangular filter (see \cref{fig:full-RMSD_filter} for details).
+    that intersects with where the taner filters cross each other and the rectangular filter (see \cref{fig:full-RMSD-filter} for details).
     We show MTM-spectral peaks of the astronomical solutions analyzed in this study in black for reference.
 
     The bottom panel contrasts \gls{RMSD} scores for the \texttt{lin\_scl\_med} detrended \gls{L*} data with tie-point depth optimization for different roll parameters.
-    Note that these scores differ from \cref{fig:full-RMSD-filter} because they use a slightly wider fraction of \qty{\pm30}{\percent}) than the \qty{\pm25}{\percent} in the main text (to avoid re-computation).
+    Note that these scores differ from \cref{fig:full-RMSD-filter} because they use a slightly wider fraction of \qty{\pm30}{\percent}) than the \qty{\pm25}{\percent} in the main text (to avoid re-computation and to illustrate the effects of changing the fraction).
     }
 \end{figure}
 
