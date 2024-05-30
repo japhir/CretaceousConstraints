@@ -288,22 +288,24 @@ Nevertheless, \acrlongpl{VLN} in the astronomical solutions that coincide with l
 
 
 \section{Introduction}\label{sec:intro}
+%\ijk{I've focused on the figures, methods, results, and discussion first. In that order.}
 
 % Astronomical solutions have improved dating, form the backbone of cyclostratigraphy,
+Astrochronology has become an essential part of the Geologic Time Scale~\cite{Laskar2020}.
+It aims to link quasi-periodic signals in geological data to astronomical solutions,
+providing absolute ages with very good precision.
+This allows us to understand mechanisms and causality of events,
+and will ultimately help us understand the mechanisms of Earth's long-term climate change.
 
 % but CHAOS
-
+\ijk{[not happy at all with this paragraph.]}
+% @REZ: Wikipedia has Milankovitch forcing, but write his name like below.
+While many of the prominent Milankovi\'{c} cycles seem to affect Earth's climate in a repeating manner over the past tens of millions of years (\si{\millionyear}),
+at around \num{50} million years ago (\si{\millionyearago}) minor perturbations in initial conditions or parameter values can result in wildly different model outcomes~\cite{Zeebe2017}.
+This chaos is inherent in the solar system. \ijk{[TODO: add refs here.]}
 % constrain the chaos with geologic data
 
-\ijk{I've focused on the figures, methods, results, and discussion first. In that order.}
-
-%% I like how some of RZ's paper's start with an ancient quote
-%% ``Cool quote that addresses how crucial good dating is''.
-%% Maybe something from \citeA{Berger1980} review? Or perhaps \citeA{Berger1989}.
-
-As we move to older and older time-periods, the available records will get further distorted and \ijk{TODO}.
-
-\ijk{@REZ: I just added \cite{Westerhold2017} here. They make the comparison between data and several solutions and comment on implications, but it's not so explicit.}
+\ijk{@REZ: I just added \cite{Westerhold2017} to the below. They make the comparison between data and several solutions and comment on implications, but it's not so explicit.}
 
 In this work, we use geological data to constrain astronomical solutions that most accurately reflect Earth's orbit in order to ultimately provide an astronomical time scale for applications in geology and paleoclimate.
 For previous on the Paleocene and Eocene, see \citeA{Westerhold2017,ZeebeLourens2019,ZeebeLourens2022EPSL}.
@@ -346,13 +348,14 @@ When the individual components that make up the short eccentricity cycle (i.e., 
 In order to find the most suitable Maastrichtian proxy record that best reflects amplitude variations in long- and short eccentricity,
 we have considered several coastal sections of marine successions and sea floor drill core sites.
 Proxy records from the following sites and studies were considered:
-Gubbio~\cite{Voigt2012,Sinnesael2016},
-ODP Leg 208 Site 1267~\cite{Westerhold2007,Westerhold2008,Husson2011},
-IODP Leg 342 Site U1403~\cite{Batenburg2018},
-Zumaia and Sopelana~\cite{tenKateSprenger1993,Batenburg2012,Batenburg2014,Dinares-Turell2013},
-ODP Leg 198 Site 1210B~\cite{Jung2012,Kim2022},
-ODP Leg 74 Site 525A and ODP Leg 207 Site 1258A~\citeA{Husson2011},
-and ODP Leg 122 Site 762C~\citeA{Husson2011,Thibault2012}.
+Gubbio~\cite{Voigt2012,Sinnesael2016}, % Fig. 12, d13C low-res
+ODP Leg 208 Site 1267~\cite{Westerhold2008,Husson2011}, % log(Fe) only Ma405-1 and Ma405-2, MS up to Ma405-6 but no splice
+IODP Leg 342 Site U1403~\cite{Batenburg2018}, % why didn't we look at this in more detail again? It is one of the studies listed in \cite{Smith2023}.
+Zumaia and Sopelana~\cite{tenKateSprenger1993,Batenburg2012,Batenburg2014,Dinares-Turell2013}, % <3
+ODP Leg 198 Site 1210B~\cite{Jung2012,Kim2022}, % longer record but lower resolution and d13C. Also cited in Voigt2012
+ODP Leg 74 Site 525A~\cite{Husson2011}, % Fig. 3 grey levels smoothed, Ma405-6--9, Fig. 4 only Ma405-1
+ODP Leg 207 Site 1258A~\citeA{Husson2011}, % Fig 3. MS Ma405-8 to 14, some core gaps (also at Ma10 unfortunately)
+and ODP Leg 122 Site 762C~\citeA{Husson2011,Thibault2012}. % Fig 3. grey levels smoothed \ma{8--16}, Fig. 4 \m{1--6}
 For the present study, we selected the Zumaia and Sopelana I field sections,
 which show the clearest orbitally-forced patterns for the Maastrichtian~\cite{tenKateSprenger1993,Batenburg2012,Dinares-Turell2013},
 and continuous high-resolution proxy records~\cite{Batenburg2012,Batenburg2014}.
@@ -800,8 +803,15 @@ Different ways of pre-processing the data are discussed in \cref{sec:sensitivity
 After careful consideration of these factors, we argue that it is possible to select an optimal set of parameter and filtering frequencies/widths that results in a reliable outcome to the extent that these data allow for.
 
 \ijk{[This paragraph is not done: Can we look at multiple sites? literature comparison, only visual]}
-%Previous studies have also indicated the presence of a high amplitude of the short-eccentricity cycle in \ma{8} in ODP Site 1262 and to a lesser extent in 1209. % where did I see this?
-Contrast to: Zumaia, ODP 1262, and 1267 \ma{1} and \ma{2}~\cite{Westerhold2008} figure 4.
+%Previous studies have also indicated the presence of a high amplitude of the short-eccentricity cycle in \ma{8} in ODP Site 1262 and to a lesser extent in 1209. % where did I see this? Probably mistook Pc8 for Ma405-8
+Contrast to:
+Zumaia section photographs show high amplitude in \ma{2}~\cite{Batenburg2012,Dinares-Turell2013}.
+Visually, the Zumaia \ce{CaCO3} record by \citeA{tenKateSprenger1993} shows a high amplitude in the short eccentricity-related peak for \ma{2} in  wavelet analysis~\cite{Dinares-Turell2013} % \ma{1--4} % also in \cite{Westerhold2008} figure 4.
+% TODO: but where they put the Ma3 annotations is out of phase to how Husson2011 and Batenburg2012/2014 do it?
+ODP 1262 \ma{1--2}~\cite{Westerhold2008} figure 4
+and \cite{Hilgen2010}. % Fig 2., Fig. 6 log(MS) + log(Fe)
+% found via \cite{Dinares-Turell2014}, % log(Fe) and log(MS) Fig. 2
+1267 \ma{1} and \ma{2}~\cite{Westerhold2008} figure 4.
 % this is all Husson2011:
 525A gray level bundle 1 (fig 4)
 1267B MS 1--6.5 (fig 4) but note that they did not use the splice table from~\cite{Westerhold2008} to convert from MBSF to RMCD.
@@ -811,7 +821,7 @@ Contrast to: Zumaia, ODP 1262, and 1267 \ma{1} and \ma{2}~\cite{Westerhold2008} 
 1258A MS \ma{8--14} (fig 3) no recovery in 10
 of~\citeA{Husson2011}.
 The key intervals of \ma{5}, \ma{8}, and \ma{10} are XXX.
-
+IODP Leg 342 Site U1403 \ma{1--7} ln(Fe/Ca) and \gls{MS}~\cite<>[Fig. 6]{Batenburg2018} shows high amplitude in the short eccentricity component of \ma{5} % WHOAH did I see this study/site before?
 
 Future studies should aim to generate high resolution proxy records that have recorded the expression of both long and short eccentricity and connect to the oldest geologically constrained parts of the astronomical solutions.
 It may be wise to target low latitudes for this, since eccentricity-related cyclicity tends to dominate in the tropics~\cite<Fig. 7a in>[]{LaeppleLohmann2009}. % during the late Pleistocene (750 ka to present) in model
