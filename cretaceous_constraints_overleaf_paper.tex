@@ -4,10 +4,10 @@
 %% To submit your paper:
 \documentclass[draft]{agujournal2019}
 % packages from the template
-\usepackage{url} %this package should fix any errors with URLs in refs.
-\usepackage{lineno}
+\usepackage{url} % this package should fix any errors with URLs in refs.
+\usepackage{lineno} % line numbers
 \usepackage[inline]{trackchanges} %for better track changes. finalnew option will compile document with changes incorporated.
-\usepackage{soul}
+\usepackage{soul} % hyphenable spacing, underlining, striking out etc.
 
 % IJK added packages
 % for units, type \qty{x}{\unit}
@@ -23,9 +23,11 @@
 % abbreviates after (use \gls{key}).
 \usepackage{glossaries}
 %\makeglossaries % not needed if we don't want to print them at the end
-\usepackage[section]{placeins} % figures were jumping to the end, I prefer them closer
+% \usepackage[section]{placeins} % figures were jumping to the end, I prefer them closer
 
 \usepackage{threeparttable} % for table footnotes
+\usepackage{colortbl}
+\definecolor{good}{rgb}{0.8,1,0.8}
 
 \newcommand{\appr}{\raise.17ex\hbox{\(\scriptstyle\sim\)}} % approximately symbol
 \newcommand{\ma}[1]{Ma\(_{405}\)#1} % Ma\(_{405}\)8 was a hassle to type
@@ -79,6 +81,8 @@ per-mode=symbol,
 % do we need RCSSD?
 \newacronym{VLN}{VLN}{very long eccentricity node}
 % TODO: we may need a SEC and LEC for short eccentricity and long eccentricity? Or maybe e_{l} and e_{s}
+% \newacronym{SEC}{\ensuremath{e_{s}}}{short eccentricity}
+% \newacronym{LEC}{\ensuremath{e_{l}}}{long eccentricity}
 
 \newacronym{KT}{KTB}{Cretaceous--Paleogene boundary}
 \newacronym{PETM}{PETM}{Paleocene--Eocene thermal maximum}
@@ -170,6 +174,9 @@ School of Ocean and Earth Science and Technology,
 University of Hawai\okina{}i at M\=anoa,
 1000 Pope Road, MSB 629, Honolulu, HI 96822, USA}
 
+% NOTE: this is not in the template, but useful for VC
+\today{}
+
 % \affiliation{2}{Second Affiliation}
 %(repeat as many times as is necessary)
 
@@ -200,8 +207,8 @@ University of Hawai\okina{}i at M\=anoa,
 % I don't particularly like these yet...
 \item Geological data can be used to constrain the chaos of the solar system to understand Earth's orbital history.
 \item The Zumaia and Sopelana sections are most compatible with solution ZB20a for the Maastrichtian.
-\item More records of higher quality that capture variability in short- and long eccentricity are needed.
-% meh, don't like 3.
+% \item More records of higher quality that capture variability in short- and long eccentricity are needed.
+% meh, don't like 3. --> REZ: outlook?
 \end{keypoints}
 
 %% ------------------------------------------------------------------------ %%
@@ -236,9 +243,14 @@ Here, we adopt and extend this approach into the latest Cretaceous, by re-analyz
 %Results
 We find that the filtered \gls{L*} record is most compatible with the astronomical solution ZB20a.
 However, these results are sensitive to parameter choices in our algorithm, which we describe in detail.
-Nevertheless, \acrlongpl{VLN} in the astronomical solutions that coincide with large amplitudes in the short eccentricity-related peaks in the filtered proxy record give a clear indication on why the ZB20a solution should be favored when performing cyclostratigraphy for the latest Cretaceous.
+Nevertheless, \acrfullpl{VLN} in the astronomical solutions that coincide with large amplitudes in
+\rez{whereas}
+the short eccentricity-related peaks in the filtered proxy record rule out alternatives, leaving only\rez{favoring} the ZB20a solution for cyclostratigraphy during the latest Cretaceous.
 % decided to not focus on the \gls{KT} age for now.
 \end{abstract}
+
+\rez{remove full paragraph, see their table B.1}
+\rez{KPG to KT}
 
 \section*{Plain Language Summary}
 [ enter your Plain Language Summary here or delete this section]
@@ -292,57 +304,67 @@ Nevertheless, \acrlongpl{VLN} in the astronomical solutions that coincide with l
 
 % Astronomical solutions have improved dating, form the backbone of cyclostratigraphy,
 Since the breakthrough that proved the astronomical theory of the ice ages~\cite{Hays1976},
+\rez{Emiliani1955}
 cyclostratigraphy and astrochronology have become essential components of the youngest part of the Geologic Time Scale~\cite<e.g.,>[]{Hilgen2006,Laskar2020}.
+\rez{Laskar2020 =/= astrochron. Despite title, does not show any data.}
+\rez{Hinnov2018?}
 The aim of astrochronology is to link quasi-periodic signals in geological data to astronomical solutions, providing absolute ages with high precision.
 These precise ages allow us to understand the causality of climate events, which ultimately give insights into the mechanisms that drive changes in Earth's climate.
 
 % but CHAOS
 % @REZ: Wikipedia has Milankovitch forcing, but write his name like below.
-While many of the prominent Milankovi\'{c} cycles affect Earth's climate in a repeating manner over the past tens of millions of years (\si{\millionyear}),
-\ijk{[@REZ: can you help me with phrasing this sentence?]}
-the calculations of the astronomical solutions result in different outcomes with minor perturbations in initial conditions or parameter values at around \num{50} million years ago (\si{\millionyearago})~\cite<e.g.,>[]{Laskar2004,Laskar2011,Zeebe2017}. % what should I cite here? this is just quick 'n dirty.
-This chaos is inherent to the solar system, so this uncertainty cannot be resolved by improvements in the astronomical calculations alone.
+While many of the prominent Milankovi\'{c} cycles affect Earth's climate in a quasi-periodic manner over the past tens of millions of years (\si{\millionyear}),
+%\ijk{[@REZ: can you help me with phrasing this sentence?]}
+the calculations of the astronomical solutions result in different outcomes with minor perturbations in initial conditions or parameter values beyond \appr\num{50} million years ago (\si{\millionyearago})~\cite<e.g.,>[]{Laskar2004,Laskar2011,Zeebe2017}. % what should I cite here? this is just quick 'n dirty.
+The chaos is inherent to the solar system, so this uncertainty cannot be resolved by improvements in the astronomical calculations alone.
 
 % how does the chaos manifest in the orbital solutions?
 How the chaos manifests in the different astronomical solutions, is expressed in the phasing of the different cycles.
-The short eccentricity cycle (periods of \qtylist{95;99.7;124;132.5}{\kiloyear} for \qtyrange{56}{80}{\millionyearago})
-\rez{should be ca. 95,99,124,131} \ijk{see email}
-is variable between different astronomical solutions due to the influence of \(g_{4}\) and \(g_{3}\),
+The short eccentricity cycle (periods of \qtylist{95;99.7;124;132.5}{\kiloyear} for \qtyrange{56}{80}{\millionyearago} in solution ZB20a)
+% \rez{should be ca. 95,99,124,131} \ijk{see email}
+is variable between different astronomical solutions due resonance transitions related to \(g_{4}\) and \(g_{3}\),
 ``which are loosely related to the perihelion precession of Earth's and Mars' orbits''~\cite{ZeebeLourens2022EPSL}.
+% \ijk{[Should I explain further that the short ecc is made up of 4 spectral peaks, related to different combinations of g2, g3, g4, g5? Or is out of scope/can we expect this background knowledge? I separate regular short ecc timing from VLNs here, but maybe they should be in one paragraph?}
+% \rez{if you need it below, yes. else no}
 % importance: different solutions have different phases of even 405 kyr cycle!
-\ijk{[Do we need abbreviations for long and short eccentricity? Like \(e_{l}\) and \(e_{s}\) or SEC and LEC?]}
-The long eccentricity cycle (period of \qty{405}{\kiloyear}), on the other hand, is thought to be stable over much longer time scales.
+The long eccentricity cycle (\(g_{2}-g_{5}\), period of \qty{405}{\kiloyear}), on the other hand, is thought to be stable over much longer time scales.
+%\ijk{[Do we need abbreviations for long and short eccentricity? Like \(e_{l}\) and \(e_{s}\) or SEC and LEC?]}
+\rez{... not the case (ZL, AJ, 2024}
 
 Many studies have suggested that because the long eccentricity cycle is stable in the geologic past, we can rely on it for tuning records older than \appr\qty{40}{\millionyearago}~\cite<i.e.>{Westerhold2012,Dinares-Turell2013}.
 \ijk{[Hmm... they actually have a much more nuanced take...]}
 \ijk{[@REZ: I think this next section feels a bit longwinded... Can you help me trim it down?]}
-However, if we compare different astronomical solutions we observe that the phasing of this \qty{405}{\kiloyear} cycle does shift when we go further back in time.
+While the long eccentricity cycle is much more stable than the short eccentricity cycle, we do observe differences in the phasing of the \qty{405}{\kiloyear} cycle when comparing different astronomical solutions further back in time.
 % taner filter \qty{\frac{1}{405}}{\per\kiloyear} \pm 25%
 % calculated this myself
-For example, the long eccentricity minimum near \qty{65.9}{\millionyearago} differs by up to \qty{70}{\kiloyear} between solutions (largest difference between La11~\cite{Laskar2011,Laskar2011a} and ZB20a~\cite{ZeebeLourens2022EPSL}, second-largest difference of \qty{34}{\kiloyear} between La10c and ZB20a).
+For example, the long eccentricity minimum near \qty{65.9}{\millionyearago} differs by up to \qty{70}{\kiloyear} between solutions La11~\cite{Laskar2011} and ZB20a~\cite{ZeebeLourens2022EPSL}.
 At the long eccentricity minimum around \qty{69.8}{\millionyearago}
 %between \ma{13} and \ma{14} (numbers represent the number of the long eccentricity bundle older than the \gls{KT}),
 the age of the \qty{405}{\kiloyear} minimum already differs by up to \qty{85.2}{\kiloyear} between different astronomical solutions---between astronomical solutions La10c~\cite{Laskar2011} and ZB20a~\cite{ZeebeLourens2022EPSL}.
 This means that providing absolute ages of Maastrichtian records based on tuning to the long eccentricity cycle of any particular astronomical solution %without first constraining the chaos in this interval with geological records,
 may underestimate the true uncertainty.
+Over longer geological time scales (several hundred \unit{\millionyear}) the long eccentricity cycle was recently also shown to be unstable~\cite{ZeebeLantink2024}.
 
-One further key differentiating factor between different astronomical solutions is the timing of \acrfullpl{VLN}.
-When the individual components that make up the short eccentricity cycle interfere to cancel each other out, only the long eccentricity component remains clearly visible~\cite<i.e.>[]{ZeebeLourens2022EPSL}.
-Chaotic resonance transitions can change the timing of these \acrshortpl{VLN}~\cite{ZeebeLourens2019}.
+One further key differentiating factor between different astronomical solutions is the timing of \glspl{VLN}.
+When the individual components that make up the short eccentricity cycle interfere to cancel each other out, only the long eccentricity component remains clearly visible~\cite<see>[]{ZeebeLourens2022EPSL}.
+Chaotic resonance transitions can change the timing of these \glspl{VLN}~\cite{ZeebeLourens2019}.
+\ijk{[merge with general short ecc discussion b/c this is the g4-g3 cycle?]}
 %The implications for this when comparing absolute astronomical ages to Ar/Ar and Ur/Pb ages \ijk{TODO}.
 
 % constrain the chaos with geologic data
-Previous workers have attempted to put geological constraints on this chaos for the Paleocene and Eocene~\cite<>[respectively]{ZeebeLourens2019,ZeebeLourens2022EPSL}.
-These studies shed light on the occurrence of chaotic resonance transitions that shift the timing of \acrshortpl{VLN} and long eccentricity minima.
+Previous workers have attempted to put geological constraints on the chaos for the Paleocene and Eocene~\cite<>[respectively]{ZeebeLourens2019,ZeebeLourens2022EPSL}.
+These studies shed light on the occurrence of chaotic resonance transitions that shift the timing of \glspl{VLN} and long- and short eccentricity.
 \ijk{[@REZ: I had added \cite{Westerhold2017} to the above. They make the comparison between data and several solutions and comment on implications, but it's not so explicit. Does it belong there?]}
 \ijk{[Not sure if the next two comments about record quality are needed here.]}
-The Walvis Ridge records used in these studies are of exceptional quality.
-Thus finding comparable records that capture precession-scale alternations and patterns of amplitude modulation for older time periods is challenging.
+The Walvis Ridge records used in \citeA{ZeebeLourens2019,ZeebeLourens2022EPSL} are of exceptional quality.
+Finding comparable records that capture precession-scale alternations and patterns of amplitude modulation for older time periods will likely become increasingly challenging.
 
-In this work, we use the best available records immediately prior to the \gls{KT} (informal use) to constrain which astronomical solutions most accurately reflect Earth's orbit.
+In this work, we use the best available records immediately prior to the \gls{KT} (informal use)
+\rez{inconsistent}
+to constrain which astronomical solutions most accurately reflect Earth's orbit.
 %for the Maastrichtian (data falls between \qtyrange{71.1}{65.9}{\millionyearago}).
 We argue that these records are the Zumaia and Sopelana proxy records generated by \citeA{Batenburg2012,Batenburg2014} (see \cref{sec:data}).
-These study sites have been previously recommended to serve as primary candidates to help improve astronomical solutions~\cite{Dinares-Turell2013}.
+These study sites have been previously recommended to serve as primary candidates to help select astronomical solutions~\cite{Dinares-Turell2013}.
 Ultimately, this study works towards providing an astronomical time scale for applications in geology and paleoclimate in the Maastrichtian.
 
 
@@ -357,7 +379,7 @@ Ultimately, this study works towards providing an astronomical time scale for ap
 
 \subsection{Datasets Used}\label{sec:data}
 
-In order to find the most suitable Maastrichtian proxy record that best reflects amplitude variations in long- and short eccentricity,
+In order to find the most suitable Maastrichtian proxy record that best reflects amplitude variations in long- and short eccentricity cycles,
 we have considered several coastal sections of marine successions and sea floor drill core sites.
 Proxy records from the following sites and studies were considered:
 Gubbio~\cite{Voigt2012,Sinnesael2016}, % Fig. 12, d13C low-res
@@ -370,8 +392,9 @@ ODP Leg 207 Site 1258A~\citeA{Husson2011}, % Fig 3. MS Ma405-8 to 14, some core 
 and ODP Leg 122 Site 762C~\citeA{Husson2011,Thibault2012}. % Fig 3. grey levels smoothed \ma{8--16}, Fig. 4 \m{1--6}
 For the present study, we selected the Zumaia and Sopelana I field sections,
 which show the clearest orbitally-forced patterns for the Maastrichtian~\cite{tenKateSprenger1993,Batenburg2012,Dinares-Turell2013},
-and continuous high-resolution proxy records~\cite{Batenburg2012,Batenburg2014}.
+and continuous high-resolution proxy records are available~\cite{Batenburg2012,Batenburg2014}.
 
+% some setting/why is the site so epic?
 The coastal cliffs of Zumaia and Sopelana are located in the Bay of Biscay in the Basque Country, Northern Spain~\cite{Herm1965,Pujalte1993}
 %\ijk{NOTE: I tried to go through the literature trail thoroughly to arrive at the first study on this site, but most of these older papers are very hard to access!}
 and comprise quasi-periodic alternations between limestones and marls, interbedded with turbidites~\cite{tenKateSprenger1993,Pujalte1999}. % this is cited as Pujalte 1998 in Batenburg2012, year off-by-one!
@@ -382,41 +405,38 @@ See \citeA{Batenburg2014} and references therein for some historical context of 
 % quote from Batenburg2014: (Herm 1965; Percival & Fischer 1977; Lamolda 1990; Ward et al. 1991; Ten Kate & Sprenger 1993; Ward & Kennedy, 1993; elorza & García-Garmilla 1998; Pujalte et al. 1998; Dinarès-Turell et al. 2003, 2013; Gómez-Alday et al. 2008; Kuiper et al. 2008) and a reference section for the K–Pg boundary (Molina et al. 2009).
 % they also say ten Kate & Sprenger 1993 first cyclostrat paper of the site.
 
+% careful: turbidites
 Care must be taken when considering the lower Maastrichtian at the Zumaia site due to frequent turbidite successions,
 while the upper Maastrichtian was tectonically more stable~\cite{Pujalte1998}.
-\ijk{[@rez: can I delete these remarks? feel free to do so if you agree]}
-\rez{[let's make sure the following text is not too close to
-the original refs]}
-\ijk{I've looked at the original refs again. It was obviously never copy-pasted, but looking at it again it \emph{was} mostly reshuffled text. I am not sure how close I can be to the original text that I cite/if I need to incorporate other stuff...}
 The upper Maastrichtian section of Zumaia also contains many thin turbidites,
-whose occurrence shows many random spectral peaks, but may also include an eccentricity and obliquity signal for cycles \ma{1--4}~\cite<the first four long eccentricity bundles prior to the \gls{KT},>{tenKateSprenger1993}. % this part is not mentioned in Batenburg
+whose occurrence results in many random spectral peaks, but may also include an eccentricity and obliquity signal for cycles \ma{1--4}~\cite<the first four long eccentricity bundles prior to the \gls{KT},>{tenKateSprenger1993}. % this part is not mentioned in Batenburg
 However, the pattern of limestone--marl alternations in the Zumaia succession that has been associated with astronomical forcing remained undisturbed by the turbidites in the upper Maastrichtian~\cite{Batenburg2012}.
 The Sopelana section covers the lower part of the Maastrichtian, and has a similar lithology but without indications for turbidites, likely because it was located farther offshore~\cite{Batenburg2012}.
-The proxy record from Zumaia~\cite{Batenburg2012} was extended to include Sopelana in \citeA{Batenburg2014}.
 
-% this is basically a summary of Batenburg2012 table 1
+% lithology/cycles: summary of Batenburg2012 table 1
 The alternations in color and bed resistance that occurred at periods of \appr\qty{70}{\cm} were logged in detail~\cite{Batenburg2012,Dinares-Turell2013}
 and have been associated with climatic precession forcing (periods of \appr\qtyrange{19}{23}{\kiloyear}).
-Bundles of 5 of these couplets with darker, redder, thicker beds---especially in the marls---were related to short eccentricity amplitude modulation (\appr\qty{4}{\metre}, \appr\qty{100}{\kiloyear}),
-which in turn were grouped in 4 bundles that were associated with the long eccentricity cycle (\appr\qty{16}{\metre}, \appr\qty{405}{\kiloyear}) and expressed as limited thinner marlier parts~\cite{Batenburg2012,Batenburg2014}.
-\ijk{[TODO: I don't like the wording in the above]}
-Eccentricity modulates the amplitude of climatic precession,
-with eccentricity maxima and strong precession minima linked to enhanced seasonal contrast in the Northern hemisphere.
-This is thought to intensify the hydrological cycle in the region, resulting in the deposition of thicker, darker marls~\cite{Batenburg2014}.
-\ijk{[I'm citing Batenburg2012 and Batenburg2014 A LOT, maybe we need a simple acronym for them? B12 and B14?]}
+Bundles of five of these couplets with darker, redder, thicker beds---especially in the marls---were related to short eccentricity amplitude modulation (\appr\qty{4}{\metre}, \appr\qty{100}{\kiloyear}),
+which in turn were grouped in four bundles that were associated with the long eccentricity cycle (\appr\qty{16}{\metre}, \appr\qty{405}{\kiloyear}) and expressed as limited thinner marlier parts~\cite{Batenburg2012,Batenburg2014}.
 
-\citeA{Batenburg2012,Batenburg2014} measured the \gls{MS}, the \gls{d13C}, and the \gls{L*} of rock samples (among others), but we focus on \gls{L*} in the main manuscript.
-The \gls{d13C} proxy showed clear long eccentricity-related cycles but the short eccentricity was less clearly expressed,
-which follows from carbon isotopes being more sensitive to lower frequencies in orbital forcing due to its long residence time in the ocean~\cite{Zeebe2017,Kocken2019loscar}.
+% phase relationship
+Eccentricity modulates the amplitude of climatic precession, with eccentricity maxima and strong precession minima linked to enhanced seasonal contrast in the Northern hemisphere.
+This is thought to intensify the hydrological cycle in the region, resulting in the deposition of thicker, darker marls~\cite{Batenburg2014}.
+
+% which proxies?
+\citeA{Batenburg2012} measured the \gls{MS}, the \gls{d13C}, and the \gls{L*} of rock samples (among others) from Zumaia, but we focus on \gls{L*} in the main manuscript.
+The \citeA{Batenburg2012} proxy record was extended downwards to include Sopelana I in \citeA{Batenburg2014}.
+Unfortunately, the \ce{CaCO3} record from \citeA{tenKateSprenger1993} currently spans bundles \ma{1--4} and has not yet been extended to encompass the full Maastrichtian.
+The \gls{d13C} proxy showed long eccentricity-related cycles, but the short eccentricity cycles were less clearly expressed.
+This bias to lower frequencies of the astronomical forcing in the carbon isotope record can be explained by the long residence time of carbon in the oceans~\cite{Zeebe2017,Kocken2019loscar}.
 % Richard doesn't trust/understand MS.
 The \gls{MS} signal is affected by dilution with carbonates~\cite{tenKateSprenger1993},
 so its link to climate forcing is less direct than, for example, the \ce{CaCO3} content itself.
 % it seems that the \citeA{tenKateSprenger1993} record has a _--_ pattern for the amplitudes of the short ecc in the first 4 long ecc cycles prior to the K/T
 % \citeA{Dinares-Turell2013} re-analyzed this record and did some additional spectral analysis/filtering.
 The \gls{MS} proxy shows a very strong negative correlation with \ce{CaCO3} in bundles \ma{1--4}~\cite{tenKateSprenger1993,Gilabert2022}.
-However, clear differences were found between the intercept of this relationship before, during, and after the \gls{KT}~\cite<supplementary figure S2 in>{Gilaberg2022}.
-Unfortunately, the \ce{CaCO3} record from \citeA{tenKateSprenger1993} currently spans bundles \ma{1--4} and has not yet been extended to encompass the full Maastrichtian.
-Furthermore, the original study reports that their \gls{MS} values show scatter, potentially due to ``surface irregularities and the generally low values''~\cite{Batenburg2012}.
+However, clear differences were found between the intercept of this relationship before, during, and after the \gls{KT}~\cite<supplementary figure S2 in>{Gilabert2022}.
+Furthermore, \citeA{Batenburg2012} report that their \gls{MS} values show scatter, potentially due to ``surface irregularities and the generally low values''.
 The \gls{L*} proxy, on the other hand, likely corresponds to changes in the lithology that were driven by carbonate--clay alternations~\cite{MountWard1986,Batenburg2012},
 which were in turn driven by changes in wetness and climate.
 We therefore argue that the color reflectance \gls{L*} record most directly reflects the orbital forcing.
@@ -485,25 +505,42 @@ We therefore argue that the color reflectance \gls{L*} record most directly refl
 
 \subsection{Age Model}\label{sec:agemodel}
 
-\ijk{[@REZ: can I remove these notes now?]}
-\ijk{re: past/present tense: actually I'm used to writing in the past tense for methods/results, but I wasn't being very consistent. Rewrote everything to past tense now.}
-
-\ijk{something about spectral analysis? \(\to{}\), just rely on original study that showed this. But do I need to mention this? And if so, where?}
-
 The age model for the Zumaia and Sopelana sites was based on the identification of long eccentricity minima in the field by \citeA{Batenburg2012,Batenburg2014}.
-The original study relied on foraminifera biostratigraphy, magnetostratigraphy, and astrochronology by tuning these long eccentricity minima to the long eccentricity filter of the La11 solution~\cite{Laskar2011a}. % not sure if sentence is needed
+The original study relied on foraminifera biostratigraphy, magnetostratigraphy, and astrochronology by tuning the long eccentricity minima to the long eccentricity filter of the La11 solution~\cite{Laskar2011a}. % not sure if sentence is needed
 In order to avoid circularity, we assumed a duration of \qty{405}{\kiloyear} for each of these long eccentricity cycles to arrive at an initial floating age model.
 A previous best-estimate of the age of the \gls{KT} \cite<\qty{65.9}{\millionyearago},>[]{ZeebeLourens2022EPSL} anchored the floating age model to absolute time.
 We then performed optimizations for each astronomical solution that allowed the age of the \gls{KT} to shift by \qty{\pm200}{\kiloyear}
 and to adjust the depth for each of the long eccentricity minima tie-points (see \cref{sec:algorithm} for details).
 
+\ijk{something about spectral analysis? \(\to{}\), just rely on original study that showed this. But do I need to mention this? And if so, where?}
+
 \subsection{Astronomical Solutions}\label{sec:astro}
 
-In this study we compare the available astronomical solutions that had previously shown the best matches to data from the Paleocene \cite{ZeebeLourens2019} and Eocene \cite{ZeebeLourens2022EPSL}.
+In this study we compare the available astronomical solutions that had previously shown the best matches to data from the Paleocene and Eocene \cite{ZeebeLourens2019,ZeebeLourens2022EPSL}.
 This includes solutions La10a and La10b~\cite{Laskar2011}
 as well as solutions ZB18a~\cite{ZeebeLourens2019}
 and ZB20a, ZB20b, ZB20c, and ZB20d~\cite{ZeebeLourens2022EPSL}.
-\cref{tab:astronomical-solutions} shows the different parameter variations that were used to generate the latter 5 astronomical solutions.
+\cref{tab:astronomical-solutions} shows the different parameter variations that were used to generate the latter five astronomical solutions.
+
+% tried to do this using guidelines from template but it messes things up
+% so using threeparttable instead
+% \begin{table}
+% \centering
+% \caption{Properties of astronomical solutions.$^a$\label{tab:astronomical-solutions}}
+% \begin{tabular}{lcccc}
+%  & \(\Delta{}t\) (days) & \(J_{2}^{b}~\times10^{7}\) & \(N_{\text{ast}}\) & \(N_{\text{LWP}}\) \\
+% \hline
+% ZB18a & 2 & \num{1.3050} & 10 & 0 \\
+% ZB20a & 2 & \num{1.4700} & 50 & 40 \\
+% ZB20b & 2 & \num{1.3310} & 10 & 0 \\
+% ZB20c & 2 & \num{1.1708} & 10 & 0 \\
+% ZB20d & 6 & \num{1.3050} & 33 & 33 \\
+% \hline
+% \multicolumn{2}{l}{Table adapted from \citeA{ZeebeLourens2022EPSL}.}
+% \multicolumn{2}{l}{$^a$\(\Delta{}t\) = timestep, \(J_{2}\) = solar quadrupole moment, \(N_{\text{ast}}\) = N\textsuperscript{o} of asteroids, NLWP = N\textsuperscript{o} of lightweight particles.}
+% \multicolumn{2}{l}{$^b$For discussion of \(J_{2}\) values, see \citeA{ZeebeLourens2022EPSL} section A1.}
+% \end{tabular}
+% \end{table}
 
 \begin{table}
 \begin{threeparttable}
@@ -519,7 +556,8 @@ ZB20c & 2 & \num{1.1708} & 10 & 0 \\
 ZB20d & 6 & \num{1.3050} & 33 & 33 \\
 \end{tabular}
 \begin{tablenotes}
-  \item [a] \(\Delta{}t\) = timestep, \(J_{2}\) = solar quadrupole moment, \(N_{\text{ast}}\) = N\textsuperscript{o} of asteroids, NLWP = N\textsuperscript{o} of lightweight particles \cite<table adapted from>[]{ZeebeLourens2022EPSL}.
+  \item Table adapted from \citeA{ZeebeLourens2022EPSL}.
+  \item [a] \(\Delta{}t\) = timestep, \(J_{2}\) = solar quadrupole moment, \(N_{\text{ast}}\) = N\textsuperscript{o} of asteroids, NLWP = N\textsuperscript{o} of lightweight particles.
   \item [b] For discussion of \(J_{2}\) values, see \citeA{ZeebeLourens2022EPSL} section A1.
 \end{tablenotes}
 \end{threeparttable}
@@ -527,19 +565,25 @@ ZB20d & 6 & \num{1.3050} & 33 & 33 \\
 
 
 
+
+
 \subsection{Removing Long-Term Trends}\label{sec:detrend}
 
 Several rapid shifts in the lithology---from red, clay-rich marly intervals to whiter limestones---were observed in the Zumaia section on the order of every \qty{50}{\metre}.
-This has previously been suggested to potentially indicate a \qty{1.2}{\millionyear} cycle~\cite{Batenburg2014}.
-These shifts in lithology were recorded in the proxy archives of Zumaia as very rapid transitions, likely as a result of crossing some threshold value in a nonlinear climate system response.
-This could hamper spectral analysis and potentially filtering.
+This \qty{50}{\metre} cycle has previously been suggested to potentially indicate a \qty{1.2}{\millionyear} cycle~\cite{Batenburg2014}.
+The shifts in lithology were recorded in the proxy archives of Zumaia as very rapid transitions, likely as a result of crossing some threshold value in the nonlinear climate system response.
+The long-term shifts in lithology could hamper spectral analysis and potentially filtering.
 Therefore we used several methods of detrending the records prior to filtering: We
-(1) Subtracted a linear fit and scaled (subtracted the mean and divided by the standard deviation) the result;
-(2) Fit a \gls{GAM} to the record, subtracted the fit from each value, then scaled the results;
-(3) Applied a lowpass filter to the record with a frequency of \qty{0.025}{\metre\per cycle}, subtracted it from each value, then scaled the results;
-and (4) Applied a piecewise linear fit based on depth intervals where the lithology changes dramatically, or we observed long-term trends that were at a larger scale than long eccentricity.
-The linear fits were subtracted from each value, and the results were scaled.
-We have tried many ways of detrending the records, for example with larger and smaller chunks in the depth domain (\cref{fig:detrend}), or with different frequencies for the lowpass filter, and report sensitivity to this in the appendix.
+\begin{enumerate}
+    \item Fit a linear model to the record, subtracted the fit from each value, then scaled (subtracted the mean and divided by the standard deviation) the result;
+    \item Fit a \gls{GAM} to the record, subtracted the fit from each value, then scaled the results;
+    \item Applied a lowpass filter to the record with a frequency of \qty{0.025}{\metre\per cycle}, subtracted it from each value, then scaled the results;
+and
+    \item Applied a piecewise linear fit based on depth intervals where the lithology changed dramatically.
+    The linear fits were subtracted from each value and the results were scaled.
+\end{enumerate}
+
+We have tried multiple ways of detrending the records, for example with larger and smaller chunks in the depth domain (\cref{fig:detrend}), or with different frequencies for the lowpass filter, and report sensitivity to the detrending in the appendix.
 % The effects that these trends can have on our results were limited because we filter only in the time-domain, after applying the age model. % Not sure if true, commented out for now.
 %TODO: add link to new appendix figs
 
@@ -552,7 +596,7 @@ We have tried many ways of detrending the records, for example with larger and s
 \subsection{Finding the Best Fit}\label{sec:algorithm}
 
 In order to test which astronomical solution provides the best match to the data
-(and hence is more likely to reflect the true astronomical time scale)
+(and hence is more likely to reflect the true history of the solar system)
 we adopted and extended the approach of \citeA{ZeebeLourens2019,ZeebeLourens2022EPSL}.
 We applied the initial age model (\cref{sec:agemodel}) to the detrended data (\cref{sec:detrend}).
 After linearly interpolating to a timestep that is a multiple of the timestep of the astronomical solution,
@@ -588,87 +632,13 @@ We performed this analysis separately for the Zumaia and Sopelana sites, so that
 Furthermore,  scaling the two sites separately should correct for differences in amplitude between the records that could be the result of differences in paleogeographic setting (i.e., the Sopelana site was likely located farther offshore than the Zumaia site~\cite{Batenburg2014}).
 We also calculated a square root of the cumulative sum of the squared differences that started at the \gls{KT} and moved to older data points.
 This allowed us to visualize where in the time domain the data differs most from the astronomical solutions.
-\ijk{[TODO:\ talk about \texttt{depth\_chunk}s for different sedimentation rate intervals vs. rolling RMSD? Maybe only in appendix text? Or not at all?]}
+% \ijk{[TODO:\ talk about \texttt{depth\_chunk}s for different sedimentation rate intervals vs. rolling RMSD? Maybe only in appendix text? Or not at all?]}
+% \rez{if not critical, drop}
 
 \section{Results}\label{sec:results}
 
-% first talk about how the matched filtered records look!
-The matched eccentricity construct for the \gls{L*} record visually matched the different astronomical solutions reasonably well for the Zumaia--Sopelana composite across the Maastrichtian (\cref{fig:rolling-depth-age}). % too nonscientific?
-% global patterns we observe
-The long eccentricity cycles were closely matched to each solution, while the short eccentricity filter was in general alignment with the solutions in those intervals where the solution showed a high short eccentricity amplitude.
-
-% describe stuff from young to old, from K/T going left
-\ijk{[Not sure if this paragraph is interesting enough to talk about.]}
-For astronomical solutions ZB18a, ZB20c, and ZB20d, the youngest Maastrichtian long eccentricity bundle \ma{1} showed a single short eccentricity cycle that is either in anti-phase with the filtered data, or has a higher amplitude shortly before the \gls{KT}.
-This could be related to the gradual transition that we see in the \gls{L*} data towards the base of the \gls{KT} or to edge effects related to the bandpass filtering.
-% should we talk about Ma405 bundle 2  that doesn't have high amplitude in the proxy records,
-% but does have high amplitude in the relief in the field/photographs
-For the next long eccentricity bundle \ma{2} the eccentricity construct had a relatively low amplitude and so did most astronomical solutions.
-However, for \ma{2} visual indications based on the relief and contrast from the section photographs in \citeA<>[Fig. 2]{Batenburg2012} and \citeA<>[Fig. 5a]{Dinares-Turell2013} show relatively high amplitude in short eccentricity, with prominent precession-related marls.
-\ijk{[@REZ: ZB20a has low amplitude here! Do I need to reflect on this at the end of the discussion?]}
-
-We observed patterns in the relative amplitude of the long eccentricity and short eccentricity filters that may be related to \acrshortpl{VLN}.
-It is difficult to distinguish \acrshortpl{VLN} in the filtered data directly, because there may have been other factors than a \gls{VLN} that resulted in a low amplitude in the short eccentricity-related component of the record.
-For example, large changes in sedimentation rate or lithology could have disrupted the band-pass filtering.
-Therefore, a more conservative approach focuses on bundles with a high amplitude in the short eccentricity-related cycle in the data.
-The records show a higher amplitude of the short eccentricity-related filter in bundle \ma{5}, matching well with all astronomical solutions under evaluation here.
-Crucially, however, some astronomical solutions have a low amplitude in the short eccentricity component in intervals where the data showed a relatively high amplitude.
-This could indicate that a \gls{VLN} was absent from this interval and that the computed astronomical solution was different from the actual astronomical forcing that the Earth experienced.
-
-In bundle \ma{5} (\appr\qty{67.8}{\millionyearago}) ZB20b has a relatively lower amplitude (with a \gls{VLN} in \ma{6}) than our eccentricity construct, whereas ZB20c and ZB20d matches the data more closely and ZB20a matches it in amplitude but seems slightly out of phase.
-
-The highest-amplitude interval in the record occurred in bundle \ma{8} (\appr\qty{68.9}{\millionyearago}).
-This bundle features a darker marly interval at around \qty{117}{\metre}, which corresponds to a strong excursion in both \gls{L*} and \gls{MS} (in the opposite direction) that closely matches the duration of one short eccentricity cycle.
-It is referred to as ``escal\'{o}n'' (step), and was previously also associated with a short eccentricity maximum, while other causes such as regional factors or tectonic events could not be excluded~\cite{Dinares-Turell2013}.
-% TODO: double-check the cycle counts between the two studies
-% There is a giant offset in the composite depth between Dinares-Turell 2013 and Batenburg 2012/2014. At least 86% more section in DT13.
-% Dinares-Turell 2013 depth of 220 m is coincident with Batenburg 2012/2014 depth of 180 m = 40 m
-% and 100 m = 120 m. = 20 m
-% in Dinares-Turell 2013 the escalón occurs between short E31 and E32 (based on filter of CaCO3 for upper part)
-% if I count the short ecc cycles identified in the field by Batenburg 2012, escalón is between E33 and E34
-This high amplitude of our eccentricity construct is significant, because solutions ZB18a, and ZB20c have a low amplitude of short eccentricity in this interval.
-La10b may have a \gls{VLN} somewhere between \ma{7} and \ma{8} and which has a poor match with the data.
-
-During \ma{10} (\appr\qty{69.7}{\millionyearago}) the composite record also indicated a high amplitude of short eccentricity, resulting in a mismatch with ZB20b and to a lesser extent La10c (where the \gls{VLN} seems to occur between \ma{9} and \ma{10}).
-
-% then describe simple "what is the best RMSD-scoring solution?"
-The overall fits between our eccentricity constructs and the astronomical solutions (as measured by the \gls{RMSD}) were relatively similar between the different astronomical solutions.
-The best (lowest \gls{RMSD}) match was observed between astronomical solution ZB20a and the \gls{L*} eccentricity construct (\cref{fig:full-RMSD-all}).
-The \gls{MS} proxy matched the La10c and ZB20d solutions best, while
-the \gls{d13C}-proxy, as indicated in the methods, does not capture short-eccentricity variability to such an extent that it can be used to differentiate meaningfully between astronomical solutions.
-
-The cumulative \gls{RMSD} scores indicate when our eccentricity constructs diverged to what extent from the astronomical solutions (\cref{fig:cum-RMSD-all}).
-Solutions ZB18a, ZB20c, and ZB20d all show a rapid increase in the cumulative \gls{RMSD} score at around \qty{65.9}{\millionyearago}, which represents the mismatch in the first short eccentricity cycle just prior to the \gls{KT}.
-Overall for \gls{L*}, solutions ZB20a and ZB20b outperformed the other solutions up to \appr\qty{69.6}{\millionyearago}, after which ZB20b also develops a mismatch for the Sopelana site.
-The rolling \gls{RMSD} scores also highlight that none of the astronomical solutions showed an amplitude that is as large as the eccentricity construct in \ma{8}, resulting in a rapid increase of the cumulative \gls{RMSD} scores for all astronomical solutions under evaluation for this interval.
-The rolling \gls{RMSD} score only increased slightly in \ma{10} for ZB20b, whereas we see a clear coincidence of a \gls{VLN} in the solution paired with a relatively high amplitude in the eccentricity construct.
-\ijk{[@REZ: this is weird, we see a clear visual mismatch but the rolling RMSD isn't increasing by much here. Any ideas? Maybe because the RMSD is a cumulative sum, new deviations result in a smaller amplitude change as we get to the older parts of the record?]}
-During this interval, the rolling \gls{RMSD} score for ZB20a steadily increases at a slower rate, and therefore results in a better overall match.
-It appears that the strong negative excursions in our eccentricity construct
-at \qty{69.1}{\millionyearago} in ZB20a (oldest part of \ma{8})
-and at \qty{70.4}{\millionyearago} in ZB20b (oldest part of \ma{11})
-have a great deal of influence on the rolling \gls{RMSD} scores.
-\ijk{[@REZ: method could be changed to compare to filters of LEC and SEC of solutions?]}
-
-% OLD notes on chunked-up analysis
-% but we can also look at how it changes through time
-%% \ijk{TODO:\ update this older section where I looked at discrete chunks.}
-%% This analysis can be improved by analyzing specific depth intervals separately, however.
-%% The full Zumaia record gives the lowest \gls{RMSD}-scores for the La10b (\num{1.055}) and ZB20b (\num{1.120}) solutions,
-%% while the Sopelana site gives the best results for ZB20a (\num{0.872}) and ZB18a (\num{0.894}), and to a lesser extent ZB20c (\num{0.959}) and La10c (\num{0.968}).
-%% For Zumaia we also analyzed the record separately for two depth intervals to account for a change in sedimentation rate at around \qty{109.26}{\metre}.
-%% The older interval shows a better match with the La10c (\num{0.981}) and ZB20b (1.001) solutions.
-%% The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a (\num{1.105}), and ZB20b (\num{1.116}), but results show similar \gls{RMSD} scores.
-
-\ijk{[@REZ: what do you think of this section? It feels like it might belong in the discussion, but I \emph{am} talking about the descriptions/patterns as results].}
-Unsurprisingly, these descriptions of the patterns in our eccentricity constructs and the \gls{RMSD} scores and cumulative \gls{RMSD} scores indicate that none of the astronomical solutions fully explain the patterns that we extracted from the proxy archives of the Zumaia and Sopelana field sections.
-This is because even the most well-preserved astronomically forced signals from sediments do not reflect only astronomical forcing, but also a combination of the climate signal, the paleo-environment, the lithology that records the signal, effects of diagenesis, which proxy was used to reconstruct the climate signal, and the parameters and choices of our analysis (see \cref{sec:sensitivity} and the Appendix).
-Furthermore, the potential for generating slightly different valid astronomical solutions from small parameter variations is, due to the chaotic nature of the solar system, infinite.
-This means that a comparison against 7 different calculations of astronomical forcing is not likely to represent an exactly accurate match.
-However, both qualitatively (with the visual comparison of the \acrshortpl{VLN}) and quantitatively (with the (rolling) \gls{RMSD}), we can distinguish which of these solutions best matches the astronomical forcing that is detectable in the proxy archive.
-
 % FIGURE 1
-\begin{figure}[htb]
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth]{Lstar-vs-solutions.png}
   \caption{\label{fig:rolling-depth-age}
@@ -692,8 +662,85 @@ However, both qualitatively (with the visual comparison of the \acrshortpl{VLN})
 \end{figure}
 
 
+
+% first talk about how the matched filtered records look!
+The filtered \gls{L*} record showed reasonable visual congruence with the different astronomical solutions for the Zumaia--Sopelana composite across the Maastrichtian (\cref{fig:rolling-depth-age}). % too nonscientific?
+% global patterns we observe
+The long eccentricity cycles were closely matched to each solution, while the short eccentricity filter was in general alignment with the solutions in those intervals where the solution showed a high short eccentricity amplitude.
+
+% describe stuff from young to old, from K/T going left
+\ijk{[Not sure if this paragraph is interesting enough to talk about.]}\rez{I'm not sure}
+For astronomical solutions ZB18a, ZB20c, and ZB20d, the youngest Maastrichtian long eccentricity bundle \ma{1} showed a single short eccentricity cycle that is either in anti-phase with the filtered data, or has a higher amplitude shortly before the \gls{KT}.
+This could be related to the gradual transition that we see in the \gls{L*} data towards the base of the \gls{KT} or to edge effects related to the bandpass filtering.
+% should we talk about Ma405 bundle 2  that doesn't have high amplitude in the proxy records,
+% but does have high amplitude in the relief in the field/photographs
+For the next long eccentricity bundle \ma{2} the eccentricity construct had a relatively low amplitude and so did most astronomical solutions.
+However, for \ma{2} visual indications based on the relief and contrast from the section photographs in \citeA<>[Fig. 2]{Batenburg2012} and \citeA<>[Fig. 5a]{Dinares-Turell2013} show relatively high amplitude in short eccentricity, with prominent precession-related marls.
+\ijk{[@REZ: ZB20a has low amplitude here! Do I need to reflect on this at the end of the discussion?]}
+
+We observed patterns in the relative amplitude of the long eccentricity and short eccentricity filters that may be related to \glspl{VLN}.
+It is difficult to distinguish \glspl{VLN} in the filtered data directly, because there are other factors than a \gls{VLN} that can result in a low amplitude in the short eccentricity-related component of the record.
+For example, large changes in sedimentation rate or lithology may disrupt the band-pass filtering.
+Therefore, a more conservative approach focuses on bundles with a high amplitude in the short eccentricity-related cycle in the data.
+The records show a higher amplitude of the short eccentricity-related filter in bundle \ma{5}, matching well with all astronomical solutions under evaluation here.
+Crucially, however, some astronomical solutions have a low amplitude in the short eccentricity component in intervals where the data showed a relatively large amplitude.
+This could indicate that a \gls{VLN} was absent from this interval and that the computed astronomical solution was different from the actual astronomical forcing that the Earth experienced.
+
+In bundle \ma{5} (\appr\qty{67.8}{\millionyearago}) ZB20b has a relatively lower amplitude (with a \gls{VLN} in \ma{6}) than our filtered record, whereas ZB20c and ZB20d matches the data more closely and ZB20a matches it in amplitude but seems slightly out of phase.
+
+The highest-amplitude interval in the record occurred in bundle \ma{8} (\appr\qty{68.9}{\millionyearago}).
+This bundle features a darker marly interval at around \qty{117}{\metre}, which corresponds to a strong excursion in both \gls{L*} and \gls{MS} (in the opposite direction) that closely matches the duration of one short eccentricity cycle.
+It is referred to as ``escal\'{o}n'' (step), and was previously also associated with a short eccentricity maximum, while other causes such as regional factors or tectonic events could not be excluded~\cite{Dinares-Turell2013}.
+% TODO: double-check the cycle counts between the two studies
+% There is a giant offset in the composite depth between Dinares-Turell 2013 and Batenburg 2012/2014. At least 86% more section in DT13.
+% Dinares-Turell 2013 depth of 220 m is coincident with Batenburg 2012/2014 depth of 180 m = 40 m
+% and 100 m = 120 m. = 20 m
+% in Dinares-Turell 2013 the escalón occurs between short E31 and E32 (based on filter of CaCO3 for upper part)
+% if I count the short ecc cycles identified in the field by Batenburg 2012, escalón is between E33 and E34
+The large amplitude of our filtered record in bundle \ma{8} is significant, because solutions ZB18a, and ZB20c have a low amplitude of short eccentricity in this interval.
+La10b may have a \gls{VLN} somewhere between \ma{7} and \ma{8} and has a poor match with the data.
+
+During \ma{10} (\appr\qty{69.7}{\millionyearago}) the composite record also indicated a high amplitude of short eccentricity, resulting in a mismatch with ZB20b and to a lesser extent La10c (where the \gls{VLN} seems to occur between \ma{9} and \ma{10}).
+
+% then describe simple "what is the best RMSD-scoring solution?"
+The overall fits between our filtered data and the astronomical solutions (as measured by the \gls{RMSD}) were relatively similar between the different astronomical solutions.
+The best (lowest \gls{RMSD}) match was observed between astronomical solution ZB20a and the \gls{L*} eccentricity construct (\cref{fig:full-RMSD-all}).
+The \gls{MS} proxy matched the La10c and ZB20d solutions best, while
+the \gls{d13C}-proxy, as indicated in the methods, does not capture short-eccentricity variability to such an extent that it can be used to differentiate meaningfully between astronomical solutions.
+
+\begin{table}
+\begin{threeparttable}
+\caption{\gls{RMSD}\tnote{a} score and compatibility with data for astronomical solutions\label{tab:results}}
+\centering
+\begin{tabular}{l|ccc|ccc|c}
+ & \multicolumn{3}{|c|}{\gls{RMSD}~scores\tnote{a}} & \multicolumn{3}{|c|}{Compatible with data\tnote{b}} & \\
+ & \gls{L*}\tnote{c} & \gls{d13C}\tnote{d} & \gls{MS}\tnote{e} & \ma{5} & \ma{8} & \ma{10} & Rank \\
+\hline
+ZB20a & 1.02 & 1.23 & 1.15 & Yes & Yes & Yes & 1\\
+ZB18a & 1.08 & 1.19 & 1.07 & Yes & \textbf{No} & Yes & 2\\
+ZB20b & 1.13 & 1.22 & 1.22 & Yes & Yes & \textbf{No} & 3\\
+ZB20c & 1.14 & 1.16 & 1.07 & Yes & \textbf{No} & Yes & 4\\
+ZB20d & 1.20 & 1.20 & 1.03 & Yes & No\tnote{*} & Yes & 5\\
+La10c & 1.11 & 1.17 & 1.03 & Yes & Yes & No\tnote{*} & 6\tnote{f}\\
+La10b & 1.09 & 1.18 & 1.09 & Yes & No\tnote{*} & Yes & 7\tnote{f}\\
+\hline
+\end{tabular}
+\begin{tablenotes}
+    \item %\gls{L*} \gls{RMSD} scores \(\ge1.1\) and
+    \item [a] \Acrlong{RMSD} between normalized solution and normalized filtered record sum.
+    \item [b] Whether the astronomical solution lacked a \acrfull{VLN} in the interval where the filtered data sum showed high amplitude in the short eccentricity related cycle.
+    \item [c] \Acrfull{L*}.
+    \item [d] \Acrfull{d13C}.
+    \item [e] \Acrfull{MS}.
+    \item [f] Did not show a \gls{VLN} at around \qty{61}{\millionyearago},
+    whereas data indicated it must be there~\cite{ZeebeLourens2022EPSL}.
+    \item [*] Relatively low amplitude short eccentricity in astronomical solution, \gls{VLN} seems to occur during long eccentricity minimum.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
 % FIGURE 2
-\begin{figure}[htb]
+\begin{figure}
     \centering
     \includegraphics[width=0.6\textwidth]{full_RMSD_scores_all.pdf}
     \caption{\label{fig:full-RMSD-all} % all being all proxies
@@ -703,8 +750,21 @@ However, both qualitatively (with the visual comparison of the \acrshortpl{VLN})
     }
 \end{figure}
 
+The cumulative \gls{RMSD} scores indicate when our filtered data diverged to what extent from the astronomical solutions (\cref{fig:cum-RMSD-all}).
+Solutions ZB18a, ZB20c, and ZB20d all show a rapid increase in the cumulative \gls{RMSD} score at around \qty{65.9}{\millionyearago}, which represents the mismatch in the first short eccentricity cycle just prior to the \gls{KT}.
+Overall for \gls{L*}, solutions ZB20a and ZB20b outperformed the other solutions up to \appr\qty{69.6}{\millionyearago}, after which ZB20b also develops a mismatch for the Sopelana site.
+The rolling \gls{RMSD} scores highlight that none of the astronomical solutions showed an amplitude that is as large as the filtered data in \ma{8}, resulting in a rapid increase of the cumulative \gls{RMSD} scores for all astronomical solutions under evaluation for this interval.
+The rolling \gls{RMSD} score only increased slightly in \ma{10} for ZB20b, whereas there appears a clear coincidence of a \gls{VLN} in the solution paired with a relatively high amplitude in the eccentricity construct.
+\ijk{[@REZ: this is weird, we see a clear visual mismatch but the rolling RMSD isn't increasing by much here. Any ideas? Maybe because the RMSD is a cumulative sum, new deviations result in a smaller amplitude change as we get to the older parts of the record?]}\rez{not sure}
+During this interval, the rolling \gls{RMSD} score for ZB20a steadily increases at a slower rate, and therefore results in a better overall match.
+It appears that the strong negative excursions in our filtered data
+at \qty{69.1}{\millionyearago} in ZB20a (oldest part of \ma{8})
+and at \qty{70.4}{\millionyearago} in ZB20b (oldest part of \ma{11})
+have a great deal of influence on the rolling \gls{RMSD} scores.
+\ijk{[@REZ: method could be changed to compare to filters of LEC and SEC of solutions?]}
+
 % FIGURE 3
-\begin{figure}[htb]
+\begin{figure}
   \centering
   \includegraphics[width=0.6\textwidth]{cumulative_rRMSD_all.png}
   \caption{\label{fig:cum-RMSD-all}
@@ -717,102 +777,48 @@ However, both qualitatively (with the visual comparison of the \acrshortpl{VLN})
   }
 \end{figure}
 
+% OLD notes on chunked-up analysis
+% but we can also look at how it changes through time
+%% \ijk{TODO:\ update this older section where I looked at discrete chunks.}
+%% This analysis can be improved by analyzing specific depth intervals separately, however.
+%% The full Zumaia record gives the lowest \gls{RMSD}-scores for the La10b (\num{1.055}) and ZB20b (\num{1.120}) solutions,
+%% while the Sopelana site gives the best results for ZB20a (\num{0.872}) and ZB18a (\num{0.894}), and to a lesser extent ZB20c (\num{0.959}) and La10c (\num{0.968}).
+%% For Zumaia we also analyzed the record separately for two depth intervals to account for a change in sedimentation rate at around \qty{109.26}{\metre}.
+%% The older interval shows a better match with the La10c (\num{0.981}) and ZB20b (1.001) solutions.
+%% The younger interval has a slightly better match for La10b (\num{1.104}), ZB20a (\num{1.105}), and ZB20b (\num{1.116}), but results show similar \gls{RMSD} scores.
 
-\subsection{Sensitivity Analysis}\label{sec:sensitivity}
-
-Our results were relatively sensitive to the choices of the proxy archive we used, how we detrended the record to subtract non-periodic rapid shifts, and how we performed band-pass filtering.
-% proxy
-We show the eccentricity constructs based on \gls{MS} and \gls{d13C} against the astronomical solutions in the time domain in the appendix (\cref{fig:rolling-age-MS,fig:rolling-age-d13C}) and include their \gls{RMSD} scores in \cref{fig:full-RMSD-all}.
-The \gls{d13C} archive from Zumaia shows a better match with ZB20c and La10b, but the differences are very minor.
-Visually, differences between the fits of the \gls{d13C} proxy to different astronomical solutions are hard to distinguish in the time domain (\cref{fig:rolling-age-d13C}).
-The \gls{MS} proxy results in the best fits with ZB20d, ZB20c, and to a lesser extent La10c, ZB18a, and La10b, which can be partially explained because the \gls{MS} record shows a high amplitude in \ma{6}, whereas ZB20a, ZB20b, and La10c have a \gls{VLN} here.
-\gls{MS} also shows a high amplitude during \ma{8}, which coincides with a \gls{VLN} in ZB20c, ZB18a, and to a lesser extent La10b.
-Finally, \ma{10} and \ma{11} also show high amplitude, which rules out ZB20b and La10c.
-See the methods for reasons to prefer the \gls{L*} proxy over the \gls{MS} and \gls{d13C} proxies for our purposes.
-
-% boot
-One approach to estimate the uncertainty of our \gls{RMSD} scores, is to perform bootstrapping.
-The data were randomly resampled many (i.e., \num{e5}) times to the same size as the original data, but with repeated sampling (i.e., some measurements were included twice or more while others were excluded randomly).
-Then, the \gls{RMSD} scores were calculated for each of these subsets.
-This resulted in a distribution of \gls{RMSD} scores for each proxy against each astronomical solution (\cref{fig:full-RMSD-boot}).
-These bootstrapped scores indicate that the differences between eccentricity constructs based on the \gls{d13C} proxy records for the different astronomical solutions were likely not significant,
-while the lower score for the \gls{L*} ZB20a solution
-and the higher score for \gls{MS} solution ZB20b
-likely was.
-% commented out b/c calculating an average from a bivariate dist isn't fun
-%For a simple average of the bootstrapped values across all proxies, the means overlapped at the \qty{68}{\percent} confidence level.
-%After excluding the \gls{d13C} proxy, all astronomical solutions except for ZB20b (which performed worse because of the high \gls{RMSD} score for \gls{MS}) showed a similar overlap.
-We hesitate to perform further statistical testing, however, since the next sections will show how sensitive our \gls{RMSD} scores were to different parameter choices that resulted in a different alignment between the proxy record and the astronomical solutions.
-
-% tie-points
-The algorithm that allowed changing the depth of each long eccentricity minimum as identified in the field improved the \gls{RMSD} scores quite dramatically (\cref{fig:full-RMSD-tie}).
-However, it is sensitive to the extent to which we shifted the record in order to arrive at the best fit and to which we allowed the tie point depths to vary.
-% shift
-For example, if we let the record shift by up to \qty{400}{\kiloyear} \rez{too much}\ijk{[yeah that's what I'm trying to illustrate here!]} instead of the \qty{200}{\kiloyear} used throughout the manuscript, as one would expect, an offset of more than one long eccentricity cycle was often observed.
-This is probably incorrect but happened to result in a better fit with those particular astronomical solutions.
-Shifting the record by anywhere between \qtyrange{100}{300}{\kiloyear} typically resulted in an identical fit, however.
-
-% tiepoint tweaks
-Furthermore, allowing each tie point depth to vary by larger distance than our default value of \qty{1.6}{\metre} (about \qty{10}{\percent} of the long eccentricity cycle) usually results in slightly better \gls{RMSD} scores (\cref{fig:full-RMSD-tie-error}).
-\ijk{[Do I want \emph{another} figure of the RMSD scores vs. the tie point error? I've included it but might want to omit it.]}
-A tie point error of up to 3 meters can result in an \gls{RMSD} score for the ZB18a solution that is similar to that of the ZB20a solution.
-Visually, the presence of the \gls{VLN} in \ma{8} in ZB18a coincident with the large amplitude does not agree with the simple score, however.
-As a quality control, we visualized the \gls{RMSD} scores for each tie point adjustment against depth to make sure that a local minimum was found and that the resulting eccentricity construct did not show any too rapid changes in sedimentation rate (see \cref{fig:tiepoint-RMSD-optima} for an example).
-
-% Changing this to 3, 4, or 5 meters usually results in a better fit that looks nicer and gets a better RMSD score
-% 200 kyr + 3 m offset always gives visually similar results but with better RMSD scores.
-%For ZB20a, our 1.6 m result goes from \num{1.02} to 3 m \num{0.986}.
-%For ZB18a, our 1.6 m result goes from \num{1.08} to 3 m \num{0.989} and is then on-par with ZB20a.
-%Setting it to 3, 4, or 5 m would move the K/T boundary up by 3 m, and the same for the minimum after Ma405-1 for ZB18a
-%But could their 400 kyr minima idenification really be off by that much?]}
-%\ijk{[talk about short ecc count offset between \cite{Batenburg2012} and \cite{Dinares-Turell2013}. Not sure if this should be discussion.]}
-%\rez{It doesn't change the results, [illegible]}
-% OK comment out for now.
-
-% detrend
-Different ways of detrending the proxy records to subtract non-cyclical patterns also lead to different results (\cref{fig:full-RMSD-detrend}).
-Overall, the different ways of detrending the record (\cref{fig:detrend}) showed similar patterns, but the \gls{RMSD} scores for some solutions varied more between different ways of detrending than between different astronomical solutions (\cref{fig:full-RMSD-detrend}).
-The large changes in lithology result in a very large amplitude of the short eccentricity filter in the simple detrending approach.
-For most solutions, this simply results in a worse fit.
-But for ZB20a and La10b, using a different detrending strategy makes our algorithm shift the long- eccentricity tie point depths enough that it is offset by about one short eccentricity cycle (\cref{fig:Lstar-detrend}), resulting in an even worse fit.
-
-% filter
-% window: gaussian, rectangular, taner
-The bandpass filtering window used also affected the results (\cref{fig:filter-windows}).
-The gaussian window performed worst (after rescaling it so the comparison uses similar filter widths, see \cref{fig:filter-windows}), followed by a rectangular filter, while the taner filter with intermediate roll parameters resulted in a lower \gls{RMSD} (performed better).
-% taner roll parameter: more rectangular to more gaussian to more t-dist
-As one would expect, taner filters with a very high roll parameter (i.e., \num{e100}) performed very similar to the rectangular filter.
-Taner roll parameters with a relatively smooth window (\(\texttt{roll} \ge 10^{8}\) and \(\le 10^{12}\)), made our algorithm shift the eccentricity construct by one short eccentricity cycle against the ZB20a solution, resulting in a much better fit (\cref{fig:full-RMSD-filter,fig:filter-windows}).
-% frac: window width, ±XX% of the target frequency
-The same type of shift occurred when we changed the width of the filters (\cref{fig:full-RMSD-frac}).
-
-% comb: weight of long and short ecc
-Applying a different weighting to the long- and short eccentricity filters, typically resulted in better \gls{RMSD} scores than the 1:1 combination (\cref{fig:full-RMSD-comb}).
-However, these effects seemed relatively uniform across all astronomical solutions.
-We therefore prefer using the 1:1 solution so that the relative filter amplitude is preserved from the original data.
-
-Together, these sensitivity analyses show that it is worthwhile to explore the parameter space for both robustness and correctness.
-Our results were sensitive to choices in data processing, but careful visual/qualitative comparison in combination with the quantitative \gls{RMSD} scores indicated which set of parameter choices was best able to distinguish between astronomical solutions.
-\ijk{[@REZ: any suggestions on how to improve this paragraph as a nice summary for the sensitivity section?]}
+\ijk{[@REZ: what do you think of this section? It feels like it might belong in the discussion, but I \emph{am} talking about the descriptions/patterns as results].}
+Unsurprisingly, these descriptions of the patterns in our filtered data and the \gls{RMSD} scores and cumulative \gls{RMSD} scores indicate that none of the astronomical solutions fully explain the patterns that we extracted from the proxy archives of the Zumaia and Sopelana field sections.
+This is because even the most well-preserved astronomically forced signals from sediments do not reflect only astronomical forcing, but also a combination of the climate signal, the paleo-environment, the lithology that records the signal deposition, effects of diagenesis, which proxy was used to reconstruct the climate signal, and the parameters and choices of our analysis (see \ref{sec:sensitivity}).
+Furthermore, the potential for generating slightly different valid astronomical solutions from small parameter variations is, due to the chaotic nature of the solar system, is very large for the time interval at hand.
+This means that a comparison against seven different calculations of astronomical forcing is not likely to represent an exactly accurate match.
+However, both qualitatively (with the visual comparison of the \glspl{VLN}) and quantitatively (with the (rolling) \gls{RMSD}\rez{squiggly lined}\ijk{but I don't know what for}), we can distinguish which of the solutions best matches the astronomical forcing that is detectable in the proxy archive.
 
 
 
 
-\section{Discussion}\label{sec:discussion}
+
+
+
+
+
+
+
+\section{Discussion and Conclusions}\label{sec:discussion}
 
 This study aims to determine which, if any, of the currently available astronomical solutions best match the Maastrichtian proxy records of the Zumaia and Sopelana sites, in order to arrive at an astronomically calibrated time scale.
-Ultimately, these results will allows us to anchor events in Earth's geologic past and to distinguish forcings and feedbacks in the climate system.
+Ultimately, these results will allow us to anchor events in Earth's geologic past and to distinguish forcings and feedbacks in the climate system.
 
 During the Paleocene, solutions La10b and La10c showed a poor match with data from the Walvis Ridge, lacking a \gls{VLN} at around \qty{61}{\millionyearago}~\cite{ZeebeLourens2022EPSL}.
 Our analysis shows that solutions ZB18a and ZB20c and to a lesser extent La10b are incompatible with the high amplitude in the data from Zumaia at \ma{5}.
-Then, as we move to the older part of the record, the Sopelana data best matches ZB20a because ZB20b has a very long eccentricity node at \ma{10} (\appr\qty{69.7}{\millionyearago}), whereas the amplitude of the filtered data related to the short-eccentricity cycle is large there.
+Next, as we move to the older part of the record, the Sopelana data best matches ZB20a because ZB20b has a very long eccentricity node at \ma{10} (\appr\qty{69.7}{\millionyearago}), whereas the amplitude of the filtered data related to the short-eccentricity cycle is large there.
 Therefore, the ZB20a solution is most compatible with the available Maastrichtian data and could be used for tuning up to \appr\qty{71}{\millionyearago}.
 
 Our sensitivity analysis shows that the methodology is quite sensitive to parameter choices, however.
 This may be the result of the proxy archive itself, which, while showing a clear preference for the ZB20a solution when looking at the \gls{L*} proxy, shows a slight preference for the ZB20d solution when looking at the \gls{MS} proxy (\cref{fig:full-RMSD-all}) and no clear differences when looking at the \gls{d13C} proxy.
-In \cref{sec:data}, we articulate why the color reflectance \gls{L*} record most directly reflects the orbital forcing and is our preferred proxy archive to make inferences about the most accurate astronomical forcing scenario in this instance.
-Different ways of pre-processing the data are discussed in \cref{sec:sensitivity}, and highlight the importance careful selection of a set of parameters that results in the best matches, while not violating constraints from other data (e.g., sedimentation rates, the age of the \gls{KT}, etc.).
-After careful consideration of these factors, we argue that it is possible to select an optimal set of parameter and filtering frequencies/widths that results in a reliable outcome to the extent that these data allow for.
+In \cref{sec:data}, we describe why the color reflectance \gls{L*} record most directly reflects the orbital forcing and is our preferred proxy archive to make inferences about the most accurate astronomical forcing scenario in this instance.
+Different ways of pre-processing the data are discussed in \ref{sec:sensitivity}, and highlight the importance careful selection of a set of parameters that results in the best matches, while not violating constraints from other data (e.g., sedimentation rates, the age of the \gls{KT}, etc.).
+After careful consideration of these factors, we argue that it is possible to select an optimal set of parameter and filtering frequencies/widths that results in a reliable outcome to the extent that the data sets allow for.
 
 \ijk{[This paragraph is not done: Can we look at multiple sites? literature comparison, only visual]}
 %Previous studies have also indicated the presence of a high amplitude of the short-eccentricity cycle in \ma{8} in ODP Site 1262 and to a lesser extent in 1209. % where did I see this? Probably mistook Pc8 for Ma405-8
@@ -836,10 +842,10 @@ of~\citeA{Husson2011}.
 The key intervals of \ma{5}, \ma{8}, and \ma{10} are \ijk{XXX}.
 IODP Leg 342 Site U1403 \ma{1--7} ln(Fe/Ca) and \gls{MS}~\cite<Fig. 6 in>[]{Batenburg2018} shows high amplitude in the short eccentricity component of \ma{5} % WHOAH did I see this study/site before?
 
-Future studies should aim to generate high resolution proxy records that have recorded the expression of both long and short eccentricity and connect to the oldest geologically constrained parts of the astronomical solutions.
+Future studies should aim to generate high resolution proxy records that have recorded the expression of both long and short eccentricity and connect to the oldest geologically constrained (\appr\qty{71}{\millionyearago}) parts of the astronomical solutions.
 It may be wise to target low latitudes for this, since eccentricity-related cyclicity tends to dominate in the tropics~\cite<Fig. 7a in>[]{LaeppleLohmann2009}. % during the late Pleistocene (750 ka to present) in model
 \ijk{[but of course the above depends on which proxy you're looking at... cut the sentence out?]}
-We further suggest that future studies generate new astronomical solutions with similar initial settings to the ZB20a solution and, using appropriate parameter variations, explore this crucial chaotic horizon of the solar system.
+We further suggest that future studies generate new astronomical solutions with similar initial settings to the ZB20a solution and, using appropriate parameter variations, explore beyond the horizon of predictability of the solar system.
 
 %%
 
@@ -956,6 +962,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \appendix
 % this template also turns the open research section into an appendix...
 
+
 % We show some more combinations of \cref{fig:full-RMSD-all} in \cref{fig:full-RMSD-detrend}.
 % We show an adaptation of \cref{fig:rolling-depth-age} for \gls{MS} (\cref{fig:rolling-age-MS}) and for \gls{d13C} (\cref{fig:rolling-age-d13C}).
 
@@ -964,8 +971,89 @@ We further suggest that future studies generate new astronomical solutions with 
 \setcounter{figure}{0}
 % maybe some of this needs to be digital supplement rather than appendix?
 
+\section{Sensitivity Analysis}\label{sec:sensitivity}
+
+Our results were sensitive to the choices of the proxy archive we used, how we detrended the record to subtract non-periodic rapid shifts, and how we performed band-pass filtering.
+% proxy
+We show the filtered data based on \gls{MS} and \gls{d13C} against the astronomical solutions in the time domain in \cref{fig:rolling-age-MS,fig:rolling-age-d13C} and include their \gls{RMSD} scores in \cref{fig:full-RMSD-all}.
+The \gls{d13C} archive from Zumaia shows a better match with ZB20c and La10b, but the differences are very minor.
+Visually, differences between the fits of the \gls{d13C} proxy to different astronomical solutions are hard to distinguish in the time domain (\cref{fig:rolling-age-d13C}).
+The \gls{MS} proxy results in the best fits with ZB20d, ZB20c, and to a lesser extent La10c, ZB18a, and La10b, which can be partially explained because the \gls{MS} record shows a high amplitude in \ma{6}, whereas ZB20a, ZB20b, and La10c have a \gls{VLN} here.
+\gls{MS} also shows a high amplitude during \ma{8}, which coincides with a \gls{VLN} in ZB20c, ZB18a, and to a lesser extent La10b.
+Finally, \ma{10} and \ma{11} also show high amplitude, which rules out ZB20b and La10c.
+See the methods for reasons to prefer the \gls{L*} proxy over the \gls{MS} and \gls{d13C} proxies for our purposes.
+
+% boot
+One approach to estimate the uncertainty of our \gls{RMSD} scores, is to perform bootstrapping.
+The data were randomly resampled many (i.e., \num{e5}) times to the same size as the original data, but with repeated sampling (i.e., some measurements were included twice or more while others were excluded randomly).
+Then, the \gls{RMSD} scores were calculated for each of these subsets.
+This resulted in a distribution of \gls{RMSD} scores for each proxy against each astronomical solution (\cref{fig:full-RMSD-boot}).
+The bootstrapped scores indicate that the differences between filtered data based on the \gls{d13C} proxy records for the different astronomical solutions were likely not significant,
+while the lower score for the \gls{L*} ZB20a solution
+and the higher score for \gls{MS} solution ZB20b
+likely was.
+% commented out b/c calculating an average from a bivariate dist isn't fun
+%For a simple average of the bootstrapped values across all proxies, the means overlapped at the \qty{68}{\percent} confidence level.
+%After excluding the \gls{d13C} proxy, all astronomical solutions except for ZB20b (which performed worse because of the high \gls{RMSD} score for \gls{MS}) showed a similar overlap.
+We hesitate to perform further statistical testing, however, since the remainder of this section will show how sensitive our \gls{RMSD} scores were to different parameter choices that resulted in a different alignment between the proxy record and the astronomical solutions.
+
+% tie-points
+The algorithm that allowed changing the depth of each long eccentricity minimum as identified in the field improved the \gls{RMSD} scores quite dramatically (\cref{fig:full-RMSD-tie}).
+However, it is sensitive to the extent to which we shifted the record in order to arrive at the best fit and to which we allowed the tie point depths to vary.
+% shift
+There are upper bounds to the extent by which we can let the parameters of our matching algorithm fluctuate, however.
+To illustrate: if we let the record shift by up to \qty{400}{\kiloyear} instead of the \qty{200}{\kiloyear} used throughout the manuscript, as one would expect, an offset of more than one long eccentricity cycle was often observed.
+This is probably incorrect but happened to result in a better fit with those particular astronomical solutions.
+Shifting the record by anywhere between \qtyrange{100}{300}{\kiloyear} typically resulted in an identical fit, however.
+
+% tiepoint tweaks
+Furthermore, allowing each tie point depth to vary by larger distance than our default value of \qty{1.6}{\metre} (about \qty{10}{\percent} of the long eccentricity cycle) usually results in slightly better \gls{RMSD} scores (\cref{fig:full-RMSD-tie-error}).
+\ijk{[Do I want \emph{another} figure of the RMSD scores vs. the tie point error? I've included it but might want to omit it.]}
+A tie point error of up to 3 meters can result in an \gls{RMSD} score for the ZB18a solution that is similar to that of the ZB20a solution.
+Visually, the presence of the \gls{VLN} in \ma{8} in ZB18a coincident with the large amplitude does not agree with the simple score, however.
+As a quality control, we visualized the \gls{RMSD} scores for each tie point adjustment against depth to make sure that a local minimum was found and that the resulting eccentricity construct did not show any too rapid changes in sedimentation rate (see \cref{fig:tiepoint-RMSD-optima} for an example).
+
+% Changing this to 3, 4, or 5 meters usually results in a better fit that looks nicer and gets a better RMSD score
+% 200 kyr + 3 m offset always gives visually similar results but with better RMSD scores.
+%For ZB20a, our 1.6 m result goes from \num{1.02} to 3 m \num{0.986}.
+%For ZB18a, our 1.6 m result goes from \num{1.08} to 3 m \num{0.989} and is then on-par with ZB20a.
+%Setting it to 3, 4, or 5 m would move the K/T boundary up by 3 m, and the same for the minimum after Ma405-1 for ZB18a
+%But could their 400 kyr minima idenification really be off by that much?]}
+%\ijk{[talk about short ecc count offset between \cite{Batenburg2012} and \cite{Dinares-Turell2013}. Not sure if this should be discussion.]}
+%\rez{It doesn't change the results, [illegible]}
+% OK comment out for now.
+
+% detrend
+Different ways of detrending the proxy records to subtract non-cyclical patterns also lead to different results (\cref{fig:full-RMSD-detrend}).
+Overall, the different ways of detrending the record (\cref{fig:detrend}) showed similar patterns, but the \gls{RMSD} scores for some solutions varied more between different ways of detrending than between different astronomical solutions (\cref{fig:full-RMSD-detrend}).
+The large changes in lithology result in a very large amplitude of the short eccentricity filter in the simple detrending approach.
+For most solutions, this simply results in a worse fit.
+But for ZB20a and La10b, using a different detrending strategy makes our algorithm shift the long- eccentricity tie point depths enough that it is offset by about one short eccentricity cycle (\cref{fig:Lstar-detrend}), resulting in an even worse fit.
+
+% filter
+% window: gaussian, rectangular, taner
+The bandpass filtering window used also affected the results (\cref{fig:filter-windows}).
+The gaussian window performed worst (after rescaling it so the comparison uses similar filter widths, see \cref{fig:filter-windows}), followed by a rectangular filter, while the taner filter with intermediate roll parameters resulted in a lower \gls{RMSD} (performed better).
+% taner roll parameter: more rectangular to more gaussian to more t-dist
+As one would expect, taner filters with a very high roll parameter (i.e., \num{e100}) performed very similar to the rectangular filter.
+Taner roll parameters with a relatively smooth window (\(\texttt{roll} \ge 10^{8}\) and \(\le 10^{12}\)), made our algorithm shift the eccentricity construct by one short eccentricity cycle against the ZB20a solution, resulting in a much better fit (\cref{fig:full-RMSD-filter,fig:filter-windows}).
+% frac: window width, ±XX% of the target frequency
+The same type of shift occurred when we changed the width of the filters (not shown).
+%\cref{fig:full-RMSD-frac}
+
+% comb: weight of long and short ecc
+Applying a different weighting to the long- and short eccentricity filters, typically resulted in better \gls{RMSD} scores than the 1:1 combination (\cref{fig:full-RMSD-comb}).
+However, these effects seemed relatively uniform across all astronomical solutions.
+We therefore prefer using the 1:1 solution so that the relative filter amplitude is preserved from the original data.
+
+Together, the sensitivity analyses show that it is worthwhile to explore the parameter space for both robustness and correctness.
+Our results were sensitive to choices in data processing, but careful visual/qualitative comparison in combination with the quantitative \gls{RMSD} scores indicated which set of parameter choices was best able to distinguish between astronomical solutions.
+%\ijk{[@REZ: any suggestions on how to improve this paragraph as a nice summary for the sensitivity section?]}
+%\rez{seems OK as is.}
+
+
 % Appendix Figure: MS filters vs solutions
-\begin{figure}[htb]
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth]{MS-vs-solutions.png}
   \caption{\label{fig:rolling-age-MS}
@@ -983,7 +1071,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure: d13C filters vs solutions
-\begin{figure}[htb]
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth]{d13C-vs-solutions.png}
   \caption{\label{fig:rolling-age-d13C}
@@ -1016,7 +1104,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure: effects of detrending in time domain
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=\textwidth]{sol_SD_detrend.pdf}
   \caption{\label{fig:Lstar-detrend}
   \textbf{Effects of different detrending strategies in the time domain.}
@@ -1027,7 +1115,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure: Bootstrapped RMSD
-\begin{figure}[htb]
+\begin{figure}
     \centering
     \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
     \caption{\label{fig:full-RMSD-boot}
@@ -1039,7 +1127,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure: RMSD scores before and after tie-point adjustments
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
   \caption{\label{fig:full-RMSD-tie}
     \textbf{Illustration of how RMSD scores change after tie-point depth optimization.}
@@ -1053,7 +1141,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure: RMSD scores before and after tie-point adjustments
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=0.7\textwidth]{full_RMSD_tiepoint-error.pdf}
   \caption{\label{fig:full-RMSD-tie-error}
     \textbf{Changing RMSD scores after a wider range of tie-point depth optimization.}
@@ -1063,7 +1151,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure: RMSD scores with different tie-point adjustments
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=\textwidth]{tiepoint_RMSD_optima.png}
   \caption{\label{fig:tiepoint-RMSD-optima}
     \textbf{Illustration of how RMSD scores change by performing tie-point depth optimization.}
@@ -1075,7 +1163,7 @@ We further suggest that future studies generate new astronomical solutions with 
 
 
 % Appendix Figure: RMSD scores for different ways of detrending
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=\textwidth]{full_RMSD_detrend_comparison.png}
   \caption{\label{fig:full-RMSD-detrend}
     \textbf{Sensitivity analysis of various ways of detrending the data.}
@@ -1086,7 +1174,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure:  RMSD scores for different filter strategies
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=\textwidth]{full_RMSD_filter_comparison.png}
   \caption{\label{fig:full-RMSD-filter}
     \textbf{Sensitivity analysis of different types of bandpass filtering.}
@@ -1106,7 +1194,7 @@ We further suggest that future studies generate new astronomical solutions with 
 \end{figure}
 
 % Appendix Figure:  Filter Windows + RMSD scores for different taner filters
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
   \caption{\label{fig:filter-windows}
     \textbf{Sensitivity analysis for taner filter roll parameters.}
@@ -1132,7 +1220,7 @@ We further suggest that future studies generate new astronomical solutions with 
 
 % IJK: commented this out b/c it was a messy figure and the above two figures should show the narrowing of the filters as well.
 % % Appendix Figure:  RMSD scores for different filter strategies
-% \begin{figure}[htb]
+% \begin{figure}
 %   \centering \includegraphics[width=0.7\textwidth]{full_RMSD_frac.pdf}
 %   \caption{\label{fig:full-RMSD-frac}
 %     \textbf{Sensitivity analysis of different bandpass filter widths.}
@@ -1147,7 +1235,7 @@ We further suggest that future studies generate new astronomical solutions with 
 
 
 % Appendix Figure:  RMSD scores for different weights of long- and short ecc
-\begin{figure}[htb]
+\begin{figure}
   \centering \includegraphics[width=\textwidth]{full_RMSD_comb_comparison.png}
   \caption{\label{fig:full-RMSD-comb}
     \textbf{Sensitivity analysis of different weights for long- and short eccentricity.}
@@ -1164,7 +1252,7 @@ We further suggest that future studies generate new astronomical solutions with 
 %                   some spectral analysis figures                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% \begin{figure}[htb]
+% \begin{figure}
 %   \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm_raw.pdf}
 %   \caption{\label{fig:spectral-depth}
 %     \textbf{Spectral analysis in the depth domain.}
@@ -1181,7 +1269,7 @@ We further suggest that future studies generate new astronomical solutions with 
 %   }
 % \end{figure}
 %
-% \begin{figure}[htb]
+% \begin{figure}
 %   \centering \includegraphics[width=\textwidth]{Zumaia-Sopelana_mtm.pdf}
 %   \caption{\label{fig:spectral-depth}
 %     \textbf{Spectral analysis in the depth domain.}
@@ -1199,7 +1287,7 @@ We further suggest that future studies generate new astronomical solutions with 
 % \end{figure}
 %
 %
-% \begin{figure}[htb]
+% \begin{figure}
 %   \centering \includegraphics[width=\textwidth]{Zumaia_Sopelana_spectra_filters_raw.pdf}
 %   \caption{\label{fig:spectral-age-raw}
 %     \textbf{Spectral analysis in the time domain.}
@@ -1217,14 +1305,14 @@ We further suggest that future studies generate new astronomical solutions with 
 % \end{figure}
 %
 %
-% \begin{figure}[htb]
+% \begin{figure}
 %   \centering
 %   \includegraphics[width=1.2\textwidth]{Zumaia_MS_1-1_solutions_simple_with_log.pdf}
 %   \caption{\label{fig:rolling-age-MS}
 %     Same as \cref{fig:rolling-depth-age} but for \gls{MS}.}
 % \end{figure}
 
-% \begin{figure}[htb]
+% \begin{figure}
 %   \centering
 %   \includegraphics[width=0.9\textwidth]{Zumaia_d13C_1-1_solutions_simple_with_log.pdf}
 %   \caption{\label{fig:rolling-age-d13C}
