@@ -150,7 +150,7 @@ per-mode=symbol,
 %% ------------------------------------------------------------------------ %%
 
 % previously: Cretaceous Constraints on Astronomical Solutions
-\title{An Astronomically Tuned Time Scale for the Latest Cretaceous}
+\title{An Astronomically Tuned Time Scale for the Latest Cretaceous (Maastrichtian)}
 % technically, Maastrichtian would be more appropriate but that doesn't alliterate ;-)
 
 %% ------------------------------------------------------------------------ %%
@@ -237,15 +237,15 @@ University of Hawai\okina{}i at M\=anoa,
 % this is a first draft!
 %Problem
 Astronomical solutions form the backbone of accurate dating for geology and paleoclimate studies.
-Beyond \appr\qty{50}{\millionyearago}, however, the chaos inherent in the solar system makes it impossible to calculate a single unique astronomical solution.
-Geological data have been used to constrain this chaos in order to arrive at a geologic time scale up to the end-Cretaceous.
+Beyond \appr\qty{50}{\millionyearago}, however, the chaos inherent in the solar system makes it impossible to calculate a \rez{rm: single} unique astronomical solution.
+Geological data have been used to constrain \rez{the} chaos in order to arrive at \rez{an astronomically calibrated} time scale up to the end-Cretaceous.
 %Action
 Here, we adopt and extend this approach into the latest Cretaceous, by re-analyzing the Zumaia and Sopelana composite proxy records from the Maastrichtian.
 %Results
-We find that the filtered sum \gls{L*} record is most compatible with the astronomical solution ZB20a.
-However, these results are sensitive to parameter choices in our algorithm, which we describe in detail.
-Nevertheless, we present evidence in favor of solution ZB20a for cyclostratigraphy during the latest Cretaceous.
-Periods with \acrfullpl{VLN} (low amplitude in the short eccentricity cycle) in the astronomical solutions that coincide with large amplitudes in the short eccentricity-related peaks in the filtered sum proxy record rule out alternatives.
+We find that the filtered \rez{rm: sum} \gls{L*} record is most compatible with the astronomical solution ZB20a.
+However, \rez{the} results are sensitive to parameter choices in our algorithm, which we describe in detail.
+Nevertheless, we present evidence in favor of \rez{using} solution ZB20a for \rez{cyclostratigraphic applications} during the latest Cretaceous.
+Periods with \acrfullpl{VLN} (low amplitude in the short eccentricity cycle) in the astronomical solutions that coincide with large amplitudes in the short eccentricity-related peaks in the filtered \rez{rm: sum} proxy record rule out alternatives.
 \ijk{need concluding sentence on extending the astronomical time scale?}
 % decided to not focus on the \gls{KT} age for now.
 % 250 words max
@@ -313,6 +313,11 @@ Since the breakthroughs that proved the astronomical theory of the ice ages~\cit
 cyclostratigraphy and astrochronology have become essential components of the youngest part of the Geologic Time Scale~\cite<e.g.,>[]{Hilgen2006,Hinnov2018,Laskar2020}.
 \rez{Laskar2020 =/= astrochron. Despite title, does not show any data.}
 \ijk{I still think citing Laskar2020 makes sense here, because it's a chapter in the GTS.}
+\rez{La20 title is misleading. Astrochronology definition: The
+dating of sedimentary units by calibration with astronomically
+tuned time scales. remove La20, instead cite this review:
+Cyclostratigraphy and the problem of astrochronologic testing
+Stephen R. Meyers. and/or you can also cite the GTS if you like.}
 The aim of astrochronology is to link quasi-periodic signals in geological data to astronomical solutions, providing absolute ages with high precision.
 These precise ages allow us to understand the causality of climate events, which ultimately give insights into the mechanisms that drive changes in Earth's climate.
 
@@ -320,6 +325,7 @@ These precise ages allow us to understand the causality of climate events, which
 % @REZ: Wikipedia has Milankovitch forcing, but write his name like below.
 While many of the prominent Milankovi\'{c} cycles affect Earth's climate in a quasi-periodic manner over the past tens of millions of years (\si{\millionyear}),
 beyond \appr\num{50} million years ago (\si{\millionyearago}) the calculations of the astronomical solutions result in different outcomes with minor perturbations in initial conditions or parameter values~\cite<e.g.,>[]{Laskar2004,Laskar2011,Zeebe2017}. \ijk{are these citations for chaos OK?}
+\rez{La04 suffices, dont need La11}
 The chaos is inherent to the solar system, so this uncertainty cannot be resolved by improvements in the astronomical calculations alone.
 
 % how does the chaos manifest in the orbital solutions?
@@ -327,6 +333,7 @@ How the chaos manifests in the different astronomical solutions, is expressed in
 The short eccentricity cycle (periods of \qtylist{95;99.7;124;132.5}{\kiloyear} for \qtyrange{56}{80}{\millionyearago} in solution ZB20a)
 % \rez{should be ca. 95,99,124,131} \ijk{see email}
 is variable between different astronomical solutions due resonance transitions related to \(g_{4}\) and \(g_{3}\), which are ``loosely related to the perihelion precession of Earth's and Mars' orbits''~\cite{ZeebeLourens2022EPSL}. \rez{[remove quotes]} \ijk{[isn't it too similar to your text then?]}
+\rez{OK as is.}
 % \ijk{[Should I explain further that the short ecc is made up of 4 spectral peaks, related to different combinations of g2, g3, g4, g5? Or is out of scope/can we expect this background knowledge? I separate regular short ecc timing from VLNs here, but maybe they should be in one paragraph?}
 % \rez{if you need it below, yes. else no}
 % importance: different solutions have different phases of even 405 kyr cycle!
@@ -345,6 +352,7 @@ For example, the long eccentricity minimum near \qty{65.9}{\millionyearago} diff
 \ijk{[@REZ: Table B.1 says 65.91 for ZB20a, 65.97 for La11, implied diff of 60 kyr.
      When I calculate it myself with nice taner filters targeting LEC
      I get ZB20a 65.898, La11 65.966, diff of 67.99999 kyr]}
+\rez{remove comment, close enough}
 %At the long eccentricity minimum around \qty{69.8}{\millionyearago}
 %between \ma{13} and \ma{14} (numbers represent the number of the long eccentricity bundle older than the \gls{KT}),
 %the age of the \qty{405}{\kiloyear} minimum already differs by up to \qty{85.2}{\kiloyear} between different astronomical solutions---between astronomical solutions La10c~\cite{Laskar2011} and ZB20a~\cite{ZeebeLourens2022EPSL}.
@@ -611,6 +619,7 @@ We used a taner filter with a roll of \num{e10}, targeting periods of \qtylist{4
 These filter parameters were selected after analyzing the sensitivity to different ways of filtering (rectangular, gaussian, different values for the taner filter roll parameter in \cref{fig:filter-windows}).
 
 The filtered signals were summed and scaled. \ijk{this is where I defined my `eccentricity construct' term initially... What should I do with this?}
+\rez{call filter-sum or define and after just call filtered record}
 The scaled astronomical solutions were then subset to the same timesteps as the data.
 Then we calculated how well the filtered summed records matched the astronomical solution via the \gls{RMSD}:
 \begin{equation}\label{eqn:rmsd}
@@ -1022,7 +1031,7 @@ Shifting the record by anywhere between \qtyrange{100}{300}{\kiloyear} typically
 
 % tiepoint tweaks
 The algorithm that allowed changing the depth of each long eccentricity minimum as identified in the field improved the \gls{RMSD} scores quite dramatically (\cref{fig:full-RMSD-tie}).
-Allowing each tie point depth to vary by larger distance than our default value of \qty{1.6}{\metre} (about \qty{10}{\percent} of the long eccentricity cycle) usually results in slightly better \gls{RMSD} scores (\cref{fig:full-RMSD-tie-error}).
+Allowing each tie point depth to vary by greater distance than our default value of \qty{1.6}{\metre} (about \qty{10}{\percent} of the long eccentricity cycle) usually results in slightly better \gls{RMSD} scores (\cref{fig:full-RMSD-tie-error}).
 \ijk{[Do I want \emph{another} figure of the RMSD scores vs. the tie point error? I've included it but might want to omit it.]}
 A tie point error of up to \qty{3}{\metre} can result in an \gls{RMSD} score for the ZB18a solution that is similar to that of the ZB20a solution.
 Visually, the presence of the \gls{VLN} in \ma{8} in ZB18a coincident with the large amplitude does not agree with the simple score, however.
@@ -1105,18 +1114,18 @@ Our results were sensitive to choices in data processing, but careful visual/qua
     }
 \end{figure}
 
-% Appendix Figure: detrend fits compared to raw data vs. depth
-% TODO: remove some of these?
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=.9\linewidth]{depth_detrend.png}
-  \caption{\label{fig:detrend}
-    \textbf{Zumaia (purple) and Sopelana (yellow) trend removal strategies.}
-    The raw data and the lines that were fit (other colours), which were subtracted from the record prior to filtering.
-    The piecewise linear fit that we subtract in the main manuscript corresponds to \texttt{lin\_pred\_med}.
-    % The detrended resultant record is callend \texttt{lin\_scl\_med}.
-  }
-\end{figure}
+% % Appendix Figure: detrend fits compared to raw data vs. depth
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=.9\linewidth]{depth_detrend.png}
+%   \caption{\label{fig:detrend}
+%   \ijk{remove this?}
+%     \textbf{Zumaia (purple) and Sopelana (yellow) trend removal strategies.}
+%     The raw data and the lines that were fit (other colours), which were subtracted from the record prior to filtering.
+%     The piecewise linear fit that we subtract in the main manuscript corresponds to \texttt{lin\_pred\_med}.
+%     % The detrended resultant record is callend \texttt{lin\_scl\_med}.
+%   }
+% \end{figure}
 
 % Appendix Figure: effects of detrending in time domain
 \begin{figure}
@@ -1133,85 +1142,26 @@ Our results were sensitive to choices in data processing, but careful visual/qua
 \begin{figure}
     \centering
     \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
+    \centering \includegraphics[width=0.7\textwidth]{full_RMSD_tiepoint-error.pdf}
+    \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
     \caption{\label{fig:full-RMSD-boot}
         \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
         Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
         % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
         This illustrates that while differences between astronomical solutions are not large, they may be significant.
-    }
-\end{figure}
-
+    %}
+%\end{figure}
 % Appendix Figure: RMSD scores before and after tie-point adjustments
-\begin{figure}
-  \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
-  \caption{\label{fig:full-RMSD-tie}
-    \textbf{Illustration of how RMSD scores change after tie-point depth optimization.}
-    The change in \gls{RMSD} scores for the
-    %piecewize linearly detrended
-    Zumaia (not the Zumaia/Sopelana composite!) proxy records (column panels)
-    % where the long and short eccentricity components where filtered with a taner filter
-    when we allow tie-point depths identified in the field to vary by \qty{\pm1.6}{\metre}.
-    This uses the taner filter from the main text on the piecewise linearly detrended record.
-    }
-\end{figure}
-
-% Appendix Figure: RMSD scores before and after tie-point adjustments
-\begin{figure}
-  \centering \includegraphics[width=0.7\textwidth]{full_RMSD_tiepoint-error.pdf}
-  \caption{\label{fig:full-RMSD-tie-error}
+%\begin{figure}
+  %\caption{\label{fig:full-RMSD-tie-error}
     \textbf{Changing RMSD scores after a wider range of tie-point depth optimization.}
     Note the two alternative \gls{RMSD} scores for a maximum adjustment size of \qty{3}{\metre} for La10c are the result of a shift of \qty{200}{\kiloyear} (bottom point, better score) or \qty{300}{\kiloyear} (top point).
     This uses the \gls{L*} record with a taner filter from the main text on the piecewise linearly detrended record.
-    }
-\end{figure}
-
-% Appendix Figure: RMSD scores with different tie-point adjustments
-\begin{figure}
-  \centering \includegraphics[width=\textwidth]{tiepoint_RMSD_optima.png}
-  \caption{\label{fig:tiepoint-RMSD-optima}
-    \textbf{Illustration of how RMSD scores change by performing tie-point depth optimization.}
-    The \gls{RMSD} scores as they evolve when each tie point is iteratively shifted for the filtered summed \gls{L*} record of Zumaia (top panel) against ZB18a.
-    We show the filtered summed record (black) versus ZB18a (yellow).
-    This uses the taner filter from the main text on the piecewise linearly detrended record.
-    }
-\end{figure}
-
-
-% Appendix Figure: RMSD scores for different ways of detrending
-\begin{figure}
-  \centering \includegraphics[width=\textwidth]{full_RMSD_detrend_comparison.png}
-  \caption{\label{fig:full-RMSD-detrend}
-    \textbf{Sensitivity analysis of various ways of detrending the data.}
-    This uses optimized tie-point depths and limits the results to a rectangular filter.
-    We show main-paper taner filters for \texttt{lin\_scl\_med} with different colours for each proxy for context.
-    %Note that the \texttt{lin\_scl\_fine} for the taner filter is very similar to the one for \texttt{lin\_scl\_med}.
-    }
-\end{figure}
-
-% Appendix Figure:  RMSD scores for different filter strategies
-\begin{figure}
-  \centering \includegraphics[width=\textwidth]{full_RMSD_filter_comparison.png}
-  \caption{\label{fig:full-RMSD-filter}
-    \textbf{Sensitivity analysis of different types of bandpass filtering.}
-    %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
-    This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization with a target frequency fraction of \qty{25}{\percent}.
-    The taner filter has the main-text roll parameter of \num{e10}.
-    Note that the way \texttt{astrochron} parametrizes the gaussian (dark red triangles) window width is not directly comparable to the taner (black circles) and rectangular (grey squares) filters.
-    Therefore, we have reparametrized the gaussian filter so that it intersects the taner filters where they cross the rectangular filter,
-    % the upper and lower boundaries correspond to \(\pm2\sigma\). -> that was frac * 1.5
-    by multiplying the fraction (\qty{25}{\percent})
-    by \num{2.1227} for a gaussian alpha of 3,
-    or by \(\frac{2.1227}{3}\times5\) for an alpha of 5.
-    This results in a gaussian filter that is comparable to a taner filter with roll parameter \num{e4}.
-    % We also show the original for \gls{L*} but this is effectively a narrower filter range.
-    See \cref{fig:filter-windows} for illustrations of filter windows and alternative taner roll parameters.
-    }
-\end{figure}
-
+    %}
+%\end{figure}
 % Appendix Figure:  Filter Windows + RMSD scores for different taner filters
-\begin{figure}
-  \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
-  \caption{\label{fig:filter-windows}
+%\begin{figure}
+  %\caption{\label{fig:filter-windows}
     \textbf{Sensitivity analysis for taner filter roll parameters.}
     Illustration of different taner roll parameter filter windows and the rectangular and gaussian filter windows (top panel)
     % The rectangular (black/gray), gaussian (dark red, red), and taner filters (dark blue to green to yellow)
@@ -1232,6 +1182,72 @@ Our results were sensitive to choices in data processing, but careful visual/qua
     Note that these scores differ from \cref{fig:full-RMSD-filter} because they use a slightly wider fraction of \qty{\pm30}{\percent}) than the \qty{\pm25}{\percent} in the main text (to avoid re-computation and to illustrate the effects of changing the fraction).
     }
 \end{figure}
+
+% Appendix Figure: RMSD scores before and after tie-point adjustments
+\begin{figure}
+  \centering \includegraphics[width=\textwidth]{sol_SD_tie.png}
+    \centering \includegraphics[width=\textwidth]{full_RMSD_detrend_comparison.png}
+    \centering \includegraphics[width=\textwidth]{full_RMSD_filter_comparison.png}
+  \caption{\label{fig:full-RMSD-tie}
+    \ijk{merge with other figs?}
+    \textbf{Illustration of how RMSD scores change after tie-point depth optimization.}
+    The change in \gls{RMSD} scores for the
+    %piecewize linearly detrended
+    Zumaia (not the Zumaia/Sopelana composite!) proxy records (column panels)
+    % where the long and short eccentricity components where filtered with a taner filter
+    when we allow tie-point depths identified in the field to vary by \qty{\pm1.6}{\metre}.
+    This uses the taner filter from the main text on the piecewise linearly detrended record.
+   % }
+%\end{figure}
+% Appendix Figure: RMSD scores for different ways of detrending
+%\begin{figure}
+  %\caption{\label{fig:full-RMSD-detrend}
+    \ijk{merge with other figs?}
+    \textbf{Sensitivity analysis of various ways of detrending the data.}
+    This uses optimized tie-point depths and limits the results to a rectangular filter.
+    We show main-paper taner filters for \texttt{lin\_scl\_med} with different colours for each proxy for context.
+    %Note that the \texttt{lin\_scl\_fine} for the taner filter is very similar to the one for \texttt{lin\_scl\_med}.
+   % }
+%\end{figure}
+% Appendix Figure:  RMSD scores for different filter strategies
+%\begin{figure}
+
+  %\caption{\label{fig:full-RMSD-filter}
+    \ijk{merge with other figs?}
+    \textbf{Sensitivity analysis of different types of bandpass filtering.}
+    %Note that gaussian window also narrows filter width (see \cref{fig:filter-windows}).
+    This uses the \texttt{lin\_scl\_med} detrend type and tie-point depth optimization with a target frequency fraction of \qty{25}{\percent}.
+    The taner filter has the main-text roll parameter of \num{e10}.
+    Note that the way \texttt{astrochron} parametrizes the gaussian (dark red triangles) window width is not directly comparable to the taner (black circles) and rectangular (grey squares) filters.
+    Therefore, we have reparametrized the gaussian filter so that it intersects the taner filters where they cross the rectangular filter,
+    % the upper and lower boundaries correspond to \(\pm2\sigma\). -> that was frac * 1.5
+    by multiplying the fraction (\qty{25}{\percent})
+    by \num{2.1227} for a gaussian alpha of 3,
+    or by \(\frac{2.1227}{3}\times5\) for an alpha of 5.
+    This results in a gaussian filter that is comparable to a taner filter with roll parameter \num{e4}.
+    % We also show the original for \gls{L*} but this is effectively a narrower filter range.
+    See \cref{fig:filter-windows} for illustrations of filter windows and alternative taner roll parameters.
+    }
+\end{figure}
+
+
+% Appendix Figure: RMSD scores with different tie-point adjustments
+\begin{figure}
+  \centering \includegraphics[width=\textwidth]{tiepoint_RMSD_optima.png}
+  \caption{\label{fig:tiepoint-RMSD-optima}
+    \textbf{Illustration of how RMSD scores change by performing tie-point depth optimization.}
+    The \gls{RMSD} scores as they evolve when each tie point is iteratively shifted for the filtered summed \gls{L*} record of Zumaia (top panel) against ZB18a.
+    We show the filtered summed record (black) versus ZB18a (yellow).
+    This uses the taner filter from the main text on the piecewise linearly detrended record.
+    }
+\end{figure}
+
+
+
+
+
+
+
 
 % IJK: commented this out b/c it was a messy figure and the above two figures should show the narrowing of the filters as well.
 % % Appendix Figure:  RMSD scores for different filter strategies
@@ -1384,6 +1400,7 @@ Analysis was performed using the R programming language~\cite{RCoreTeam2024} and
 The new R package \texttt{AstronomicalSolutions} will be made available on publication on \url{https://github.com/japhir/AstronomicalSolutions}.
 
 \ijk{\textbf{TODO:} come up with nice package name (working title: \texttt{AstronomicalSolutions} so it's broad enough for future additions) and host on github/ archive on Zenodo.}
+\rez{what is the content of R package AstronomicalSolutions ?}
 
 % AGU requires an Availability Statement for the underlying data needed to understand, evaluate, and build upon the reported research at the time of peer review and publication.
 
