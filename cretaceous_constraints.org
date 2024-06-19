@@ -10719,14 +10719,14 @@ ok now?
 
 #+RESULTS:
 : Warning messages:
-: 1: There was 1 warning in `mutate()`.
-: ℹ In argument: `comb = fct_relevel(...)`.
+: 1: [1m[22mThere was 1 warning in `mutate()`.
+: [1m[22m[36mℹ[39m In argument: `comb = fct_relevel(...)`.
 : Caused by warning:
-: ! 6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
-: 2: There was 1 warning in `mutate()`.
-: ℹ In argument: `window = fct_relevel(as_factor(window), c("rectangular", "gaussian", "taner"))`.
-: Caused by warning:
-: ! 1 unknown level in `f`: taner
+[33m![39m [1m[22m6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
+2: [1m[22mThere was 1 warning in `mutate()`.
+[1m[22m[36mℹ[39m In argument: `window = fct_relevel(as_factor(window), c("rectangular", "gaussian", "taner"))`.
+Caused by warning:
+[33m![39m [1m[22m1 unknown level in `f`: taner
 
 ***** rolling_age_optim: taner filters
 new runs after changing to a taner filter currently with roll = 1e10.
@@ -10850,9 +10850,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+begin_src R
   best_age_optim_one <- best_age_optim |>
     tidylog::filter(RMSD == min(RMSD),
-                    .by = c(sol, proxy, site, comb, depth_chunk, frac,
-                            ## tiepoint_error, max_age_slider # temp?
-                            ))
+                    .by = c(sol, proxy, site, comb, depth_chunk, frac))
 #+end_src
 
 #+RESULTS:
@@ -10885,8 +10883,8 @@ out of all the detrend types and gaussian/rectangular filters (window)
     tidylog::filter(proxy == "d13C" | site == "Sopelana" |
                     (site == "Zumaia" & age < max_age_sopelana))
 
-  rm(cutoff)
-  rm(best_age_optim)
+  ## rm(cutoff)
+  ## rm(best_age_optim)
 
   overall_best <- overall_sd |>
     summarize(RMSD = sqrt(mean(SD)),
@@ -11438,7 +11436,8 @@ filter: removed 88 rows (1%), 11,917 rows remaining
     labs(x = "Astronomical Solution",
          colour = ""
          ) +
-    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac, max_age_slider, tiepoint_error)),
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac ##, max_age_slider, tiepoint_error
+                                )),
                   alpha = .3) +
     scale_colour_viridis_d() +
     geom_point() +
@@ -11756,12 +11755,12 @@ perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
 #+begin_src R :results output graphics file :file imgs/full_RMSD_age_slider.pdf :width 5 :height 2
   pl_rmsd_full <- overall_best |>
     ggplot(aes(x = sol, y = RMSD,
-               colour = factor(max_age_slider),
+               ## colour = factor(max_age_slider),
                )) +
     labs(x = "Astronomical Solution",
          colour = ""
          ) +
-    geom_line(aes(group = paste(max_age_slider, tiepoint_error)),
+    geom_line(aes(group = paste(window, roll)),
                   alpha = .3) +
     geom_point() +
     theme(legend.position.inside = c(.13, .95),
@@ -11780,7 +11779,7 @@ perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
 :END:
 everything
 #+begin_src R :results output graphics file :file imgs/full_RMSD_boot_comparison.png :width 2600 :height 700 :res 300
-  pl_rmsd_detrend_types <- pl_rmsd_full +
+  pl_rmsd_detrend_type <- pl_rmsd_full +
     ggnewscale::new_scale_color() +
     scale_colour_manual(values = detrend_colours) +
     geom_line(aes(y = RMSD, colour = detrend_type,
@@ -11799,7 +11798,7 @@ everything
     scale_shape_manual(values = c("gaussian" = "triangle", "rectangular" = "square")) +
     geom_point(aes(y = RMSD, colour = detrend_type, shape = window),
              data = overall_best_old)
-  pl_rmsd_detrend_types
+  pl_rmsd_detrend_type
 #+end_src
 
 #+RESULTS:
@@ -11878,7 +11877,7 @@ everything
 :CREATED:  [2024-03-27 Wed 08:57]
 :END:
 #+begin_src R :results output graphics file :file imgs/full_RMSD_filter_comparison.png :width 2600 :height 700 :res 300
-  pl_rmsd_detrend_types <- overall_best |>
+  pl_rmsd_filter_type <- overall_best |>
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
     filter(roll == 1e10) |>
@@ -11950,7 +11949,7 @@ everything
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm")) #+
 
-  pl_rmsd_detrend_types
+  pl_rmsd_filter_type
 #+end_src
 
 #+RESULTS:
@@ -12021,7 +12020,17 @@ everything
 :END:
 rectangular only
 #+begin_src R :results output graphics file :file imgs/full_RMSD_detrend_comparison.png :width 2600 :height 700 :res 300
-  pl_rmsd_detrend_types <- pl_rmsd_full +
+  pl_rmsd_detrend_type <-
+    overall_best |>
+    filter(window == "taner") |>
+    filter(roll == 1e10) |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(comb == "1:1") |>
+    filter(near(frac, 0.25)) |>
+    ggplot(aes(x = sol, y = RMSD, colour = proxy)) +
+    labs(x = "Astronomical Solution", colour = "Proxy") +
+    geom_point() + geom_line(aes(group = proxy)) +
+    facet_grid(cols = vars(proxy)) +
     ## aes(colour = detrend_type) +
     scale_colour_discrete(guide = FALSE) +
     ggnewscale::new_scale_color() +
@@ -12031,13 +12040,13 @@ rectangular only
     geom_line(aes(y = RMSD, colour = detrend_type,
                   group = paste(proxy, detrend_type, window)),
               data = overall_best_old |>
-                filter(window == "rectangular", detrend_type != "value")) +
+                filter(window == "rectangular", detrend_type != "value", near(frac, .3))) +
     geom_point(aes(y = RMSD, colour = detrend_type),
                shape = "square",
                data = overall_best_old |>
-                 filter(window == "rectangular", detrend_type != "value")) +
+                 filter(window == "rectangular", detrend_type != "value", near(frac, .3))) +
     theme(legend.position.inside = c(.4, .999))
-  pl_rmsd_detrend_types
+  pl_rmsd_detrend_type
 #+end_src
 
 #+RESULTS:
@@ -12126,11 +12135,12 @@ rectangular only
 :CREATED:  [2024-03-25 Mon 17:16]
 :END:
 #+begin_src R :results output graphics file :file imgs/sol_SD_tie.png :width 2600 :height 700 :res 300
-  best_age_optim |>
+  pl_rmsd_tie_optim <- best_age_optim |>
     filter(depth_chunk == "full record") |> # ignore the other depth chunks I tried
     filter(comb == "1:1") |>
     filter(detrend_type == "lin_scl_med") |>
     filter(site == "Zumaia") |>
+    filter(frac == 0.25) |>
     left_join(overall_best |> rename(full_RMSD = RMSD)) |>
     arrange(proxy, detrend_type, sol) |> # this is so we can see why full_RMSD is not the same as RMSD
     ggplot(aes(x = sol## , colour = site
@@ -12151,6 +12161,7 @@ rectangular only
     geom_point(aes(y = RMSD, shape = "Optimized")) #+
   ## geom_line(aes(y = full_RMSD, group = paste(depth_chunk)), colour = "black") +
   ## geom_point(aes(y = full_RMSD), colour = "black")
+  pl_rmsd_tie_optim
 #+end_src
 
 #+RESULTS:
@@ -14636,6 +14647,32 @@ pl_windows is a part of that
 
 #+RESULTS:
 [[file:imgs/appendix_fig_A4.pdf]]
+***** appendix figure A5
+:PROPERTIES:
+:CREATED:  [2024-06-18 Tue 14:22]
+:END:
+needs best_age_optim. Note: only Zumaia
+needs overall_best_old
+needs pl_rmsd_full
+
+pl_rmsd_tie_optim: [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*improvement in RMSD score after tie-point optimization][improvement in RMSD score after tie-point optimization]]
+pl_rmsd_detrend_types: [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simplified comparison of detrend_types][simplified comparison of detrend_types]] note: only rectangular
+pl_rmsd_filter_types:  [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simplified comparison of windows: rect vs. gauss vs. taner][simplified comparison of windows: rect vs. gauss vs. taner]]
+
+#+begin_src R :results output graphics file :file imgs/appendix_fig_A5.pdf :width 10 :height 6
+  pl_rmsd_tie_optim /
+    (pl_rmsd_detrend_type + theme(legend.position = "inside",
+                                  legend.position.inside = c(.2, .3),
+                                  legend.background = element_blank(),
+                                  legend.key.height = unit(1, "mm"),
+                                  strip.text = element_blank(),
+                                  strip.background = element_blank())) /
+  (pl_rmsd_filter_type + theme(strip.text = element_blank(), strip.background = element_blank())) +
+  plot_layout(axes = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/appendix_fig_A5.pdf]]
 
 **** [10/11] tasks
 :PROPERTIES:
