@@ -1022,6 +1022,10 @@ likely were.
 %After excluding the \gls{d13C} proxy, all astronomical solutions except for ZB20b (which performed worse because of the high \gls{RMSD} score for \gls{MS}) showed a similar overlap.
 We hesitate to perform further statistical testing, however, since the remainder of this section will show how sensitive our \gls{RMSD} scores were to different parameter choices that resulted in a different alignment between the proxy record and the astronomical solutions.
 
+\ijk{comes from fig. caption}
+Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
+This illustrates that while differences between astronomical solutions are not large, they may be significant.
+
 % shift
 Our results are relatively insensitive to the extent by which we shifted the record in order to arrive at the best fit.
 There are upper bounds to the extent by which we can let the parameters of our matching algorithm fluctuate.
@@ -1036,6 +1040,24 @@ Allowing each tie point depth to vary by greater distance than our default value
 A tie point error of up to \qty{3}{\metre} can result in an \gls{RMSD} score for the ZB18a solution that is similar to that of the ZB20a solution.
 Visually, the presence of the \gls{VLN} in \ma{8} in ZB18a coincident with the large amplitude does not agree with the simple score, however.
 As a quality control, we visualized the \gls{RMSD} scores for each tie point adjustment against depth to make sure that a local minimum was found and that the resulting filtered summed record did not show any too rapid changes in sedimentation rate (see \cref{fig:tiepoint-RMSD-optima} for an example).
+
+\ijk{TODO: rephrase, shorten, combine.}
+\ijk{This comes from the caption of fig. A4}
+Illustration of different taner roll parameter filter windows and the rectangular and gaussian filter windows (top panel)
+% The rectangular (black/gray), gaussian (dark red, red), and taner filters (dark blue to green to yellow)
+useing the same filter boundary frequencies of \(\frac{1}{405}\) and \(\frac{1}{110}\)~\si[per-mode=power]{\per\kiloyear} \qty{\pm25}{\percent} as in the main text.
+Note the two alternative \gls{RMSD} scores for a maximum adjustment size of \qty{3}{\metre} for La10c are the result of a shift of \qty{200}{\kiloyear} (bottom point, better score) or \qty{300}{\kiloyear} (top point).
+This uses the \gls{L*} record with a taner filter from the main text on the piecewise linearly detrended record.
+The taner filters go from the pointy \num{e3} (narrowest peak, widest shoulders, deep purple)
+moving outwards from the peak to \num{e4}, \num{e6}, \num{e8}, (shades of blue)
+\num{e10} (the preferred choice in the main text),
+\num{e12} (shades of green), and \num{e100} (yellow),
+approaching the rectangular filter (black).
+Note that the way \texttt{astrochron} parameterizes the Gaussian window (red) width is not directly comparable to the taner and rectangular filters.
+Setting the Gaussian filter alpha to a value to match the width of the taners could work, but would cut off any lower/higher frequencies.
+Therefore, we also show a reparametrized Gaussian (dark red) filter
+where the upper and lower boundaries correspond to \(\pm2\sigma\) (darkred gaussian).
+that intersects with where the taner filters cross each other and the rectangular filter (see \cref{fig:full-RMSD-filter} for details).
 
 % Changing this to 3, 4, or 5 meters usually results in a better fit that looks nicer and gets a better RMSD score
 % 200 kyr + 3 m offset always gives visually similar results but with better RMSD scores.
@@ -1139,47 +1161,23 @@ Our results were sensitive to choices in data processing, but careful visual/qua
 \end{figure}
 
 % Appendix Figure: Bootstrapped RMSD
+% Appendix Figure: RMSD scores before and after tie-point adjustments
+% Appendix Figure:  Filter Windows + RMSD scores for different taner filters
 \begin{figure}
     \centering
-    \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
-    \centering \includegraphics[width=0.7\textwidth]{full_RMSD_tiepoint-error.pdf}
-    \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
-    \caption{\label{fig:full-RMSD-boot}
-        \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
-        Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
-        % Tie-point depths were adjusted to arrive at the best match with each solution (\cref{sec:algorithm}).
-        This illustrates that while differences between astronomical solutions are not large, they may be significant.
-    %}
-%\end{figure}
-% Appendix Figure: RMSD scores before and after tie-point adjustments
-%\begin{figure}
-  %\caption{\label{fig:full-RMSD-tie-error}
-    \textbf{Changing RMSD scores after a wider range of tie-point depth optimization.}
-    Note the two alternative \gls{RMSD} scores for a maximum adjustment size of \qty{3}{\metre} for La10c are the result of a shift of \qty{200}{\kiloyear} (bottom point, better score) or \qty{300}{\kiloyear} (top point).
-    This uses the \gls{L*} record with a taner filter from the main text on the piecewise linearly detrended record.
-    %}
-%\end{figure}
-% Appendix Figure:  Filter Windows + RMSD scores for different taner filters
-%\begin{figure}
-  %\caption{\label{fig:filter-windows}
-    \textbf{Sensitivity analysis for taner filter roll parameters.}
-    Illustration of different taner roll parameter filter windows and the rectangular and gaussian filter windows (top panel)
-    % The rectangular (black/gray), gaussian (dark red, red), and taner filters (dark blue to green to yellow)
-    useing the same filter boundary frequencies of \(\frac{1}{405}\) and \(\frac{1}{110}\)~\si[per-mode=power]{\per\kiloyear} \qty{\pm25}{\percent} as in the main text.
-    The taner filters go from the pointy \num{e3} (narrowest peak, widest shoulders, deep purple)
-    moving outwards from the peak to \num{e4}, \num{e6}, \num{e8}, (shades of blue)
-    \num{e10} (the preferred choice in the main text),
-    \num{e12} (shades of green), and \num{e100} (yellow),
-    approaching the rectangular filter (black).
-    Note that the way \texttt{astrochron} parameterizes the Gaussian window (red) width is not directly comparable to the taner and rectangular filters.
-    %Setting the Gaussian filter alpha to a value to match the width of the taners could work, but would cut off any lower/higher frequencies.
-    Therefore, we also show a reparametrized Gaussian (dark red) filter
-    %where the upper and lower boundaries correspond to \(\pm2\sigma\) (darkred gaussian).
-    that intersects with where the taner filters cross each other and the rectangular filter (see \cref{fig:full-RMSD-filter} for details).
-    We show MTM-spectral peaks of the astronomical solutions analyzed in this study in black for reference.
-
-    The bottom panel contrasts \gls{RMSD} scores for the \texttt{lin\_scl\_med} detrended \gls{L*} data with tie-point depth optimization for different roll parameters.
-    Note that these scores differ from \cref{fig:full-RMSD-filter} because they use a slightly wider fraction of \qty{\pm30}{\percent}) than the \qty{\pm25}{\percent} in the main text (to avoid re-computation and to illustrate the effects of changing the fraction).
+    \includegraphics[width=0.9\textwidth]{appendix_fig_A4.pdf}
+    % \includegraphics[width=0.6\textwidth]{full_RMSD_boot.png}
+    % \centering \includegraphics[width=0.7\textwidth]{full_RMSD_tiepoint-error.pdf}
+    % \centering \includegraphics[width=0.9\textwidth]{filter_windows.pdf}
+    \caption{
+        \label{fig:full-RMSD-boot}\label{fig:full-RMSD-tie-error}\label{fig:filter-windows}
+        (a-c) \textbf{\gls{RMSD} scores of compilation of Zumaia and Sopelana proxy records against several orbital solutions.}
+        (a) Shaded intervals represent the bootstrapped (\(N = 10^{5}\)) \qtyrange{5}{95}{\percent} confidence intervals of the \gls{RMSD} (in increments of \qty{5}{\percent}).
+        (b) A wider range of tie-point depth adjustments.
+        (c) For different taner filter roll parameters.
+        Note that these scores differ from the main text because they use a slightly wider fraction (\qty{\pm30}{\percent} in stead of \qty{\pm25}{\percent} from the main text) to also illustrate the effects of changing the fraction.
+        (d) Rectangular (black/gray square), gaussian (red, rescaled darkred) and taner (purple to blue to yellow) bandpass filters in the frequency domain.
+        We show MTM-spectral peaks of the astronomical solutions analyzed in this study in black for reference.
     }
 \end{figure}
 
@@ -1401,7 +1399,10 @@ The new R package \texttt{AstronomicalSolutions} will be made available on publi
 
 \ijk{\textbf{TODO:} come up with nice package name (working title: \texttt{AstronomicalSolutions} so it's broad enough for future additions) and host on github/ archive on Zenodo.}
 \rez{what is the content of R package AstronomicalSolutions ?}
-
+\ijk{the R-package would have the R implementation of the filter/matching
+  algorithm, as well as some helper functions for bandpass/taner filtering,
+  spectral analysis etc. that are wrappers for astrochron but make the output
+  more usable for plotting etc. }
 % AGU requires an Availability Statement for the underlying data needed to understand, evaluate, and build upon the reported research at the time of peer review and publication.
 
 % Authors should include an Availability Statement for the software that has a significant impact on the research. Details and templates are in the Availability Statement section of the Data and Software for Authors Guidance: \url{https://www.agu.org/Publish-with-AGU/Publish/Author-Resources/Data-and-Software-for-Authors#availability}
