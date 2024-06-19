@@ -570,7 +570,12 @@ http://vo.imcce.fr/insola/earth/online/earth/earth.html
 :CREATED:  [2023-12-22 Fri 10:56]
 :END:
 #+begin_src R :eval never
-  slns_specs <- nested_spectral_analysis(slns, nest = "sln", x = age, y = ecc)
+  slns_specs <- nested_spectral_analysis(slns, nest = "sln", x = age, y = ecc,
+                                         method = "MTM") |>
+    readr::write_rds("out/slns_specs.rds")
+
+  slns_fft <- nested_spectral_analysis(slns, nest = "sln", x = age, y = ecc,
+                                       method = "FFT")
 #+end_src
 
 #+RESULTS:
@@ -635,9 +640,11 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
 
 *** plot_spectrum for all astronomical solutions
 #+begin_src R :results graphics file output :file imgs/astronomical_solution_spectrum.png :width 2400 :height 1000 :res 300
-  plot_spectrum(slns_specs, group = "sln", domain = "time") +
+  slns_specs |>
+    plot_spectrum(group = "sln", domain = "time", logy = FALSE, confidence = FALSE) +
     ## coord_cartesian(xlim = c(1/3000, 0.06), ylim = c(0, 6e-6)) + # show precession as well
-    coord_cartesian(xlim = c(0, 0.012), ylim = c(0, 6e-6)) +
+    ## geom_line(data = slns_fft, alpha = .2) +
+    coord_cartesian(xlim = c(0, 0.012), ylim = c(1e-12, 6e-6)) +
     scale_colour_brewer(type = "qual", palette = 2) +
     scale_fill_brewer(type = "qual", palette = 2) +
     ## coord_cartesian(xlim = c(0.0071, 0.011)) + # zoom on 100 kyr peaks
@@ -650,8 +657,6 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
     geom_vline(xintercept = 1 / c(405, 95, 99, 124, 131), colour = "red", linetype = "dashed")
 #+end_src
 
-#+name: fig:astronomical-solutions-spec
-#+caption: MTM spectra of astronomical solutions studied here.
 #+RESULTS:
 [[file:imgs/astronomical_solution_spectrum.png]]
 
@@ -663,10 +668,11 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
   full_slns |>
     filter(age < 20e3) |>
     nested_spectral_analysis(nest = "sol", method = "MTM", x = "age", y = "ecc") |>
-    plot_spectrum(group = "sol", domain = "time") +
+    plot_spectrum(group = "sol", domain = "time", confidence = FALSE) +
     scale_colour_brewer(type = "qual", palette = 2) +
     scale_fill_brewer(type = "qual", palette = 2) +
-    coord_cartesian(xlim = c(0, 0.012)) +
+    coord_cartesian(xlim = c(0, 0.012),
+                    ylim = c(1e-9, 1e-5)) +
     geom_vline(xintercept = 1 / c(405, 95, 99.7, 124, 132.5)) +
     geom_vline(xintercept = 1 / c(405, 95, 99, 124, 131), colour = "red", linetype = "dashed")
 #+end_src
@@ -684,7 +690,9 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
     mutate(age_chunk = cut(age, breaks = seq(-1, 101e3, 20e3))) |> # 10 Myr time slices
     tidylog::filter(!is.na(age_chunk)) |>
     nest(.by = c(sol, age_chunk)) |>
-    mutate(spc = map(data, spectral_analysis, x = "age", y = "ecc"))
+    mutate(spc = map(data, spectral_analysis,
+                     method = "FFT",
+                     x = "age", y = "ecc"))
 #+end_src
 
 #+RESULTS:
@@ -696,13 +704,21 @@ So 312 kyr to 579 kyr for the 405 kyr peak. This in comparison to [cite:@Batenbu
     mutate(N = map_int(data, nrow)) |>
     tidylog::filter(N >= 12.5e3) |> # remove final slices that have too few datapoints for La10b and La10c
     select(-data) |>
+    ## tidylog::filter(sol == "ZB20a") |>
     mutate(age_chunk = factor(age_chunk, labels = paste0(seq(0, 80, 20), "–", seq(20, 100, 20), " Ma"))) |>
     unnest(spc) |>
     tidylog::distinct(sol, age_chunk, frequency, power, .keep_all = TRUE) |>
-    plot_spectrum(group = "age_chunk", domain = "time") +
+    plot_spectrum(group = "age_chunk", domain = "time",
+                  confidence = FALSE, # bg never fits well,
+                  # whatever I do with MTM AR1, MTM ML96, MTM PL (no bending PL exists!), LOWSPEC
+                  logx = FALSE, logy = FALSE) +
+    aes(y = amplitude) + labs(y = "Amplitude (-)") +
     facet_grid(rows = vars(sol)) +
     scale_colour_viridis_d() +
-    coord_cartesian(xlim = c(0.006, 0.012), ylim = c(0, 5e-6))
+    # zoom in on short ecc components
+    coord_cartesian(xlim = c(0.006, 0.012)#,
+                    ## ylim = c(1e-10, 5e-9)
+                    )
 #+end_src
 
 #+RESULTS:
@@ -797,13 +813,14 @@ this is too big and crashes R
 :END:
 #+begin_src R :eval never
   sln_taner_filters <- slns |>
+    ## filter(sln == "ZB20a") |>
     nested_taner_filter(frequencies = my_filt_age |> filter(target != "23 kyr"),
                         x = age, y = ecc,
                         padfac = 5,
-                        roll = 1e10,
+                        roll = 1e10, # seems nice and round for this sample resolution
                         xmax = 0.03,
-                        genplot = FALSE, verbose = FALSE,
-                        nest = "sln") |>
+                        nest = "sln"
+               ) |>
     write_rds("out/sln_taner_filters.rds")
 #+end_src
 
@@ -1103,8 +1120,8 @@ In this study we focus on those astronomical solutions that showed the best comp
   sln_peaks |>
     ## filter(sln != "La11") |>
     # make sure to select proper boundaries!
-    ## filter(age > 65.8e3 & age < 66e3) |>
-    filter(age > 71e3 & age < 71.5e3) |>
+    filter(age > 65.8e3 & age < 66e3) |>
+    ## filter(age > 71e3 & age < 71.5e3) |>
     filter(age == max(age) | age == min(age)) |>
     mutate(diff(age))
 #+end_src
@@ -1113,8 +1130,8 @@ In this study we focus on those astronomical solutions that showed the best comp
 : # A tibble: 2 × 4
 :   sln      age peak_value `diff(age)`
 :   <chr>  <dbl>      <dbl>       <dbl>
-: 1 ZB20a 71125.    -0.0169        85.2
-: 2 La10c 71210     -0.0144        85.2
+: 1 ZB20a 65898.    -0.0179        68.4
+: 2 La11  65966     -0.0163        68.4
 
 * plot the difference between VLN ages
 :PROPERTIES:
@@ -10755,7 +10772,7 @@ new runs after changing to a taner filter currently with roll = 1e10.
 :END:
 
 #+begin_src R :results none
-  rolling_age_optim <-
+  rolling_age_optim_tie <-
     bind_rows(
       read_rds("out/2024-03-27_rolling_age_optim_Lstar_lin-scl-med_taner_narrow-0.25.rds") |>
         mutate(max_age_slider = 200, tiepoint_error = 1.6),
@@ -10887,7 +10904,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 : filter: removed 5,991 rows (1%), 427,460 rows remaining
 : filter: removed 280 rows (93%), 21 rows remaining
 
-**** recompute RMSD for all the other detrend types etc.
+**** recompute RMSD for ~old~
 :PROPERTIES:
 :CREATED:  [2024-03-25 Mon 10:01]
 :END:
@@ -10930,6 +10947,55 @@ out of all the detrend types and gaussian/rectangular filters (window)
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window, frac)`
 : filter: removed 24,839 rows (4%), 570,715 rows remaining
 : filter: removed 417 rows (95%), 24 rows remaining
+
+**** recompute RMSD for ~tie~
+:PROPERTIES:
+:CREATED:  [2024-03-25 Mon 10:01]
+:END:
+#+begin_src R
+  # find youngest age of the sopelana site, so we can filter out
+  # Zumaia's oldest part
+  cutoff <- rolling_age_optim_tie |>
+    filter(site == "Sopelana") |>
+    mutate(match = map(the_best, "matched")) |>
+    unnest(match) |>
+    summarize(max_age_sopelana = min(age),
+              .by = c(proxy, # NOT SITE
+                      detrend_type, depth_chunk, comb, sol, window, frac,
+                      roll,
+                      tiepoint_error, max_age_slider
+                      ))
+
+  # get summary
+  overall_sd_tie <- rolling_age_optim_tie |>
+    mutate(match = map(the_best, "matched")) |>
+    filter(depth_chunk == "full record") |>
+    unnest(match) |>
+    left_join(cutoff) |>
+    # have to explicitly NOT filter out d13C because we only have it for Zumaia
+    # so no age max_age_sopelana there!
+    tidylog::filter(proxy == "d13C" | site == "Sopelana" |
+                    (site == "Zumaia" & age < max_age_sopelana))
+
+  # less chance of running out of memory
+  rm(cutoff)
+  rm(rolling_age_optim_tie)
+
+  overall_best_tie <- overall_sd_tie |>
+    summarize(RMSD = sqrt(mean(SD)),
+              .by = c(proxy, detrend_type, depth_chunk, comb, sol, window, frac,
+                      roll, max_age_slider, tiepoint_error))
+
+  overal_best_sol_tie <- overall_best_tie |>
+    tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
+#+end_src
+
+#+RESULTS:
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, max_age_slider, tiepoint_error, frac, roll, window)`
+: filter: removed 1,846 rows (2%), 92,682 rows remaining
+: Warning message:
+: In rm(rolling_age_optim_old) : object 'rolling_age_optim_old' not found
+: filter: removed 42 rows (86%), 7 rows remaining
 
 **** [#B] inspect the tiepoint optimization plots
 :PROPERTIES:
@@ -11429,10 +11495,10 @@ filter: removed 88 rows (1%), 11,917 rows remaining
                )) +
     labs(x = "Astronomical Solution",## , shape = "Bandpass Filter type"
          y = "RMSD",
-         colour = "", fill = ""
+         colour = "Proxy", fill = "Proxy"
          ) +
     theme(legend.position = "inside",
-          legend.position.inside = c(.12, .99),
+          legend.position.inside = c(.19, .89),
           legend.background = element_blank(),
           legend.key.height = unit(1, "mm")) +
     ## facet_grid(rows = vars(proxy), scales = "free_y", space = "free_y") +
@@ -11518,7 +11584,7 @@ NOT SHOWN
 **** plot of RMSD vs solution: tiepoint depth adjustments
 perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
 #+begin_src R :results output graphics file :file imgs/full_RMSD_tiepoint-error.pdf :width 5 :height 2
-  pl_rmsd_tie <- overall_best |>
+  pl_rmsd_tie <- overall_best_tie |>
     filter(max_age_slider < 400) |> # this is off by 400 kyr often
     filter(tiepoint_error < 7.5) |> # this is sometimes merging a full LEC
     filter(comb == "1:1") |>
@@ -11531,13 +11597,14 @@ perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
                ## linetype = factor(max_age_slider),
                )) +
     labs(x = "Astronomical Solution",
-         colour = ""
+         colour = "Tiepoint error (m)"
          ) +
-    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac, max_age_slider, tiepoint_error)),
+    geom_line(aes(group = paste(detrend_type, proxy, window, roll, frac, max_age_slider, tiepoint_error
+                                )),
                   alpha = .3) +
-    scale_colour_viridis_d() +
+    scale_colour_brewer(type = "qual", palette = 2, direction = -1) +
     geom_point() +
-    theme(legend.position.inside = c(.13, .92),
+    theme(legend.position.inside = c(.47, .80),
           legend.position = "inside",
           legend.background = element_blank(),
           legend.key.height = unit(.1, "mm")
@@ -11547,6 +11614,31 @@ perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
 
 #+RESULTS:
 [[file:imgs/full_RMSD_tiepoint-error.pdf]]
+**** table of main results
+:PROPERTIES:
+:CREATED:  [2024-06-04 Tue 15:18]
+:END:
+#+begin_src R :results value :colnames yes
+  overall_best |>
+      filter(comb == "1:1") |>
+      filter(detrend_type == "lin_scl_med") |>
+      filter(roll == 1e10) |>
+      filter(frac == 0.25) |>
+    select(proxy, sol, RMSD) |>
+    pivot_wider(names_from = "proxy", values_from = "RMSD") |>
+    mutate(across(Lstar:MS, \(x) signif(x, 3)))
+#+end_src
+
+#+RESULTS:
+| sol   | Lstar | d13C |   MS |
+|-------+-------+------+------|
+| La10b |  1.09 | 1.18 | 1.09 |
+| La10c |  1.11 | 1.17 | 1.03 |
+| ZB18a |  1.08 | 1.19 | 1.07 |
+| ZB20a |  1.02 | 1.23 | 1.15 |
+| ZB20b |  1.13 | 1.22 | 1.22 |
+| ZB20c |  1.14 | 1.16 | 1.07 |
+| ZB20d |   1.2 |  1.2 | 1.03 |
 
 **** plot of RMSD vs frac: filter window size
 :PROPERTIES:
@@ -13672,7 +13764,8 @@ contrast the filter to a real gaussian to see where the \minus\sigma and \plus\s
 
 #+begin_src R :results output graphics file :file imgs/gaussian_window.png :width 2200 :height 1000 :res 300
   ggplot() +
-    # gaussians from the filter
+    # gaussians from the fiter
+
     geom_area(aes(x = frequency, y = amplitude,
                   group = paste(window, target)),
               fill = "pink",
@@ -14386,6 +14479,164 @@ MS for supplement
 #+RESULTS:
 [[file:imgs/Zumaia_Lstar_1-1_solutions_age.pdf]]
 
+**** use surrogateCor to check which has the best R^2
+:PROPERTIES:
+:CREATED:  [2024-06-05 Wed 14:35]
+:END:
+test it out for one
+
+#+begin_src R
+  sub <- overall_sd[overall_sd$proxy=="Lstar" & overall_sd$detrend_type == "lin_scl_med" & overall_sd$comb == "1:1" & overall_sd$sol == "ZB20a" & overall_sd$roll == 1e10 & overall_sd$frac == 0.25, ]
+
+  sg <- astrochron::surrogateCor(sub[, c("depth", "ecc")], sub[, c("depth", "ecc_sln")],
+                                 cormethod = 2)
+#+end_src
+
+#+results:
+#+begin_example
+
+--------- CALCULATING CORRELATION COEFFICIENT ---------
+     AND SIGNIFICANCE FOR SERIALLY CORRELATED DATA
+
+ ,* IMPLEMENTING RESAMPLING ALGORITHM
+
+ ,* Sorting datasets to ensure increasing order, removing empty entries
+ ,* Number of data points in dat1= 1614
+ ,* Number of data points in dat2= 1614
+ ,* Isolating data between the shared interval of 0.04875 and 185.08
+ ,* New number of data points in dat1= 1614
+ ,* New number of data points in dat2= 1614
+
+ ,* Resampling dat2 on dat1 sample grid.
+
+ ,* Data correlation coefficient = -0.697828
+
+ ,* Generating phase randomized surrogates for variable 1
+ ,* Generating phase randomized surrogates for variable 2
+ ,* Calculating correlation coefficient for surrogates
+ ,* Evaluating significance level
+
+ ,* Number of simulations with |r<sim>| > |r<dat>| =  0
+ ,* P-value < 0.01
+#+end_example
+
+Then I ran it with nsim = 1e5 -> crashed R.
+
+run it for all main cases (all proxies and solutions)
+#+begin_src R :eval never
+  full_sg <- overall_sd |>
+    filter(detrend_type == "lin_scl_med", comb == "1:1", roll == 1e10, frac == 0.25) |>
+    nest(.by = c(proxy, detrend_type, depth_chunk, comb, sol, roll, frac, window)) |>
+    mutate(sg = map(data,
+                    \(x)
+                    astrochron::surrogateCor(dat1 = x[, c("depth", "ecc")],
+                                             dat = x[, c("depth", "ecc_sln")],
+                                             cormethod = 1,
+                                             nsim = 1000,
+                                             genplot = FALSE,
+                                             verbose = FALSE,
+                                             check = FALSE,
+                                             output = 2))) |>
+    unnest(sg) |>
+    write_rds("out/full_sg.rds") # this is pearson
+
+  full_sg_sp <- overall_sd |>
+    filter(detrend_type == "lin_scl_med", comb == "1:1", roll == 1e10, frac == 0.25) |>
+    nest(.by = c(proxy, detrend_type, depth_chunk, comb, sol, roll, frac, window)) |>
+    mutate(sg = map(data,
+                    \(x)
+                    astrochron::surrogateCor(dat1 = x[, c("depth", "ecc")],
+                                             dat = x[, c("depth", "ecc_sln")],
+                                             cormethod = 2,
+                                             nsim = 1000,
+                                             genplot = FALSE,
+                                             verbose = FALSE,
+                                             check = FALSE,
+                                             output = 2))) |>
+    unnest(sg) |>
+    write_rds("out/full_sg_spearman.rds")
+
+  full_sg_kd <- overall_sd |>
+    filter(detrend_type == "lin_scl_med", comb == "1:1", roll == 1e10, frac == 0.25) |>
+    nest(.by = c(proxy, detrend_type, depth_chunk, comb, sol, roll, frac, window)) |>
+    mutate(sg = map(data,
+                    \(x)
+                    astrochron::surrogateCor(dat1 = x[, c("depth", "ecc")],
+                                             dat = x[, c("depth", "ecc_sln")],
+                                             cormethod = 3,
+                                             nsim = 1000,
+                                             genplot = FALSE,
+                                             verbose = FALSE,
+                                             check = FALSE,
+                                             output = 2))) |>
+    unnest(sg) |>
+    write_rds("out/full_sg_kendall.rds")
+#+end_src
+
+#+begin_src R :eval never
+  full_sg <- read_rds("out/full_sg.rds") |> mutate(cormethod = "Pearson")
+  full_sg_sp <- read_rds("out/full_sg_spearman.rds") |> mutate(cormethod = "Spearman")
+  full_sg_kd <- read_rds("out/full_sg_kendall.rds") |> mutate(cormethod = "Kendall")
+#+end_src
+
+#+begin_src R
+  full_sg_all <- bind_rows(
+    read_rds("out/full_sg.rds") |> mutate(cormethod = "Pearson") |> select(-data),
+    read_rds("out/full_sg_spearman.rds") |> mutate(cormethod = "Spearman") |> select(-data),
+    read_rds("out/full_sg_kendall.rds") |> mutate(cormethod = "Kendall") |> select(-data),
+  )
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/surrogateCor.png :width 2200 :height 1200 :res 300
+  full_sg_all |>
+    ggplot(aes(x = sol, y = abs(datcor),
+               colour = proxy,
+               shape = cormethod)) +
+    geom_line(aes(group = paste(proxy, cormethod))) +
+    geom_point(size = 3)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/surrogateCor.png]]
+
+**** combine figs for appendix
+:PROPERTIES:
+:CREATED:  [2024-06-18 Tue 11:53]
+:END:
+***** appendix figure A4
+:PROPERTIES:
+:CREATED:  [2024-06-18 Tue 11:59]
+:END:
+needs boot from rds
+pl_rmsd_boot: [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*plot of boostrapped RMSD scores][plot of boostrapped RMSD scores]]
+
+from [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*load cached results][load cached results]]
+- overall_best_old
+- overall_best_tie
+- overall_best
+
+pl_rmsd_tie: [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*plot of RMSD vs solution: tiepoint depth adjustments][plot of RMSD vs solution: tiepoint depth adjustments]]
+pl_rmsd_taner: [[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*simple comparison of taner roll parameter][simple comparison of taner roll parameter]]
+
+[[file:~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous_constraints/cretaceous_constraints.org::*a reprex to study how the filter window of the gaussian works][a reprex to study how the filter window of the gaussian works]]
+pl_windows is a part of that
+
+#+begin_src R :results output graphics file :file imgs/appendix_fig_A4.pdf :width 6 :height 7
+  (pl_rmsd_boot + theme(legend.position = "inside",
+                      legend.position.inside = c(.1, 0.85),
+                      legend.key.height = unit(1.2, "mm"))) /
+  pl_rmsd_tie /
+  (pl_rmsd_taner + theme(legend.position = "none")) /
+  (pl_windows + theme(legend.position = "inside",
+                      legend.position.inside = c(.878, 1.108),
+                      legend.key.height = unit(1.2, "mm"),
+                      legend.background = element_blank())) +
+  plot_layout(axes = "collect")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/appendix_fig_A4.pdf]]
+
 **** [10/11] tasks
 :PROPERTIES:
 :CREATED:  [2023-12-11 Mon 15:52]
@@ -14499,6 +14750,9 @@ remove the biggies
   save.image()
   ## save.image("best.RData") # this got wayy to big
   save.image("spectral_analysis.RData")
+
+  # 2024-06-18 save rectangular/gaussian + taner recomputed RMSDs
+  save.image("rmsds.RData")
 #+end_src
 
 #+RESULTS:
@@ -14507,6 +14761,7 @@ remove the biggies
   load(".RData")
   load("best.RData")
   load("spectral_analysis.RData")
+  load("rmsds.RData")
 #+end_src
 
 ** Gubbio
