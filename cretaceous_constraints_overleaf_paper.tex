@@ -10,13 +10,14 @@
 \usepackage{soul} % hyphenable spacing, underlining, striking out etc.
 
 % IJK added packages
+% hyperref needs to be added before apacite, so cannot add here or refs will break
+% \usepackage{hyperref} % links between references etc
 % for units, type \qty{x}{\unit}
 \usepackage{siunitx}
 % for chemical equations or, in my case, d13C
 \usepackage[version=4]{mhchem}
 %\usepackage{chemformula} % alternative for above
 % \usepackage[utf8]{luainputenc} % allow UTF-8 input? δ13C?
-% \usepackage{hyperref} % links between references etc % doesn't seem to work
 % with this template?
 \usepackage[capitalise,nameinlink,noabbrev]{cleveref}
 % use same macro for acronym, this writes out the first use and then
@@ -833,7 +834,7 @@ The caveat is therefore not strong, because while section photographs of this si
 %1258A MS \ma{8--14} (Fig. 3) no recovery in 10
 %of~\citeA{Husson2011}.
 %The key intervals of \ma{5}, \ma{8}, and \ma{10} are \ijk{XXX}.
-
+In conclusion, we recommend using the ZB20a solution for astronomical tuning of eccentricity-related cycles up to \appr\qty{71}{\millionyearago}, because it is the most compatible with available geological records.
 Future studies should aim to generate high resolution proxy records that have recorded the expression of both long and short eccentricity.
 They could corroborate results for this time interval from other locations on Earth and/or extend the oldest geologically constrained parts (\appr\qty{71}{\millionyearago}) of the astronomical solutions.
 It may be wise to target low latitudes for this, since eccentricity-related cyclicity tends to dominate in the tropics~\cite<Fig. 7a in>[]{LaeppleLohmann2009}. % during the late Pleistocene (750 ka to present) in model
