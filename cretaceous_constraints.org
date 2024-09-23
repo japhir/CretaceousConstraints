@@ -4356,10 +4356,10 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 
   agem_sol <- agem_simple |>
     ## mutate(age = n * 405)
-    mutate(sol = list(target_astronomical_solutions)) |>
+    mutate(sol = list(c(target_astronomical_solutions, "La11"))) |>
     unnest(cols = c(sol)) |>
     nest(.by = sol) |>
-    # TODO: this is still wrong, strat = 0 = K/Pg boundary but in Batenburg
+    # This is still wrong, strat = 0 = K/Pg boundary but in Batenburg
     # et al., 2012 they list 0 as "close to" the first 405 kyr minimum.
     mutate(age = case_when(sol == "ZB18a" ~
                              sln_peaks |>
@@ -4403,6 +4403,12 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
                              arrange(age) |>
                              slice(1:14) |>
                              pull(age) |> list(),
+                           sol == "La11" ~
+                             sln_peaks |>
+                             filter(sln == "La11", age >= 65.9 * 1e3 - 200) |>
+                             arrange(age) |>
+                             slice(1:14) |>
+                             pull(age) |> list(),
                            TRUE ~ list(NA_real_))) |>
     unnest(cols = c(data, age)) |>
     arrange(sol, n) |>
@@ -4425,7 +4431,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================] 378.81MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
+: indexing 405_minima.csv [===============================] 389.05MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
 : ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -10986,12 +10992,13 @@ out of all the detrend types and gaussian/rectangular filters (window)
                       ## tiepoint_error, max_age_slider # temp?
                       ))
 
-  overal_best_sol <- overall_best |>
+  overall_best_sol <- overall_best |>
     tidylog::filter(RMSD == min(RMSD), .by = c(sol, proxy))
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac, window)`
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac,
+: window)`
 : filter: removed 5,991 rows (1%), 427,460 rows remaining
 : filter: removed 280 rows (93%), 21 rows remaining
 
@@ -11731,6 +11738,74 @@ perhaps max_age_slider = 200 + tiepoint_error = 3 is best?
 | ZB20b |  1.13 | 1.22 | 1.22 |
 | ZB20c |  1.14 | 1.16 | 1.07 |
 | ZB20d |   1.2 |  1.2 | 1.03 |
+**** table of final age model
+:PROPERTIES:
+:CREATED:  [2024-09-17 Tue 15:21]
+:END:
+#+begin_src R :results value :colnames yes
+  best_age_model <-
+    overall_sd |>
+    filter(proxy == "Lstar") |>
+    filter(detrend_type == "lin_scl_med") |>
+    filter(depth_chunk == "full record") |>
+    filter(comb == "1:1") |>
+    filter(roll == 1e10) |>
+    filter(frac == 0.25) |>
+    filter(window == "taner") |>
+    filter(sol == "ZB20a") |>
+    ## filter(age_slider == )
+      tidylog::distinct(s405, s100, sign_405, sign_100, window,
+                        date, site,
+                      .keep_all = TRUE) |>
+    # still 2 sites remaining
+    mutate(agem = map(the_best, "summary")) |>
+    select(site, agem) |>
+    unnest(agem) |>
+    mutate(age = (kpg_age + age_slider + age_floating) ## / 1000
+           ) |>
+    # the caption needs:
+    # input kpg age of 65900 ka
+    # age slider of -6.4 kyr
+    # what is the implied age of the KPg boundary???
+    select(Ma405 = n, depth = strat_bot, offset = tie_err, site, age)
+
+    ## glimpse()
+  best_age_model |>
+    left_join(agem_sol |>
+              filter(sol == "La11") |>
+              select(Ma405 = n, depth = strat_bot, age_La11 = age)) |>
+    left_join(agem_sol |>
+              filter(sol == "ZB20a") |>
+              ## mutate(age = age / 1000) |>
+              select(Ma405 = n, depth = strat_bot, age_ZB20a = age)) |>
+    mutate(age_diff_La11 = age - age_La11) |>
+    mutate(age_diff_ZB20a = age - age_ZB20a) |>
+    ## summarize(diLa = mean(age_diff_La11), diZe = mean(age_diff_ZB20a))
+    mutate(across(c(offset, age, age_La11, age_ZB20a,
+                    age_diff_La11, age_diff_ZB20a), \(x) signif(x, 5)))
+    ## glimpse()
+#+end_src
+
+#+RESULTS:
+| Ma405 | depth | offset | site     | age_La11 | age_ZB20a |   age | age_diff_La11 | age_diff_ZB20a |
+|-------+-------+--------+----------+----------+-----------+-------+---------------+----------------|
+|     0 |     0 |   -1.2 | Zumaia   |    65966 |     65896 | 65894 |         -72.4 |           -2.4 |
+|     1 |    16 |   -1.6 | Zumaia   |    66375 |     66290 | 66299 |         -76.4 |              9 |
+|     2 |    32 |      0 | Zumaia   |    66784 |     66691 | 66704 |         -80.4 |           12.4 |
+|     3 |    47 |   -0.8 | Zumaia   |    67190 |     67101 | 67109 |         -81.4 |            7.8 |
+|     4 |    61 |    1.2 | Zumaia   |    67588 |     67512 | 67514 |         -74.4 |            1.6 |
+|     5 |    76 |    1.6 | Zumaia   |    67984 |     67917 | 67919 |         -65.4 |            1.8 |
+|     6 |    91 |    1.6 | Zumaia   |    68383 |     68315 | 68324 |         -59.4 |            8.4 |
+|     7 |   111 |   -0.4 | Zumaia   |    68788 |     68710 | 68729 |         -59.4 |           18.2 |
+|     8 |   122 |    0.6 | Zumaia   |    69200 |     69107 | 69134 |         -66.4 |           26.4 |
+|     9 |   135 |    1.6 | Zumaia   |    69612 |     69517 | 69539 |         -73.4 |           21.8 |
+|    10 |   149 |    1.6 | Zumaia   |    70016 |     69928 | 69944 |         -72.4 |           15.6 |
+|     9 |   135 |    0.4 | Sopelana |    69612 |     69517 | 69535 |         -76.6 |           18.6 |
+|    10 |   149 |      0 | Sopelana |    70016 |     69928 | 69940 |         -75.6 |           12.4 |
+|    11 |   160 |     -1 | Sopelana |    70413 |     70334 | 70345 |         -67.6 |             11 |
+|    12 |   171 |      0 | Sopelana |    70805 |     70733 | 70750 |         -54.6 |           17.6 |
+|    13 |   183 |    0.6 | Sopelana |    71204 |     71125 | 71155 |         -48.6 |           30.6 |
+
 
 **** plot of RMSD vs frac: filter window size
 :PROPERTIES:
