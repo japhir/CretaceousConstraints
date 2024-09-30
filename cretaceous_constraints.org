@@ -1252,522 +1252,15 @@ In this study we focus on those astronomical solutions that showed the best comp
 #+RESULTS:
 [[file:imgs/VLN_ages.png]]
 
-* COMMENT reproduce Ma et al., 2017 steps
-:PROPERTIES:
-:CREATED:  [2023-08-28 Mon 10:52]
-:END:
-[cite:@Ma2017] .
-Load the R package Astrochron
-This analysis uses version 0.6.6. Please use versions >= 0.6.6.
-
-#+begin_src R
-  library(astrochron)
-#+end_src
-
-#+RESULTS:
-: Welcome to astrochron v1.2 (2023-08-25)
-:  Type ?astrochron to learn more
-
-** read in data
-Read the Libsack FMI data from Locklair & Sageman (2008)
-This should be a comma-separated-value file (.csv), with first column as depth
-    (meters) and second column as FMI.
-
-#+begin_src R
-  FMI <- read("dat/Ma2017/data.csv")
-#+end_src
-
-** interpolate to median sampling interval
-This data set has a sampling interval
-that ranges from 0.030478 to 0.030479 m. Interpolate the data to a sampling interval of 0.03 m.
-
-#+begin_src R
-  FMI_0.03 <- linterp(FMI, dt = 0.03)
-#+end_src
-
-** Tune the FMI record using the long-eccentricity cycle
-*** bandpass filter long eccentricity
-Extract Locklair & Sageman’s (2008) long-eccentricity cycle using bandpass filtering.
-
-#+begin_src R
-  longEcc <- bandpass(FMI_0.03, flow = 0.14, fhigh = 0.26, xmax = 0.5, padfac = 5, win = 2, p = 0.66)
-#+end_src
-
-*** find the peak
-Find the peak associated with each long eccentricity cycle.
-
-#+begin_src R
-  eccMax <- peak(longEcc)
-#+end_src
-
-*** construct floating time
-Construct the floating time (elapsed time) vs. core depth map for tuning.
-
-#+begin_src R
-  timeControl <- cb(eccMax[, 2], (0:18) * 405)
-
-  plot(timeControl, type = "l", lwd = 2, xlab = "Depth (m)", ylab = "Elapsed Time (ka)")
-#+end_src
-
-*** tune
-Tune (the original FMI data) using the time vs. core depth map.
-
-#+begin_src R
-  tuned <- tune(FMI, timeControl, extrapolate = TRUE)
-#+end_src
-
-** interpolate
-This tuned data set has a sampling interval that ranges from 1.714387 to
-3.774922 ka. Interpolate the tuned data to the median sampling interval of ~2.5
-ka.
-
-#+begin_src R
-  tuned_2.5 <- linterp(tuned, dt = 2.5)
-#+end_src
-
-** anchor to radioisotopic age
-Convert result from floating (elapsed) time to radioisotopically-anchored
-time, using the nominal radioisotopic anchoring (S.p. ammonite biozone). The
-radioisotopic age, and its depth in the Libsack core, come from Table 1.
-
-#+begin_src R
-  anchorAt <- resample(timeControl, xout = 2147.62, genplot=FALSE)[, 2]
-  anchored <- anchorTime(tuned_2.5, time = anchorAt, age = 89370, timeDir = 2)
-#+end_src
-
-*** plot
-Now create a plot of radioisotopically-anchored time vs. depth.
-#+begin_src R
-  timeDepth <- tuned
-  timeDepth[2] <- FMI[1]
-  anchoredTimeDepth <- anchorTime(timeDepth, time = anchorAt, age = 89370, timeDir = 2, genplot = FALSE)
-
-  pl(1);
-  plot(anchoredTimeDepth,
-       type = "l", lwd = 2, col = "red",
-       ylim = c(max(FMI[1]), min(FMI[1])),
-       xlab = "Time (ka)", ylab = "Depth (m)",
-       cex.lab = 1.2)
-#+end_src
-
-*** create basic plot using ggplot
-#+begin_src R
-  library(ggplot2)
-  library(patchwork)
-  library(dplyr)
-
-  pl_FMI <- FMI |>
-    tibble::as_tibble() |>
-    ggplot(aes(x = Depth_m, y = FMI_ohm.m)) +
-    geom_line() +
-    labs(x="Depth (m)",
-         y = "FMI"~Ohm~"(m)")
-  pl_anchored <- anchored |>
-    tibble::as_tibble() |>
-    rename(Time_ka = X1, FMI_ohm.m = X2) |>
-    ggplot(aes(x = Time_ka/1e3, y = FMI_ohm.m)) +
-    geom_line() +
-    scale_x_continuous(
-      breaks = 80:92,
-      minor_breaks = seq(80, 92, 0.1)) +
-    labs(x = "Age (Ma)",
-         y = "FMI Ohm (m)") # not sure if this is what it is.
-  pl_FMI/pl_anchored
-#+end_src
-
-** EPSA/EHA
-Conduct evolutive power spectral analysis (EPSA) and evolutive harmonic analysis (EHA)
-for the tuned & anchored FMI data using a 500-ka moving window (with linear trend
-removal), and three 2pi prolate tapers. Plot amplitude normalized to unity
-(for each window) to reveal changes in relative strength.
-
-#+begin_src R
-  pwr <- eha(anchored, win = 500, fmax = .1, output = 2, pl = 1,
-             pad = 5000, genplot = 3, ydir = -1,
-             xlab = "Frequency (cycles/ka)", ylab = "Age (ka)")
-#+end_src
-
-** power modulation of obliquity
-Determine power modulation of obliquity terms using EPSA results. Integrate
-the obliquity power from 0.018 to 0.037 cycles/ka.
-
-#+begin_src R
-  integrate_obl <- integratePower(pwr, flow = 0.018, fhigh = 0.037,
-                                  npts = 201, pad = 5000, ln = TRUE,
-                                  ydir = -1)
-#+end_src
-
-** power modulation of short ecc
-Determine power modulation of short eccentricity terms.
-Integrate the short eccentricity power from 0.007 to 0.012 cycles/ka.
-
-#+begin_src R
-  integrate_ecc <- integratePower(pwr, flow = 0.007, fhigh = 0.012,
-                                  npts = 201, pad = 5000, ln = TRUE,
-                                  ydir = -1)
-#+end_src
-
-** amplitude modulation of long ecc
-Evaluate amplitude modulation of the long eccentricity term (405 ka), following
-removal of bias associated with long-term (>1 Myr) variance, using Lowess.
-
-# note: win = 2 means a cosine-tapered (Tukey) window
-#+begin_src R
-  longEcc2 <- bandpass(noLow(anchored, 0.1, genplot = FALSE),
-                       flow = .002, fhigh = .0035,
-                       win = 2, p = 0.66, padfac = 5, xmax = .02)
-
-  hilEcc2 <- hilbert(longEcc2, addmean=TRUE)
-#+end_src
-
-** plot summary
-Plot summary figures.
-#+begin_src R
-  xlim1 <- c(82707.41, 89932.41)
-  pl(r = 3, c = 1)
-  plot(cb(integrate_obl, c(1, 2)),
-       type = "l", lwd = 2, col = "red",
-       ylab = "Obliquity Band Power", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  plot(cb(integrate_ecc, c(1, 2)),
-       type = "l", lwd = 2, col = "red",
-       ylab = "Short-Eccentricity Band Power", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  plot(longEcc2, type = "l", lwd = 2, col = "red",
-       ylab = "Long-Eccentricity Bandpass", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  lines(hilEcc2)
-  pl(r = 3, c = 1)
-  plot(cb(integrate_obl, c(1, 4)),
-       type = "l", lwd = 2, col = "red",
-       ylab = "Obliquity/Total Power", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  plot(cb(integrate_ecc, c(1, 4)),
-       type = "l", lwd = 2, col = "red",
-       ylab = "Short-Eccentricity/Total Power", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  plot(longEcc2, type = "l", lwd = 2, col = "red",
-       ylab = "Long-Eccentricity Bandpass", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  lines(hilEcc2)
-  pl(r = 3, c = 1)
-  plot(cb(integrate_ecc, c(1, 2)),
-       type = "l", lwd = 2, col = "red",
-       ylab = "Short-Eccentricity Band Power", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  plot(cb(integrate_ecc, c(1, 4)),
-       type = "l",lwd = 2, col = "red",
-       ylab = "Short-Eccentricity/Total Power", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  plot(longEcc2,
-       type = "l", lwd = 2, col = "red",
-       ylab = "Long-Eccentricity Bandpass", xlab = "Time (ka)",
-       cex.lab = 1.2, xlim = xlim1)
-  lines(hilEcc2)
-#+end_src
-
-* COMMENT read ZL2019 and ZL2023EPSL to reproduce their approach
-:PROPERTIES:
-:CREATED:  [2023-08-28 Mon 11:56]
-:END:
-:LOGBOOK:
-CLOCK: [2023-08-28 Mon 17:02]--[2023-08-28 Mon 17:10] =>  0:08
-CLOCK: [2023-08-28 Mon 14:55]--[2023-08-28 Mon 17:02] =>  2:07
-- try to reproduce, cannot figureit out?
-CLOCK: [2023-08-28 Mon 14:10]--[2023-08-28 Mon 14:55] =>  0:45
-- do 2.4 Myr analysis on ZB18a
-CLOCK: [2023-08-28 Mon 11:20]--[2023-08-28 Mon 12:08] =>  0:48
-:END:
-[cite:@ZeebeLourens2019;@ZeebeLourens2022EPSL].
-
-Richard's code
-#+begin_src matlab
-f  = 1./2000;
-df = 0.6;
-
-yf{i} = gaussfilter(t{i},y{i},f,df*f,2*df*f,0.0);
-
-[~,ix{i}] = findpeaks(-yf{i});
-kv = ix{i};
-dt{i} = diff(t{i}(kv));
-#+end_src
-
-
-#+begin_src R
-  library(tidyverse)
-
-  # get orbital solution sol
-  sol <- snvecR::get_ZB18a() |>
-    select(age, ee)
-
-  # Do the same as Zeebe and Lourens 2022:
-  # filter 2 Myr ± 60% Gaussian
-  # 2 Myr = 2000 kyr period = 1 / 2000 period
-  x11(type = "cairo")
-
-  bp2000 <- sol |>
-    astrochron::bandpass(
-                  padfac = 10, # 10x the number of data points
-                  # parameterized as I understand Richard's matlab code
-                  # this doesn't make any sense to me
-                  ## flow = 0.6 * 1 / 2000,
-                  ## fhigh = 2 * 0.6 * 1 / 2000,
-                  flow = 1 / 2000 - 0.6 * 1 / 2000,
-                  fhigh = 1 / 2000 + 0.6 * 1 / 2000,
-                  win = 1, # Gaussian window
-                  ## win: Window type for bandpass filter: 0 = rectangular , 1=
-                  ## Gaussian, 2= Cosine-tapered window (a.k.a. Tukey window).
-                  demean = TRUE, detrend = TRUE,
-                  addmean = FALSE,
-                  xmax = .02)
-
-  grDevices::savePlot("imgs/2023-08-28_0_2Myr_bandpass_filter.png")
-
-  # get the peak maxima
-  pk2000 <- bp2000 |>
-    astrochron::peak()
-
-  grDevices::savePlot("imgs/2023-08-28_1_peak.png")
-
-  # but in the paper they do peak minima, we just flip the input
-  pk2000_flip <- bp2000 |>
-    mutate(ee = -ee) |>
-    astrochron::peak(genplot = TRUE)
-
-  grDevices::savePlot("imgs/2023-08-28_2_peak.png")
-
-  # calculate deltas between peaks
-  pk2000_tidy <- pk2000 |>
-    as_tibble() |>
-    # different ways to calculate the delta
-    mutate(delta_vln_lag = Location - lag(Location)) |> # this one minus previous one
-    mutate(delta_vln = lead(Location) - Location) # next one minus this one
-  pk2000_flip_tidy <- pk2000_flip |>
-    as_tibble() |>
-    mutate(delta_vln_lag = Location - lag(Location)) |>
-    mutate(delta_vln = lead(Location) - Location)
-
-  # check that peak id has gone well
-  bp2000 |>
-    ggplot(aes(x = age, y = ee)) +
-    geom_line() +
-    geom_point(aes(x = Location, y = Peak_Value, colour = "maxima"), data = pk2000_tidy) +
-    geom_point(aes(x = Location, y = -Peak_Value, colour = "minima"), data = pk2000_flip_tidy)
-
-  ggsave("~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous/imgs/2023-08-28_3_check_peaks.png")
-
-  # create a plot similar to Zeebe and Lourens 2022 EPSL figure 6a
-  pk2000_tidy |>
-    ggplot(aes(x = Location / 1000, y = delta_vln / 1000)) +
-    ## geom_point(aes(colour = "maxima lead")) +
-    ## geom_line(aes(colour = "maxima lead")) +
-    geom_point(aes(colour = "minima lead"), data = pk2000_flip_tidy) +
-    geom_line(aes(colour = "minima lead"), data = pk2000_flip_tidy) +
-    # did they use the half-distance? nope
-    ## geom_point(aes(x = (Location + .5 * (lead(Location) - Location)) / 1000, colour = "minima lead"), data = pk2000_flip_tidy) +
-    ## geom_line(aes(x = (Location + .5 * (lead(Location) - Location)) / 1000, colour = "minima lead"), data = pk2000_flip_tidy) +
-    ## geom_point(aes(y = delta_vln_lag / 1000, colour = "maxima lag")) +
-    ## geom_line(aes(y = delta_vln_lag / 1000, colour = "maxima lag")) +
-    ## geom_point(aes(y = delta_vln_lag / 1000, colour = "minima lag"), data = pk2000_flip_tidy) +
-    ## geom_line(aes(y = delta_vln_lag / 1000, colour = "minima lag"), data = pk2000_flip_tidy) +
-    labs(x = "Age (Ma)",
-         y = Delta[VLN] ~ "Interval between min/max in 2-Myr ecc filter (Myr)") +
-    scale_x_continuous(breaks = seq(40, 80, 5)) +
-    coord_cartesian(xlim = c(44, 70), ylim = c(0, 3))
-
-  ggsave("imgs/2023-08-28_4_Dvln.png", width = 8, height = 3)
-  ## ggsave("~/SurfDrive/Postdoc1/prj/2023-05-19_cretaceous/imgs/2023-08-28_4_Dvln.png")
-#+end_src
-
-#+RESULTS:
-#+begin_example
-
------ BANDPASS FILTERING STRATIGRAPHIC SERIES-----
- ,* Number of data points= 250001
- ,* Sample interval= 0.4
- ,* Mean value removed= 0.02683078
- ,* Center of bandpass filter = 5e-04
- ,* 600 pos/neg frequency pairs will be bandpassed
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 250001
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 50
-
- ,* No filtering of peaks applied.
-
------ FINDING MAXIMA OF PEAKS, FILTERING AT THRESHOLD VALUE -----
- ,* Number of data points= 250001
- ,* Number of columns= 2
- ,* Identifying maxima of peaks
- ,* Number of peaks identified= 51
-
- ,* No filtering of peaks applied.
-Saving 7 x 6.99 in image
-Warning messages:
-1: Removed 1 rows containing missing values (`geom_point()`).
-2: Removed 1 row containing missing values (`geom_line()`).
-Warning messages:
-1: Removed 1 rows containing missing values (`geom_point()`).
-2: Removed 1 row containing missing values (`geom_line()`).
-#+end_example
-
-** filter orbital solutions
-#+begin_src R
-  # test whether filtering is the same for comparison with Zeebe and Lourens 2022 EPSL fig B2
-  ## ZB20a <- readr::read_table("http://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Astro/300Myr/ZB20a.dat",
-  ##                            col_names = c("time", "ecc", "inc"), skip = 1) |>
-  ##   readr::write_rds("out/ZB20a.rds")
-  ZB20a <- readr::read_rds("out/ZB20a.rds")
-
-  ZB20a |>
-    ggplot(aes(x = time / 1000, y = ecc)) +
-    geom_line() +
-    coord_cartesian(xlim = c(63, 66))
-
-
-  ZB20a_bp100 <- ZB20a |>
-    astrochron::bandpass(flow = 1 / 100 - 0.0016 * 1 / 100,
-                         fhigh = 1 / 100 + 0.0016 * 1 / 100,
-                         padfac = 1000,
-                         win = 1,
-                         demean = TRUE, detrend = TRUE)
-
-  # this is how Richard filters the 405 kyr cycle in his solution
-  ZB20a_bp405 <- ZB20a |>
-    select(time, ecc) |>
-    astrochron::bandpass(flow = 1 / 405 - 0.0004,
-                         fhigh = 1 / 405 + 0.0004,
-                         padfac = 10,
-                         win = 1, # gaussian window
-                         demean = TRUE, detrend = TRUE,
-                         xmax = 0.005) |>
-    as_tibble()
-
-  ZB20a_bp405_narrower <- ZB20a |>
-    select(time, ecc) |>
-    astrochron::bandpass(flow = 1 / 405 - 0.0001,
-                         fhigh = 1 / 405 + 0.0001,
-                         padfac = 10,
-                         win = 1, # gaussian window
-                         demean = TRUE, detrend = TRUE,
-                         xmax = 0.005) |>
-    as_tibble()
-
-  ZB20a_bp405_wider <- ZB20a |>
-    select(time, ecc) |>
-    astrochron::bandpass(flow = 1 / 405 - 0.001,
-                         fhigh = 1 / 405 + 0.001,
-                         padfac = 10,
-                         win = 1, # gaussian window
-                         demean = TRUE, detrend = TRUE,
-                         xmax = 0.005) |>
-    as_tibble()
-
-  ZB20a_bp405_widest <- ZB20a |>
-    select(time, ecc) |>
-    astrochron::bandpass(flow = 1 / 405 - 0.0024,
-                         fhigh = 1 / 405 + 0.0024,
-                         padfac = 10,
-                         win = 1, # gaussian window
-                         demean = TRUE, detrend = TRUE,
-                         xmax = 0.005) |>
-    as_tibble()
-
-  ZB20a_bp405 |>
-    mutate(filt="default") |>
-    bind_rows(
-      ZB20a_bp405_narrower |>
-      mutate(filt="narrower")) |>
-    bind_rows(
-      ZB20a_bp405_wider |>
-      mutate(filt="wider")) |>
-    bind_rows(
-      ZB20a_bp405_widest |>
-      mutate(filt = "widest")) |>
-    ggplot(aes(x=time,y=ecc, colour = filt)) +
-    geom_line() +
-    geom_line(aes(colour="ZB18a default"), data = bp405 |> rename(time = age, ecc = ee)) +
-    geom_line(aes(colour = "ZB20a raw"), alpha = .3, data = ZB20a) +
-    geom_line(aes(colour = "ZB18a raw"), alpha = .3, data = snvecR::get_ZB18a() |> select(time = age, ecc = ee)) +
-    coord_cartesian(xlim=c(65400, 74200))
-#+end_src
-
-#+begin_src R
-  # everything below is a big hot mess!
-
-  bp405 <- sol |>
-    ## filter(age < 50e3) |>
-    astrochron::bandpass(flow = 1 / 405 - .0004,
-                         fhigh = 1 / 405 + .0004,
-                         padfac = 10,
-                         win = 1,
-                         demean = TRUE, detrend = TRUE,
-                         xmax = .02)
-
-  ## eha405 <- snvecR::get_ZB18a() |>
-  ##   select(age, ee) |>
-  ##   astrochron::eha(fmax = .1, pl = 1, output = 2, pad = 5000, genplot = 3, ydir = -1)
-
-  ## integrate_ecc <- eha405 |>
-  ##   astrochron::integratePower(flow = 0.007, fhigh = 0.012,
-  ##                              npts = 201, pad = 5000, ln = TRUE,
-  ##                              ydir = -1)
-
-  ## bp405_2 <- sol |>
-  ##   noLow(smooth = 1000, genplot = TRUE) |>
-  ##   bandpass(flow = .002, fhigh = .0035,
-  ##            win = 2, p = 0.66, padfac = 5, xmax = .02)
-
-  ## hb405_2 <- bp405_2 |>
-  ##   astrochron::hilbert()
-
-  hb405 <- bp405 |>
-    astrochron::hilbert()
-
-  # this doesn't work well on the hilbert transform, finds many peaks because of noise?
-  pk405 <- hb405 |>
-    astrochron::peak()
-
-  pkf405 <- pk405 |>
-    as_tibble() |>
-    tidylog::mutate(diff = Location - lag(Location)) |>
-    ## ggplot(aes(x = Location, y = diff)) + geom_point()
-    tidylog::filter(diff > 500) #|>
-    ## tidylog::filter(Location > 4000) |> # filter out youngest weird few
-    ## tidylog::filter(Location < 93e3)
-    ## tidylog::filter(!ID %in% c(142107, 17355, 174355, 203304, 225749))
-
-  pkf405 |>
-    ggplot(aes(x = Location, y = diff)) + geom_point() + geom_line()
-
-  pkf405 |>
-    ggplot(aes(x = Location, y = Peak_Value, ID = ID)) +
-    geom_point() +
-    geom_line(aes(x = age, y = ee - mean(ee), ID = NULL), data = bp405)
-    ## geom_line(aes(x = age, y = envelope, ID = NULL), data = hb405_2)
-
-  pkf405 |>
-    ggplot(aes(x = diff)) +
-    ## geom_histogram(binwidth = 1000) +
-    geom_density()
-#+end_src
-
-** how can I calculate the average spectral misfit?
-:PROPERTIES:
-:CREATED:  [2023-08-28 Mon 17:14]
-:END:
-
 * Datasets from the Literature
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:48]
 :END:
 Sorted from young to older, longest records at the end.
 
-Might need to filter/reorder when I'm writing the paper
+I have made the datasets that we don't look at a ~COMMENT~ headline, so I'm hoping GitHub will not render them. If you want to see all my notes, just open up the org file in any text editor.
 
-** [#C] IODP Leg 208 Site 1262
+** [#C] COMMENT IODP Leg 208 Site 1262
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:37]
 :END:
@@ -1821,7 +1314,7 @@ K/T depth @ 216.7 mcd
 #+caption: *Colour reflectance data from ODP 208 Site 1262*. used in [cite:@ZeebeLourens2019].
 #+RESULTS:
 [[file:imgs/208-1262_color_ZeebeLourens2019-2022.png]]
-** [#A] Hendaye
+** [#A] COMMENT Hendaye
 :PROPERTIES:
 :CREATED:  [2023-09-18 Mon 16:42]
 :END:
@@ -1842,7 +1335,7 @@ Frits thinks this wasn't taken into account in ZL2022 b/c Luc didn't believe in 
 
 Frits will send me a new Fish-Canyon paper draft, which argues that the ZB20a solution best matches the 200 kyr cycles just prior to the K/Pg boundary.
 
-** [#C] IODP Leg 198 Site 1209
+** [#C] COMMENT IODP Leg 198 Site 1209
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 17:29]
 :END:
@@ -1862,7 +1355,146 @@ Frits will send me a new Fish-Canyon paper draft, which argues that the ZB20a so
 #+RESULTS:
 [[file:imgs/198-1209_color_ZeebeLourens2019-2022.png]]
 
-** Contessa highway section
+** COMMENT 1209 older part
+:PROPERTIES:
+:CREATED:  [2024-07-09 Tue 15:29]
+:END:
+Thomas Westerhold told me at CIP2.0 that this record is much more impressive
+
+from [cite:@Kim2022]
+#+begin_src R
+  ## dat <- pangaear::pg_data("10.1594/PANGAEA.951108")
+  dat <- pangaear::pg_data("10.1594/PANGAEA.950898")[[1]]$data
+#+end_src
+
+From the SI of [cite:@Kim2022] we get
+
+#+begin_src R
+  minima_405 <- c(
+    261.580,
+    264.810,
+    268.200,
+    272.560,
+    277.630,
+    283.188,
+    289.474,
+    294.240,
+    299.200,
+    304.495,
+    309.410,
+    315.570,
+    320.720,
+    326.140
+  )
+#+end_src
+
+#+RESULTS:
+
+#+begin_src R :eval never
+  la_ages <- c(
+  66.022
+  66.420
+  66.826
+  67.230
+  67.636
+  68.040
+  68.446
+  68.850
+  69.256
+  69.660
+  70.066
+  70.470
+  70.876
+  71.280
+  )
+#+end_src
+
+#+begin_src R
+  agem_1209 <- tibble(n = 1:length(minima_405) - 1, strat_bot = minima_405) |>
+    mutate(age_floating = seq(0, 405 * (n() - 1), by = 405))
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/1209_barium.png :width 800
+  dat |>
+    ggplot(aes(
+      ## x = `Depth sed [m] (mbsf)`,
+      ## x = `Depth comp r [rmcd]`,
+      x = `Depth comp r [rmcd] (1209)`,
+      ## x = `Tuned time [Ma] (405)`,
+      y = `Ba count [#]`,
+      colour = Event)) +
+    geom_line() +
+    geom_vline(xintercept = minima_405[[1]])
+    ## spectral_analysis(method = "MTM ML96") |>
+    ## plot_spectrum()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/1209_barium.png]]
+
+#+begin_src R :results output graphics file :file imgs/1209_barium_spectrum.png :width 800
+  dat |>
+    select(depth = `Depth comp r [rmcd] (1209)`,
+           value = `Ba count [#]`) |>
+    filter(depth > minima_405[[1]]) |>
+    filter(depth < max(minima_405)) |>
+    spectral_analysis(x = depth, y = value,
+                      method = "MTM ML96",
+                      ## method = "MTM PL",
+                      ## method = "LOWSPEC",
+                      detrend = TRUE) |>
+    plot_spectrum()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/1209_barium_spectrum.png]]
+
+#+begin_src R :results output graphics file :file imgs/1209_barium_spectrum_their_age_model.png :width 800
+  dat |>
+    select(age = `Tuned time [Ma] (405)`,
+           value = `Ba count [#]`,
+           depth = `Depth comp r [rmcd] (1209)`) |>
+    filter(depth > minima_405[[1]]) |>
+    filter(depth < max(minima_405)) |>
+    mutate(age = age * 1e3) |>
+    spectral_analysis(x = age, y = value,
+                      method = "MTM ML96",
+                      ## method = "MTM PL",
+                      ## method = "LOWSPEC",
+                      detrend = TRUE) |>
+    plot_spectrum(domain = "time")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/1209_barium_spectrum_their_age_model.png]]
+
+at first the range of tiepoint variability was definitely too large
+oh and I didn't double-check my freq frac
+
+#+begin_src R
+  tst_1209 |> write_rds("out/tst1209.rds")
+#+end_src
+
+#+RESULTS:
+#+begin_src R
+  tst_1209$plot
+#+end_src
+
+#+begin_src R :results output graphics file :file imgs/1209_barium_matched.png :width 800
+  tst_1209$matched |>
+    ggplot(aes(x = age, y = ecc)) +
+    scale_x_reverse() +
+    ## geom_vline(aes(yintercept = kpg_age + age_slider)) +
+    ## geom_line(aes(y = ecc_sln), colour = "gold") +
+    geom_line(aes(y = value)) +
+    geom_line(aes(y = `405 kyr`), colour = "red") +
+    geom_line(aes(y = `100 kyr`), colour = "orange")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/1209_barium_matched.png]]
+
+** COMMENT Contessa highway section
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 15:59]
 :END:
@@ -1888,7 +1520,7 @@ Combined with Bottaccione
 #+caption: Contessa Highway Magnetic Susceptibility from [cite:@Sinnesael2016].
 #+RESULTS:
 [[file:imgs/Contessa_MS_Sinnesael2016.png]]
-** [#A] ODP Leg 208 Site 1267
+** [#A] COMMENT ODP Leg 208 Site 1267
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 12:49]
 :END:
@@ -4135,7 +3767,7 @@ Too young!
 : Downloading 1 datasets from 10.1594/PANGAEA.763155
 : Processing 1 files
 
-** [#B] IODP Exp 342 Site U1403A,B
+** [#B] COMMENT IODP Exp 342 Site U1403A,B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:29]
 :END:
@@ -14969,7 +14601,7 @@ remove the biggies
   load("rmsds.RData")
 #+end_src
 
-** Gubbio
+** COMMENT Gubbio
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:51]
 :END:
@@ -15007,7 +14639,7 @@ malformed forams
 OAE-2
 https://doi.pangaea.de/10.1594/PANGAEA.954540
 
-** ODP Leg 198 Site 1210B
+** COMMENT ODP Leg 198 Site 1210B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 15:52]
 :END:
@@ -15062,7 +14694,7 @@ refers to this study for raw data: https://doi.pangaea.de/10.1594/PANGAEA.950806
 #+RESULTS:
 [[file:imgs/198-1210_d13C_Jung2012-fig6.png]]
 
-** ODP Leg 74 Site 525A
+** COMMENT ODP Leg 74 Site 525A
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:57]
 :END:
@@ -15077,7 +14709,7 @@ Ma_{405}6 to Ma_{405}8.5
 - State "WAIT"       from              [2023-08-31 Thu 15:20]
 :END:
 
-** [#B] ODP Leg 207 Site 1258B
+** [#B] COMMENT ODP Leg 207 Site 1258B
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:58]
 :END:
@@ -15176,7 +14808,7 @@ be sure to check "output raw data"
 - State "SOME"       from              [2023-08-31 Thu 15:21]
 :END:
 from [cite:@Husson2011], they've extended this record!
-** ODP Leg 122 Site 762C
+** COMMENT ODP Leg 122 Site 762C
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 14:24]
 :END:
@@ -15235,7 +14867,7 @@ reproduce [cite:@Husson2011] figure 3 and 4
 #+RESULTS:
 [[file:imgs/122-762B_grayscale_Husson-fig4.png]]
 
-** Bottaccione == Gubbio?
+** COMMENT Bottaccione == Gubbio?
 :PROPERTIES:
 :CREATED:  [2023-08-31 Thu 16:09]
 :END:
@@ -15264,7 +14896,7 @@ ah, slightly too old? -> can stitch w/ 1210B!
 #+RESULTS:
 [[file:imgs/Bottaccione_d13C_Sabatino2018.png]]
 
-** Furlo
+** COMMENT Furlo
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 16:09]
 :END:
@@ -15275,7 +14907,7 @@ something like 90 Ma to 96 Ma
 
 straight through the Bonarelli level OAE-2
 
-** Jordanian Levant Platform
+** COMMENT Jordanian Levant Platform
 :PROPERTIES:
 :CREATED:  [2023-09-05 Tue 16:06]
 :END:
@@ -15286,7 +14918,7 @@ TOC, d13C, d18O
 [cite:@Wendler2014]
 https://doi.pangaea.de/10.1594/PANGAEA.834794
 
-** apply our method to a hypothetical dataset
+** COMMENT apply our method to a hypothetical dataset
 :PROPERTIES:
 :CREATED:  [2024-01-25 Thu 13:16]
 :END:
@@ -15439,44 +15071,6 @@ https://doi.pangaea.de/10.1594/PANGAEA.834794
   (setq org-cite-export-processors '((latex biblatex) (t csl)))
 #+end_src
 
-* can you get low amplitude in 100 kyr filter from noise?
-:PROPERTIES:
-:CREATED:  [2024-04-16 Tue 12:02]
-:END:
-#+begin_src R
-  dat <- tibble(x = 1:1000, y = astrochron::ar1(1000, genplot = FALSE)$V2, s = rnorm(1000), z = y + s)
-#+end_src
-
-#+begin_src R :results output graphics file :file imgs/2024-04-16_ar1+white_noise_spectrum.png :width 800
-  dat |>
-    spectral_analysis(x = x, y = z) |>
-    plot_spectrum(confidence = TRUE, logy = TRUE) +
-    annotate("rect", xmin = 0.015, xmax = 0.03, ymin = 1e-5, ymax = 1e-1, fill = "red", alpha = .3) +
-    annotate("rect", xmin = 0.038, xmax = 0.045, ymin = 1e-5, ymax = 1e-1, fill = "red", alpha = .3)
-    ## coord_cartesian(xlim = c(0, 0.2))
-#+end_src
-
-#+RESULTS:
-[[file:imgs/2024-04-16_ar1+white_noise_spectrum.png]]
-
-#+begin_src R
-  flt <- dat |>
-    taner_filter(frequencies = tibble(target = c("one", "two"), flow = c(0.015, 0.038), fhigh = c(0.03, 0.045)), x = x, y = z)
-#+end_src
-
-#+begin_src R :results output graphics file :file imgs/2024-04-16_ar1+white_noise_filter.png :width 800
-  dat |>
-    ggplot(aes(x = x, y = y)) +
-    geom_line() +
-    geom_line(aes(y = filter, colour = target), linewidth = 2, data = flt)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/2024-04-16_ar1+white_noise_filter.png]]
-
-so what did I learn here?
-
-My question was:
 * latex settings that I haven't settled on yet         :noexport:
 :PROPERTIES:
 :CREATED:  [2023-11-17 Fri 13:08]

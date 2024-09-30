@@ -1,14 +1,14 @@
-Package: TODO
+Package: CretaceousConstraints
 Title: Constrain Astronomical Solution Chaos With Geological Data
 Version: 0.0.0.9000
 Authors@R:
     person("Ilja", "Kocken", , "ikocken@hawaii.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-2196-8718"))
-Description: TODO
+Description: This R code contains the algorithm to match data to an astronomical solution. It is part of a manuscript titled: "A Revised Astronomically Tuned Time Scale for the Latest Cretaceous (Maastrichtian)".
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Imports:
     astrochron,
     cli,
@@ -22,6 +22,6 @@ Imports:
     stringr,
     tibble,
     tidyr
-Suggests: 
+Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

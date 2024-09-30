@@ -1,13 +1,13 @@
 #+title: Cretaceous Constraints Algorithm
 #+author: Ilja J. Kocken and Richard E. Zeebe
-#+date: 2024-07-01
+#+date: 2024-09-30
 
-This R code contains the algorithm to match data to an astronomical solution, and is part of the work-in-progress publication titled: "An Astronomically Tuned Time Scale for the Latest Cretaceous (Maastrichtian)".
+This R code contains the algorithm to match data to an astronomical solution, and is part of the work-in-progress publication titled: "A Revised Astronomically Tuned Time Scale for the Latest Cretaceous (Maastrichtian)".
 
 * R package
 This includes a simple R package with the following functions:
 
-Some utility functions for spectral analysis and filtering, mostly wrapping around functions from [[https://cran.r-project.org/package=astrochron][~astrochron~]] [cite:@Meyers2014].
+Some utility functions for spectral analysis and filtering, mostly wrapping around functions from [[https://cran.r-project.org/package=astrochron][~astrochron~]] [cite:@Meyers2014] that allow for a consistent interface.
 
 - ~bandpass_filter()~: wrapper for ~astrochron::bandpass()~ that makes the output always the same format
 - ~taner_filter()~: same as above but for ~astrochron::taner()~
@@ -21,12 +21,8 @@ These functions are specific to this study:
 - ~construct_eccentricity()~: combines 405 and 100 kyr filters
 - ~wrap_age_model()~: the algorithm that optimizes the match between data and solution; depends on the data, age model, solution, tiepoint uncertainty, proxy phase, target periods, frequency fraction (for filtering), filter options, age slider (by how much do we shift the record), kpg_age, and some more.
 
-* Additional Files for Review
-The file [[file:cretaceous_constraints.org]] contains all the rough working notes and plot creation code for this study, and will probably not be included in the final repository because it is a little messy.
-
-The directory [[file:imgs/]] contains all the plots created in the above file, including final figures in the manuscript. Without context this folder can be a little overwhelming, so best to ignore it.
-
-The file [[file:cretaceous_constraints_overleaf_paper.tex]] contains the source code for the work in progress manuscript.
+* Files Specific to the Manuscript
+The file [[file:cretaceous_constraints.org]] contains all the working notes and plot creation code for this study. It is an [[https://orgmode.org/][org-mode]] file, best edited in [[https://www.gnu.org/software/emacs/][emacs]].
 
 * References
 Meyers, S. R. (2014). astrochron: An R Package for Astrochronology. CRAN. http://cran.r-project.org/package=astrochron
