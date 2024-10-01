@@ -1,3 +1,6 @@
+:PROPERTIES:
+:TOC:      :include all :depth 3 :force (depth) :ignore (nothing) :local (nothing)
+:END:
 #+title: Cretaceous Constraints
 #+author: Ilja J. Kocken
 #+PROPERTY: header-args:R  :session *R:2023-05-19_cretaceous_constraints* :exports output :results output :eval no-export
@@ -6,6 +9,29 @@
 #+SELECT_TAGS: export
 #+EXCLUDE_TAGS: noexport nolatex
 #+visibility: folded
+
+* Table of Contents
+:PROPERTIES:
+:TOC:      :include all :depth 3 :force (nothing) :ignore (nothing) :local (nothing)
+:END:
+:CONTENTS:
+- [[#table-of-contents][Table of Contents]]
+- [[#libraries][libraries]]
+- [[#plot-astronomical-solutions][plot astronomical solutions]]
+- [[#what-are-the-differences-between-405-kyr-minima][what are the differences between 405-kyr minima?]]
+- [[#plot-the-difference-between-vln-ages][plot the difference between VLN ages]]
+- [[#datasets-from-the-literature][Datasets from the Literature]]
+  - [[#zumaia-and-sopelana][Zumaia and Sopelana]]
+    - [[#read-the-data][Read the data]]
+    - [[#create-tables-with-ranges-of-bp-filters-in-depth-domain][create tables with ranges of bp filters in depth domain]]
+    - [[#subtract-the-long-term-trends][subtract the long-term trends]]
+    - [[#analysis-in-the-depth-domain][analysis in the depth domain]]
+    - [[#analysis-in-the-time-domain][analysis in the time domain]]
+    - [[#overall-variable-tie-points][overall variable tie-points]]
+    - [[#waiting-for-grayscale-log-in-email][waiting for grayscale log in email]]
+    - [[#get-raw-data][get raw data]]
+- [[#references][References]]
+:END:
 
 * libraries
 #+begin_src R :results none
@@ -1536,7 +1562,7 @@ also related: [cite:@Zachos2004]
 
 see also this nice paper, but it focuses on a too-young interval for our purposes! [cite:@Westerhold2017] 56--46 Ma
 
-*** Magsus data
+*** COMMENT Magsus data
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:22]
 :END:
@@ -1642,7 +1668,7 @@ analyzed similarly to [cite:@Husson2011]
 #+RESULTS:
 [[file:imgs/208-1267B_MS_Husson-fig4.png]]
 
-*** [#B] convert from mbsf and mcd to rmcd
+*** [#B] COMMENT convert from mbsf and mcd to rmcd
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:29]
 :END:
@@ -1996,7 +2022,7 @@ I'd like to double-check that my function is general enough that it works for al
 very very small overlapping region, what's going on here?
 I'm following the splice table accurately, but maybe there are some errors in the splice table? I see some similar regions in MS here that are not fully aligned (but again, the off-splice isn't aligned correctly I think?).
 
-*** analyze MS data in depth domain (rmcd)
+*** COMMENT analyze MS data in depth domain (rmcd)
 :PROPERTIES:
 :CREATED:  [2023-09-21 Thu 16:42]
 :END:
@@ -2465,7 +2491,7 @@ This is the same plot as before, but now overplotting everything. Furthermore, I
 #+RESULTS:
 [[file:imgs/ODP208_1267_bandpass_filters.png]]
 
-*** agemodels
+*** COMMENT agemodels
 **** shipboard agemodel
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 09:46]
@@ -2603,7 +2629,7 @@ age from 56 Ma to 69.1 Ma
 #+caption: Overview of age models for ODP 208 Site 1267.
 #+RESULTS:
 [[file:imgs/208-1267B_agem.png]]
-*** plot the taner age model on top of the depth MS data
+*** COMMENT plot the taner age model on top of the depth MS data
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 09:32]
 :END:
@@ -2623,7 +2649,7 @@ age from 56 Ma to 69.1 Ma
 : 2: Using alpha for a discrete variable is not advised.
 : 3: Removed 2230 rows containing missing values (`geom_line()`).
 
-*** apply the agemodel to the MS data
+*** COMMENT apply the agemodel to the MS data
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 15:49]
 :END:
@@ -2640,7 +2666,7 @@ age from 56 Ma to 69.1 Ma
 
 #+RESULTS:
 
-*** analyze MS data in the time domain
+*** COMMENT analyze MS data in the time domain
 :PROPERTIES:
 :CREATED:  [2023-09-22 Fri 10:00]
 :END:
@@ -2732,7 +2758,7 @@ age from 56 Ma to 69.1 Ma
                 filter(age > 66 & age < 68.5) |>
                 mutate(ecc = scale(ee)[, 1]))
 #+end_src
-*** colour reflectance data from Janus database
+*** COMMENT colour reflectance data from Janus database
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 11:23]
 :END:
@@ -3687,7 +3713,7 @@ interesting! There's almost no 405 kyr cyclicity in there, probably b/c it was t
 #+end_src
 
 
-*** Fe count
+*** COMMENT Fe count
 :PROPERTIES:
 :CREATED:  [2023-09-19 Tue 21:14]
 :END:
@@ -3744,7 +3770,7 @@ Title says "astronomical calibration of the Paleocene time".
 #+RESULTS:
 [[file:imgs/ODP208_1267_Fe_wavelet.png]]
 
-*** CaCO3 dataset
+*** COMMENT CaCO3 dataset
 :PROPERTIES:
 :CREATED:  [2023-09-20 Wed 09:06]
 :END:
@@ -3785,7 +3811,7 @@ That corresponds to Ma_{405}1 to Ma_{405}7
 I've now quickly created the spectra for both, but haven't looked at it in more detail! Once I've developed my functions well this should be quick to try as well!
 
 Very low sedimentation rate however, about 1 cm/kyr.
-*** d13C and d18O
+*** COMMENT d13C and d18O
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 13:49]
 :END:
@@ -3820,7 +3846,7 @@ Very low sedimentation rate however, about 1 cm/kyr.
 #+RESULTS:
 [[file:imgs/IODP342_U1403_d18O_spec.png]]
 
-*** XRF data
+*** COMMENT XRF data
 :PROPERTIES:
 :CREATED:  [2023-10-02 Mon 13:49]
 :END:
