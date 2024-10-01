@@ -12,10 +12,10 @@
 
 * Table of Contents
 :PROPERTIES:
-:TOC:      :include all :depth 3 :force (nothing) :ignore (nothing) :local (nothing)
+:TOC:      :include all :depth 3 :force (nothing) :ignore (this) :local (nothing)
 :END:
+
 :CONTENTS:
-- [[#table-of-contents][Table of Contents]]
 - [[#libraries][libraries]]
 - [[#plot-astronomical-solutions][plot astronomical solutions]]
 - [[#what-are-the-differences-between-405-kyr-minima][what are the differences between 405-kyr minima?]]
