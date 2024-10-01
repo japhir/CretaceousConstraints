@@ -24,5 +24,10 @@ These functions are specific to this study:
 * Files Specific to the Manuscript
 The file [[file:cretaceous_constraints.org]] contains all the working notes and plot creation code for this study. It is an [[https://orgmode.org/][org-mode]] file, best edited in [[https://www.gnu.org/software/emacs/][emacs]].
 
+Within the large file some sections may be of particular interest:
+
+- [[https://github.com/japhir/CretaceousConstraints/blob/main/cretaceous_constraints.org#table-of-final-age-model][table of final age model]]
+- [[https://github.com/japhir/CretaceousConstraints/blob/main/cretaceous_constraints.org#a-wrap_age_model-for-all][wrap_age_model for all]]: where I set up simulation grids for the sensitivity analysis
+
 * References
 Meyers, S. R. (2014). astrochron: An R Package for Astrochronology. CRAN. http://cran.r-project.org/package=astrochron

@@ -15,6 +15,10 @@
 :TOC:      :include all :depth 3 :force (nothing) :ignore (this) :local (nothing)
 :END:
 
+These sections may be of particular interest:
+- [[#table-of-final-age-model][table of final age model]]
+- [[#a-wrap_age_model-for-all][wrap_age_model for all]]: where I set up simulation grids for the sensitivity analysis
+
 :CONTENTS:
 - [[#libraries][libraries]]
 - [[#plot-astronomical-solutions][plot astronomical solutions]]
