@@ -88,47 +88,68 @@ These sections may be of particular interest:
 
 #+RESULTS:
 #+begin_example
-R version 4.3.3 (2024-02-29)
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 4.5.0 (2025-04-11)
+Platform: x86_64-pc-linux-gnu
 Running under: Arch Linux
 
 Matrix products: default
 BLAS/LAPACK: /usr/lib/libopenblas.so.0.3;  LAPACK version 3.12.0
 
 locale:
- [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8     LC_MONETARY=en_US.UTF-8
- [6] LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                  LC_ADDRESS=C               LC_TELEPHONE=C
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C
 [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
 
-time zone: Pacific/Honolulu
+time zone: Europe/Amsterdam
 tzcode source: system (glibc)
 
 attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base
+[1] stats     graphics  grDevices datasets  utils     methods   base
 
 other attached packages:
- [1] AstronomicalSolutions_0.0.0.9000 testthat_3.2.1                   furrr_0.3.1                      future_1.33.1
- [5] profvis_0.3.8                    assertr_3.0.1                    patchwork_1.2.0                  lubridate_1.9.3
- [9] forcats_1.0.0                    stringr_1.5.1                    dplyr_1.1.4                      purrr_1.0.2
-[13] readr_2.1.5                      tidyr_1.3.1                      tibble_3.2.1                     ggplot2_3.5.0
+ [1] CretaceousConstraints_0.0.0.9000 testthat_3.2.3
+ [3] furrr_0.3.1                      future_1.40.0
+ [5] profvis_0.4.0                    assertr_3.0.1
+ [7] patchwork_1.3.0                  lubridate_1.9.4
+ [9] forcats_1.0.0                    stringr_1.5.1
+[11] dplyr_1.1.4                      purrr_1.0.4
+[13] readr_2.1.5                      tidyr_1.3.1
+[15] tibble_3.2.1                     ggplot2_3.5.2
 [17] tidyverse_2.0.0
 
 loaded via a namespace (and not attached):
-  [1] gridExtra_2.3        remotes_2.4.2.1      rlang_1.1.3          magrittr_2.0.3       matrixStats_1.2.0    compiler_4.3.3       loo_2.7.0
-  [8] vctrs_0.6.5          maps_3.4.2           pkgconfig_2.0.3      shape_1.4.6.1        fastmap_1.1.1        backports_1.4.1      ellipsis_0.3.2
- [15] utf8_1.2.4           cmdstanr_0.6.0       promises_1.2.1       rmarkdown_2.26       sessioninfo_1.2.2    tzdb_0.4.0           ps_1.7.6
- [22] xfun_0.42            cachem_1.0.8         IDPmisc_1.1.21       palinsol_1.0         later_1.3.2          cluster_2.1.6        parallel_4.3.3
- [29] R6_2.5.1             stringi_1.8.3        rpart_4.1.23         parallelly_1.37.1    pkgload_1.3.4        brio_1.1.4           Rcpp_1.0.12
- [36] iterators_1.0.14     knitr_1.45           fields_15.2          usethis_2.2.3        base64enc_0.1-3      nnet_7.3-19          httpuv_1.6.14
- [43] timechange_0.3.0     tidyselect_1.2.1     rstudioapi_0.15.0    abind_1.4-5          doParallel_1.0.17    codetools_0.2-19     rethinking_2.40
- [50] miniUI_0.1.1.1       multitaper_1.0-17    processx_3.8.3       listenv_0.9.1        pkgbuild_1.4.3       lattice_0.22-5       shiny_1.8.0
- [57] withr_3.0.0          posterior_1.5.0      evaluate_0.23        coda_0.19-4.1        foreign_0.8-86       desc_1.4.3           urlchecker_1.0.1
- [64] pillar_1.9.0         tensorA_0.36.2.1     astrochron_1.2       checkmate_2.3.1      foreach_1.5.2        distributional_0.4.0 generics_0.1.3
- [71] rprojroot_2.0.4      hms_1.1.3            munsell_0.5.0        scales_1.3.0         globals_0.16.3       xtable_1.8-4         glue_1.7.0
- [78] Hmisc_5.1-1          tools_4.3.3          data.table_1.15.2    fs_1.6.3             mvtnorm_1.2-4        dotCall64_1.1-1      grid_4.3.3
- [85] devtools_2.4.5       colorspace_2.1-0     htmlTable_2.4.2      Formula_1.2-5        cli_3.6.2            spam_2.10-0          fansi_1.0.6
- [92] viridisLite_0.4.2    gtable_0.3.4         digest_0.6.35        htmlwidgets_1.6.4    memoise_2.0.1        htmltools_0.5.7      lifecycle_1.0.4
- [99] mime_0.12            MASS_7.3-60.0.1
+ [1] tidyselect_1.2.1   viridisLite_0.4.2  farver_2.1.2
+ [4] astrochron_1.5     fields_16.3.1      palinsol_1.0
+ [7] fastmap_1.2.0      promises_1.3.2     rpart_4.1.24
+[10] digest_0.6.37      dotCall64_1.2      timechange_0.3.0
+[13] mime_0.13          lifecycle_1.0.4    cluster_2.1.8.1
+[16] ellipsis_0.3.2     magrittr_2.0.3     compiler_4.5.0
+[19] rlang_1.1.6        Hmisc_5.2-3        tools_4.5.0
+[22] yaml_2.3.10        data.table_1.17.0  knitr_1.50
+[25] htmlwidgets_1.6.4  pkgbuild_1.4.7     RColorBrewer_1.1-3
+[28] pkgload_1.4.0      miniUI_0.1.2       foreign_0.8-90
+[31] withr_3.0.2        desc_1.4.3         nnet_7.3-20
+[34] grid_4.5.0         urlchecker_1.0.1   colorspace_2.1-1
+[37] xtable_1.8-4       globals_0.17.0     scales_1.4.0
+[40] iterators_1.0.14   cli_3.6.5          rmarkdown_2.29
+[43] generics_0.1.3     remotes_2.5.0      rstudioapi_0.17.1
+[46] tzdb_0.5.0         IDPmisc_1.1.21     sessioninfo_1.2.3
+[49] cachem_1.1.0       maps_3.4.2.1       parallel_4.5.0
+[52] base64enc_0.1-3    vctrs_0.6.5        devtools_2.4.5
+[55] hms_1.1.3          htmlTable_2.4.3    Formula_1.2-5
+[58] listenv_0.9.1      foreach_1.5.2      glue_1.8.0
+[61] parallelly_1.43.0  spam_2.11-1        multitaper_1.0-17
+[64] codetools_0.2-20   stringi_1.8.7      gtable_0.3.6
+[67] later_1.4.2        pillar_1.10.2      brio_1.1.5
+[70] htmltools_0.5.8.1  R6_2.6.1           doParallel_1.0.17
+[73] rprojroot_2.0.4    evaluate_1.0.3     shiny_1.10.0
+[76] lattice_0.22-6     backports_1.5.0    memoise_2.0.1
+[79] renv_1.1.4         httpuv_1.6.16      Rcpp_1.0.14
+[82] checkmate_2.3.2    gridExtra_2.3      xfun_0.52
+[85] fs_1.6.6           usethis_3.1.0      pkgconfig_2.0.3
 #+end_example
 
 * some shared code                                     :noexport:
@@ -346,7 +367,8 @@ I can reuse my ~snvecR~ code here!
 #+begin_src R
   # get the first orbital solution in there
   ZB18a <- snvecR::get_solution("ZB18a-300") |>
-    ## select(age, ecc = ee) |>
+    mutate(age = -time) |>
+    select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
     mutate(sln = "ZB18a", .before = age)
@@ -371,6 +393,7 @@ Download the solution once from the website, then save to file locally. Similar 
 Load the saved file, then process it further.
 #+begin_src R
   ZB20a <- read_rds("out/ZB20a.rds") |>
+    mutate(age = -time) |>
     select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
@@ -380,6 +403,11 @@ Load the saved file, then process it further.
 #+end_src
 
 #+RESULTS:
+: Error in `mutate()`:
+: ℹ In argument: `age = -time`.
+: Caused by error in `-time`:
+: ! invalid argument to unary operator
+: Run `rlang::last_trace()` to see where the error occurred.
 
 *** get ZB20b
 :PROPERTIES:
@@ -394,7 +422,8 @@ Load the saved file, then process it further.
 
 Load the saved file, then process it further.
 #+begin_src R
-  ZB20b <- read_rds("out/ZB20b.rds") |>
+  ZB20b <- snvecR::get_solution("ZB20b") |>
+    mutate(age = -time) |>
     select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
@@ -417,7 +446,9 @@ Load the saved file, then process it further.
 
 Load the saved file, then process it further.
 #+begin_src R
-  ZB20c <- read_rds("out/ZB20c.rds") |>
+  ZB20c <- #read_rds("out/ZB20c.rds") |>
+    snvecR::get_solution("ZB20c") |>
+    mutate(age = -time) |>
     select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
@@ -440,7 +471,9 @@ Load the saved file, then process it further.
 
 Load the saved file, then process it further.
 #+begin_src R
-  ZB20d <- read_rds("out/ZB20d.rds") |>
+  ZB20d <- #read_rds("out/ZB20d.rds") |>
+    snvecR::get_solution("ZB20d") |>
+    mutate(age = -time) |>
     select(age, ecc) |>
     filter(age >= 56000 & age <= 80000) |>
     mutate(scl = scale(ecc)[, 1]) |>
@@ -3969,7 +4002,7 @@ From the supplementary info of [cite:@Batenburg2012;@Batenburg2014].
 
 #+RESULTS:
 #+begin_example
--/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > . + indexing 18696_2.csv [====================================================================================================================] 1.99GB/s, eta:  0s                                                                                                                                                                                                 New names:
+-/                                                                                                                                                            /                                                                                                                                                            -                                                                                                                                                            > > > + + + indexing 18696_2.csv [====================================================================================================================] 1.99GB/s, eta:  0s                                                                                                                                                                                                 New names:
 • `` -> `...3`
 Rows: 629 Columns: 3
 ── Column specification ──────────────────────────────────────────────────────
@@ -4093,7 +4126,7 @@ Note that I had to read the minima for Sopelana from the figure, so they may be 
 #+end_src
 
 #+RESULTS:
-: indexing 405_minima.csv [===============================] 389.05MB/s, eta:  0s                                                                                                                 Rows: 20 Columns: 5
+: indexing 405_minima.csv [===============================================================================================================] 423.38MB/s, eta:  0s                                                                                                                                                                                                 Rows: 20 Columns: 5
 : ── Column specification ──────────────────────────────────────────────────────
 : Delimiter: ","
 : chr (3): comment, minmax, desc
@@ -10479,10 +10512,18 @@ ok now?
 #+end_src
 
 #+RESULTS:
-: Warning messages:
-: 1: [1m[22mThere was 1 warning in `mutate()`.
-: [1m[22m[36mℹ[39m In argument: `comb = fct_relevel(...)`.
-: Caused by warning:
+#+begin_example
+Warning messages:
+1: There was 1 warning in `mutate()`.
+ℹ In argument: `comb = fct_relevel(...)`.
+Caused by warning:
+! 6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
+2: There was 1 warning in `mutate()`.
+ℹ In argument: `window = fct_relevel(as_factor(window), c("rectangular",
+  "gaussian", "taner"))`.
+Caused by warning:
+! 1 unknown level in `f`: taner
+#+end_example
 [33m![39m [1m[22m6 unknown levels in `f`: 1:0, 1:0.25, 1:0.75, 0.75:1, 0.25:1, and 0:1
 2: [1m[22mThere was 1 warning in `mutate()`.
 [1m[22m[36mℹ[39m In argument: `window = fct_relevel(as_factor(window), c("rectangular", "gaussian", "taner"))`.
@@ -10600,8 +10641,6 @@ new runs after changing to a taner filter currently with roll = 1e10.
 #+end_src
 
 #+RESULTS:
-: filter: no rows removed
-: filter: no rows removed
 
 **** single best for each site, proxy, depth_chunk, comb
 :PROPERTIES:
@@ -10662,7 +10701,7 @@ out of all the detrend types and gaussian/rectangular filters (window)
 : Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, frac,
 : window)`
 : filter: removed 5,991 rows (1%), 427,460 rows remaining
-: filter: removed 280 rows (93%), 21 rows remaining
+: + + filter: removed 280 rows (93%), 21 rows remaining
 
 **** recompute RMSD for ~old~
 :PROPERTIES:
@@ -10704,9 +10743,14 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, window, frac)`
-: filter: removed 24,839 rows (4%), 570,715 rows remaining
-: filter: removed 417 rows (95%), 24 rows remaining
+: Error: object 'rolling_age_optim_old' not found
+: Error: object 'rolling_age_optim_old' not found
+: Warning message:
+: In rm(cutoff) : object 'cutoff' not found
+: Warning message:
+: In rm(rolling_age_optim_old) : object 'rolling_age_optim_old' not found
+: Error: object 'overall_sd_old' not found
+: Error: object 'overall_best_old' not found
 
 **** recompute RMSD for ~tie~
 :PROPERTIES:
@@ -10751,10 +10795,9 @@ out of all the detrend types and gaussian/rectangular filters (window)
 #+end_src
 
 #+RESULTS:
-: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol, max_age_slider, tiepoint_error, frac, roll, window)`
+: Joining with `by = join_by(proxy, detrend_type, depth_chunk, comb, sol,
+: max_age_slider, tiepoint_error, frac, roll, window)`
 : filter: removed 1,846 rows (2%), 92,682 rows remaining
-: Warning message:
-: In rm(rolling_age_optim_old) : object 'rolling_age_optim_old' not found
 : filter: removed 42 rows (86%), 7 rows remaining
 
 **** [#B] inspect the tiepoint optimization plots
@@ -10826,9 +10869,643 @@ and identify the ones where this happens based on the table that I put in
 #+end_src
 
 #+RESULTS:
-#+begin_src R
-  ggsave("imgs/tiepoint_RMSD_optima.png", width = 12, height = 6)
-#+end_src
+#+begin_example
+Loading required package: ggpp
+Registered S3 methods overwritten by 'ggpp':
+  method                  from
+  heightDetails.titleGrob ggplot2
+  widthDetails.titleGrob  ggplot2
+
+Attaching package: ‘ggpp’
+
+The following object is masked from ‘package:ggplot2’:
+
+    annotate
+# A tibble: 616 × 17
+    proxy site     detrend_type depth_chunk     comb    s405  s100 sign_405 sign_100 sol   the_best         date        roll  frac window RMSD_start  RMSD
+    <chr> <chr>    <fct>        <fct>           <fct>  <dbl> <dbl>    <dbl>    <dbl> <chr> <list>           <date>     <dbl> <dbl> <fct>       <dbl> <dbl>
+  1 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.11
+  2 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.16
+  3 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.29  1.26
+  4 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.44  1.14
+  5 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.08
+  6 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.36  1.23
+  7 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.42  1.29
+  8 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.25  1.08
+  9 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.42  1.18
+ 10 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.16
+ 11 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.41  1.08
+ 12 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.38  1.09
+ 13 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.37  1.18
+ 14 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.38  1.23
+ 15 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.36  1.09
+ 16 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.14  0.997
+ 17 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.29  1.27
+ 18 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.37  1.28
+ 19 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.26  0.998
+ 20 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.36  1.31
+ 21 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.49  1.25
+ 22 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.32  1.01
+ 23 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.11
+ 24 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.04  0.936
+ 25 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.17  1.04
+ 26 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.18
+ 27 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.26  1.19
+ 28 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.40  1.11
+ 29 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.18
+ 30 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.20
+ 31 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.44  1.21
+ 32 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.43  1.21
+ 33 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.40  1.21
+ 34 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.46  1.17
+ 35 d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.47  1.19
+ 36 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.25  1.06
+ 37 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.34  1.12
+ 38 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.40  1.10
+ 39 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.12
+ 40 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.05
+ 41 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.42  1.09
+ 42 d13C  Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.37  1.12
+ 43 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.23  1.04
+ 44 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.22  0.998
+ 45 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.22  1.10
+ 46 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.20  1.01
+ 47 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.06  1.01
+ 48 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.29  1.09
+ 49 d13C  Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.12
+ 50 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.40  1.18
+ 51 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.33  1.11
+ 52 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.17
+ 53 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.39  1.27
+ 54 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.38  1.22
+ 55 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.28  1.18
+ 56 MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.25  1.11
+ 57 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.41  1.16
+ 58 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.19  1.12
+ 59 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.12
+ 60 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.32  1.18
+ 61 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.37  1.25
+ 62 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.17
+ 63 MS    Zumaia   lin_scl_med  depth < 109.26  1:1     1     1           1        1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.24  1.07
+ 64 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.29  1.21
+ 65 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.06  0.979
+ 66 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.36  1.24
+ 67 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.24  1.23
+ 68 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.15  1.12
+ 69 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.33  1.23
+ 70 MS    Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1           1        1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.30  1.21
+ 71 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.08
+ 72 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.44  1.11
+ 73 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       0.900 0.857
+ 74 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.12  0.957
+ 75 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.37  1.21
+ 76 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.04  0.947
+ 77 MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.19  0.961
+ 78 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.21
+ 79 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.40  1.22
+ 80 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.37  1.29
+ 81 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.49  1.37
+ 82 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.40  1.20
+ 83 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.43  1.31
+ 84 Lstar Zumaia   scl          full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.46  1.30
+ 85 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.36  1.23
+ 86 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.52  1.39
+ 87 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.41  1.27
+ 88 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.49  1.21
+ 89 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.46  1.22
+ 90 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.45  1.31
+ 91 Lstar Zumaia   scl          depth < 109.26  1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.49  1.29
+ 92 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.29  1.16
+ 93 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.17  1.09
+ 94 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.30
+ 95 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.33  1.28
+ 96 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.17
+ 97 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.38  1.31
+ 98 Lstar Zumaia   scl          depth >= 109.26 1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.47  1.31
+ 99 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.35  1.07
+100 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.15
+101 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.08  0.940
+102 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-21 1e 10  0.3  taner       1.18  1.02
+103 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-21 1e 10  0.3  taner       1.31  1.20
+104 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-21 1e 10  0.3  taner       1.27  1.15
+105 Lstar Sopelana scl          full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-21 1e 10  0.3  taner       1.42  1.11
+106 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.32  1.13
+107 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.39  1.22
+108 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.32  1.27
+109 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.46  1.28
+110 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.38  1.17
+111 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.38  1.27
+112 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e  3  0.3  taner       1.43  1.33
+113 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.26  1.09
+114 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.40  1.21
+115 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.33  1.17
+116 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.42  1.12
+117 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.39  1.10
+118 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.37  1.20
+119 Lstar Zumaia   lin_scl_med  depth < 109.26  1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e  3  0.3  taner       1.38  1.26
+120 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.42  1.19
+121 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.25  1.12
+122 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.32  1.30
+123 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.40  1.35
+124 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.35  1.10
+125 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.38  1.34
+126 Lstar Zumaia   lin_scl_med  depth >= 109.26 1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e  3  0.3  taner       1.51  1.26
+127 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.37  1.12
+128 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.33  1.12
+129 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.08  0.975
+130 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e  3  0.3  taner       1.21  1.08
+131 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e  3  0.3  taner       1.33  1.23
+132 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e  3  0.3  taner       1.31  1.13
+133 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e  3  0.3  taner       1.46  1.13
+134 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e 10  0.3  taner       1.29  1.10
+135 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e 10  0.3  taner       1.34  1.15
+136 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e 10  0.3  taner       1.28  1.22
+137 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e 10  0.3  taner       1.40  1.12
+138 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e 10  0.3  taner       1.33  1.10
+139 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e 10  0.3  taner       1.35  1.22
+140 Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e 10  0.3  taner       1.40  1.29
+141 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e 10  0.3  taner       1.32  1.01
+142 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e 10  0.3  taner       1.30  1.11
+143 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e 10  0.3  taner       1.04  0.936
+144 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e 10  0.3  taner       1.17  1.04
+145 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e 10  0.3  taner       1.31  1.18
+146 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e 10  0.3  taner       1.26  1.19
+147 Lstar Sopelana lin_scl_fine full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e 10  0.3  taner       1.40  1.11
+148 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e  6  0.3  taner       1.30  1.10
+149 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e  6  0.3  taner       1.35  1.17
+150 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e  6  0.3  taner       1.29  1.25
+151 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e  6  0.3  taner       1.44  1.15
+152 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e  6  0.3  taner       1.35  1.10
+153 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e  6  0.3  taner       1.36  1.24
+154 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e  6  0.3  taner       1.41  1.29
+155 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e  6  0.3  taner       1.32  1.00
+156 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e  6  0.3  taner       1.29  1.09
+157 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e  6  0.3  taner       1.04  0.936
+158 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e  6  0.3  taner       1.17  1.03
+159 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e  6  0.3  taner       1.30  1.17
+160 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e  6  0.3  taner       1.26  1.10
+161 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e  6  0.3  taner       1.41  1.11
+162 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10b <named list [4]> 2024-03-27 1e 12  0.3  taner       1.30  1.11
+163 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 La10c <named list [4]> 2024-03-27 1e 12  0.3  taner       1.35  1.16
+164 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB18a <named list [4]> 2024-03-27 1e 12  0.3  taner       1.29  1.26
+165 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20a <named list [4]> 2024-03-27 1e 12  0.3  taner       1.44  1.17
+166 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20b <named list [4]> 2024-03-27 1e 12  0.3  taner       1.35  1.09
+167 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20c <named list [4]> 2024-03-27 1e 12  0.3  taner       1.36  1.25
+168 Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -1       -1 ZB20d <named list [4]> 2024-03-27 1e 12  0.3  taner       1.42  1.30
+169 Lstar Sopelana lin_scl_med  full record     1:1     1     1          -1       -1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.32  1.02
+[90m170[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.31  1.12
+[90m171[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.04  0.939
+[90m172[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.18  1.05
+[90m173[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.31  1.19
+[90m174[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.26  1.19
+[90m175[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 12  0.3  taner       1.41  1.12
+[90m176[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.30  1.10
+[90m177[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.35  1.16
+[90m178[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.29  1.25
+[90m179[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.44  1.15
+[90m180[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.35  1.09
+[90m181[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.36  1.23
+[90m182[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.41  1.29
+[90m183[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.32  1.01
+[90m184[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.29  1.10
+[90m185[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.04  0.935
+[90m186[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.17  1.03
+[90m187[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.30  1.17
+[90m188[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.26  1.19
+[90m189[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m  8  0.3  taner       1.40  1.11
+[90m190[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.31  1.14
+[90m191[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.38  1.17
+[90m192[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.30  1.26
+[90m193[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.46  1.28
+[90m194[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.36  1.11
+[90m195[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.37  1.27
+[90m196[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.44  1.32
+[90m197[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.34  1.06
+[90m198[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.34  1.17
+[90m199[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.05  0.975
+[90m200[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.20  1.09
+[90m201[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.30  1.23
+[90m202[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.27  1.21
+[90m203[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m100  0.3  taner       1.42  1.13
+[90m204[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.29  1.10
+[90m205[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.34  1.15
+[90m206[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.28  1.22
+[90m207[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.40  1.12
+[90m208[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.33  1.10
+[90m209[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.35  1.22
+[90m210[39m Lstar Zumaia   lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.40  1.29
+[90m211[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.32  1.01
+[90m212[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.30  1.11
+[90m213[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.04  0.936
+[90m214[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.17  1.04
+[90m215[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.31  1.18
+[90m216[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.26  1.19
+[90m217[39m Lstar Sopelana lin_scl_fine full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.3  taner       1.40  1.11
+[90m218[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.33  1.13
+[90m219[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.33  1.21
+[90m220[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.33  1.24
+[90m221[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.40  1.30
+[90m222[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.34  1.23
+[90m223[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.36  1.28
+[90m224[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.42  1.33
+[90m225[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.39  1.21
+[90m226[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.17  1.03
+[90m227[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.07  0.961
+[90m228[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.07  0.905
+[90m229[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.35  1.16
+[90m230[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.32  1.13
+[90m231[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.1  taner       1.35  1.21
+[90m232[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.29  1.03
+[90m233[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.31  1.14
+[90m234[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.26  1.18
+[90m235[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.40  1.23
+[90m236[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.33  1.07
+[90m237[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.33  1.23
+[90m238[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.37  1.25
+[90m239[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.26  0.896
+[90m240[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.17  0.989
+[90m241[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       0.954 0.895
+[90m242[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.09  0.882
+[90m243[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.24  1.03
+[90m244[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.19  1.05
+[90m245[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.2  taner       1.32  1.08
+[90m246[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.28  1.06
+[90m247[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.33  1.14
+[90m248[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.27  1.22
+[90m249[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.42  1.12
+[90m250[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.33  1.07
+[90m251[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.34  1.20
+[90m252[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.39  1.27
+[90m253[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.29  0.950
+[90m254[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.24  1.05
+[90m255[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       0.986 0.908
+[90m256[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.12  0.954
+[90m257[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.27  1.11
+[90m258[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.22  1.16
+[90m259[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.25 taner       1.36  1.11
+[90m260[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.28  1.04
+[90m261[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.32  1.13
+[90m262[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.26  1.20
+[90m263[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.41  1.23
+[90m264[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.32  1.06
+[90m265[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.34  1.19
+[90m266[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.38  1.25
+[90m267[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.27  0.912
+[90m268[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.20  1.02
+[90m269[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       0.962 0.894
+[90m270[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.10  0.906
+[90m271[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.26  1.06
+[90m272[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.20  1.08
+[90m273[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.22 taner       1.34  1.09
+[90m274[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.28  1.04
+[90m275[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.32  1.13
+[90m276[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.26  1.20
+[90m277[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.41  1.23
+[90m278[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.32  1.07
+[90m279[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.34  1.20
+[90m280[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.38  1.26
+[90m281[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.28  0.924
+[90m282[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.21  1.03
+[90m283[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       0.969 0.898
+[90m284[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.10  0.921
+[90m285[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.26  1.08
+[90m286[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.21  1.14
+[90m287[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.23 taner       1.34  1.10
+[90m288[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.28  1.05
+[90m289[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.32  1.13
+[90m290[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.27  1.21
+[90m291[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.41  1.11
+[90m292[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.32  1.06
+[90m293[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.34  1.21
+[90m294[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.39  1.26
+[90m295[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.28  0.936
+[90m296[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.22  1.05
+[90m297[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       0.977 0.903
+[90m298[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.11  0.937
+[90m299[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.27  1.09
+[90m300[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.21  1.15
+[90m301[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-27 1[90me[39m 10  0.24 taner       1.35  1.10
+[90m302[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.34  1.18
+[90m303[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.32  1.18
+[90m304[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.43  1.18
+[90m305[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.40  1.20
+[90m306[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.39  1.21
+[90m307[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.46  1.15
+[90m308[39m d13C  Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.45  1.19
+[90m309[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.38  1.15
+[90m310[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.04
+[90m311[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.13
+[90m312[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.37  1.24
+[90m313[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.36  1.19
+[90m314[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.15
+[90m315[39m MS    Zumaia   lin_scl_med  full record     1:1     1     1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.07
+[90m316[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.06
+[90m317[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.42  1.07
+[90m318[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.868 0.834
+[90m319[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  0.929
+[90m320[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.37  1.20
+[90m321[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.01  0.922
+[90m322[39m MS    Sopelana lin_scl_med  full record     1:1     1     1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.16  0.918
+[90m323[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.979 0.907
+[90m324[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.988 0.918
+[90m325[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.969
+[90m326[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.01  0.951
+[90m327[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.974 0.903
+[90m328[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  1.01
+[90m329[39m d13C  Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  1.04
+[90m330[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.908
+[90m331[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.998 0.942
+[90m332[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.932
+[90m333[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  0.944
+[90m334[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.909
+[90m335[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  0.943
+[90m336[39m d13C  Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  1.02
+[90m337[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  0.953
+[90m338[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  0.954
+[90m339[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  0.961
+[90m340[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  1.05
+[90m341[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  0.970
+[90m342[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.18  0.952
+[90m343[39m d13C  Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.19  1.00
+[90m344[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.05
+[90m345[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.17  1.05
+[90m346[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.28  1.05
+[90m347[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.08
+[90m348[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.07
+[90m349[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.02
+[90m350[39m d13C  Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.05
+[90m351[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.08
+[90m352[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.23  1.07
+[90m353[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.12
+[90m354[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.06
+[90m355[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.06
+[90m356[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.35  1.08
+[90m357[39m d13C  Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  0.999
+[90m358[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.06
+[90m359[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.05
+[90m360[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.04
+[90m361[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.05
+[90m362[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.05
+[90m363[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.35  1.07
+[90m364[39m d13C  Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  0.984
+[90m365[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.12
+[90m366[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.09
+[90m367[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.35  1.09
+[90m368[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.32  1.11
+[90m369[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.12
+[90m370[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.38  1.05
+[90m371[39m d13C  Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.36  1.07
+[90m372[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.07
+[90m373[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.11
+[90m374[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.23  1.04
+[90m375[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.29  1.17
+[90m376[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.14
+[90m377[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.10
+[90m378[39m d13C  Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.29  1.05
+[90m379[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.967 0.892
+[90m380[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.964 0.905
+[90m381[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.03  0.961
+[90m382[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.986
+[90m383[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.989 0.898
+[90m384[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.988
+[90m385[39m MS    Zumaia   lin_scl_med  full record     1:0     1     0           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  1.04
+[90m386[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.00  0.865
+[90m387[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.974 0.891
+[90m388[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.03  0.929
+[90m389[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  1.03
+[90m390[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.900
+[90m391[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  0.974
+[90m392[39m MS    Zumaia   lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  1.00
+[90m393[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  0.911
+[90m394[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.890
+[90m395[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  0.956
+[90m396[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  1.05
+[90m397[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  0.948
+[90m398[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.08  0.996
+[90m399[39m MS    Zumaia   lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.964
+[90m400[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.01
+[90m401[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  0.942
+[90m402[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  1.03
+[90m403[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.14
+[90m404[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.21  1.04
+[90m405[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  1.05
+[90m406[39m MS    Zumaia   lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  0.987
+[90m407[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.29  1.04
+[90m408[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  0.946
+[90m409[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.16  0.997
+[90m410[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.05
+[90m411[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.02
+[90m412[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  0.981
+[90m413[39m MS    Zumaia   lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.05  0.901
+[90m414[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.02
+[90m415[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  0.915
+[90m416[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  0.992
+[90m417[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.08
+[90m418[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.01
+[90m419[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  0.982
+[90m420[39m MS    Zumaia   lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.05  0.897
+[90m421[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.06
+[90m422[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  0.968
+[90m423[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.18  1.04
+[90m424[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.14
+[90m425[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.28  1.10
+[90m426[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.16  1.04
+[90m427[39m MS    Zumaia   lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  0.964
+[90m428[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.11
+[90m429[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.02
+[90m430[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.05
+[90m431[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.05
+[90m432[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.30  1.12
+[90m433[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.17  1.04
+[90m434[39m MS    Zumaia   lin_scl_med  full record     0:1     0     1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  0.976
+[90m435[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.945 0.863
+[90m436[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.962 0.889
+[90m437[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.958
+[90m438[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.01  0.943
+[90m439[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.966 0.882
+[90m440[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  1.00
+[90m441[39m Lstar Zumaia   lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  1.04
+[90m442[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.946 0.833
+[90m443[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.973 0.869
+[90m444[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.00  0.960
+[90m445[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.900
+[90m446[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.999 0.836
+[90m447[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.05  0.965
+[90m448[39m Lstar Zumaia   lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  1.02
+[90m449[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.01  0.836
+[90m450[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.896
+[90m451[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.993
+[90m452[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  0.953
+[90m453[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.862
+[90m454[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  1.02
+[90m455[39m Lstar Zumaia   lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  1.07
+[90m456[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.13  0.920
+[90m457[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.17  0.993
+[90m458[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.13  1.07
+[90m459[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.02
+[90m460[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.18  0.922
+[90m461[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.09
+[90m462[39m Lstar Zumaia   lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.14
+[90m463[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.21  0.964
+[90m464[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.10
+[90m465[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.18  1.08
+[90m466[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.09
+[90m467[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.21  1.00
+[90m468[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.14
+[90m469[39m Lstar Zumaia   lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.18
+[90m470[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.18  0.959
+[90m471[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.23  1.05
+[90m472[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.16  1.09
+[90m473[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.10
+[90m474[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  0.961
+[90m475[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.23  1.11
+[90m476[39m Lstar Zumaia   lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.14
+[90m477[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.21  1.00
+[90m478[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.06
+[90m479[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.19  1.11
+[90m480[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.32  1.14
+[90m481[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.01
+[90m482[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.13
+[90m483[39m Lstar Zumaia   lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.17
+[90m484[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.28  1.06
+[90m485[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.12
+[90m486[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.14
+[90m487[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.12
+[90m488[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.25  1.17
+[90m489[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.16
+[90m490[39m Lstar Zumaia   lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.12
+[90m491[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  1.13
+[90m492[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.974 0.935
+[90m493[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.834 0.783
+[90m494[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.872 0.826
+[90m495[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.996 0.976
+[90m496[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.05  1.03
+[90m497[39m MS    Sopelana lin_scl_med  full record     1:0     1     0           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  1.10
+[90m498[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  1.07
+[90m499[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.871
+[90m500[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.730 0.695
+[90m501[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.877 0.802
+[90m502[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.970
+[90m503[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.948 0.935
+[90m504[39m MS    Sopelana lin_scl_med  full record     1:0.25  1     0.25        1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.983
+[90m505[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.16  1.01
+[90m506[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  0.883
+[90m507[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.694 0.671
+[90m508[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.901 0.779
+[90m509[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  1.03
+[90m510[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.901 0.871
+[90m511[39m MS    Sopelana lin_scl_med  full record     1:0.5   1     0.5         1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.895
+[90m512[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.01
+[90m513[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  0.960
+[90m514[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.745 0.716
+[90m515[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.980 0.809
+[90m516[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.22  1.09
+[90m517[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.922 0.852
+[90m518[39m MS    Sopelana lin_scl_med  full record     1:0.75  1     0.75        1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  0.872
+[90m519[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.07  0.762
+[90m520[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.29  1.01
+[90m521[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.869 0.824
+[90m522[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.905
+[90m523[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.05
+[90m524[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.917 0.823
+[90m525[39m MS    Sopelana lin_scl_med  full record     0.25:1  0.25  1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.758
+[90m526[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  0.824
+[90m527[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.04
+[90m528[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.794 0.753
+[90m529[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.01  0.844
+[90m530[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.29  1.06
+[90m531[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.879 0.802
+[90m532[39m MS    Sopelana lin_scl_med  full record     0.5:1   0.5   1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.735
+[90m533[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.17  0.920
+[90m534[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.35  1.09
+[90m535[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.794 0.754
+[90m536[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.03  0.854
+[90m537[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.31  1.09
+[90m538[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.911 0.819
+[90m539[39m MS    Sopelana lin_scl_med  full record     0.75:1  0.75  1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.06  0.793
+[90m540[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  0.809
+[90m541[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.28  1.17
+[90m542[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.00  0.962
+[90m543[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  1.02
+[90m544[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  1.21
+[90m545[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.939
+[90m546[39m MS    Sopelana lin_scl_med  full record     0:1     0     1           1        1 ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  0.913
+[90m547[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  1.11
+[90m548[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.948
+[90m549[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.812 0.772
+[90m550[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.897 0.864
+[90m551[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.992
+[90m552[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.05  1.01
+[90m553[39m Lstar Sopelana lin_scl_med  full record     1:0     1     0          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.13  1.10
+[90m554[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  1.02
+[90m555[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.926
+[90m556[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.748 0.677
+[90m557[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.962 0.836
+[90m558[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.999 0.963
+[90m559[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.03  0.933
+[90m560[39m Lstar Sopelana lin_scl_med  full record     1:0.25  1     0.25       -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  1.01
+[90m561[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  0.913
+[90m562[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.908
+[90m563[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.757 0.670
+[90m564[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.964 0.808
+[90m565[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.953
+[90m566[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.04  0.945
+[90m567[39m Lstar Sopelana lin_scl_med  full record     1:0.5   1     0.5        -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.16  0.966
+[90m568[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.18  0.898
+[90m569[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  0.953
+[90m570[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.844 0.763
+[90m571[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.849
+[90m572[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  0.997
+[90m573[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  1.00
+[90m574[39m Lstar Sopelana lin_scl_med  full record     1:0.75  1     0.75       -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.01
+[90m575[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.13  0.730
+[90m576[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  0.899
+[90m577[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.994 0.904
+[90m578[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.977 0.887
+[90m579[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.04
+[90m580[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.12  0.928
+[90m581[39m Lstar Sopelana lin_scl_med  full record     0.25:1  0.25  1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  0.914
+[90m582[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.13  0.733
+[90m583[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.09  0.899
+[90m584[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.926 0.837
+[90m585[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.968 0.852
+[90m586[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.17  1.01
+[90m587[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.10  0.924
+[90m588[39m Lstar Sopelana lin_scl_med  full record     0.5:1   0.5   1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.23  0.922
+[90m589[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.19  0.813
+[90m590[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  0.942
+[90m591[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       0.923 0.842
+[90m592[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.02  0.864
+[90m593[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.20  1.03
+[90m594[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.13  1.05
+[90m595[39m Lstar Sopelana lin_scl_med  full record     0.75:1  0.75  1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.27  1.01
+[90m596[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.14  0.878
+[90m597[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.15  0.979
+[90m598[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.11  1.03
+[90m599[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.05  0.993
+[90m600[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.24  1.07
+[90m601[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.19  0.984
+[90m602[39m Lstar Sopelana lin_scl_med  full record     0:1     0     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m 10  0.25 taner       1.26  0.823
+[90m603[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.30  1.10
+[90m604[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.36  1.19
+[90m605[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.30  1.25
+[90m606[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.44  1.28
+[90m607[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.35  1.12
+[90m608[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.36  1.26
+[90m609[39m Lstar Zumaia   lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.42  1.33
+[90m610[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10b [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.34  1.10
+[90m611[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m La10c [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.26  1.17
+[90m612[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB18a [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.05  0.960
+[90m613[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20a [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.17  1.04
+[90m614[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20b [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.31  1.20
+[90m615[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20c [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.28  1.12
+[90m616[39m Lstar Sopelana lin_scl_med  full record     1:1     1     1          -[31m1[39m       -[31m1[39m ZB20d [90m<named list [4]>[39m 2024-03-28 1[90me[39m  4  0.3  taner       1.42  1.10
+[1m[33mError[39m in `best_age_optim[i, c(1:5, 10, 12:18)]`:[22m
+[33m![39m Can't subset columns past the end.
+[1m[22m[36mℹ[39m Location 18 doesn't exist.
+[36mℹ[39m There are only 17 columns.
+[90mRun `rlang::last_trace()` to see where the error occurred.[39m
+#+end_example
 
 #+RESULTS:
 
@@ -12141,6 +12818,44 @@ and for MS
 
 #+RESULTS:
 [[file:imgs/sol_SD_MS.pdf]]
+
+**** save filtered output to csv
+:PROPERTIES:
+:CREATED:  [2025-05-07 Wed 12:34]
+:END:
+#+begin_src R :eval never
+  overall_sd |>
+    filter(depth_chunk == "full record") |>
+    filter(detrend_type == "lin_scl_med", window == "taner", comb == "1:1") |>
+    ## filter(max_age_slider == 200, tiepoint_error == 4.0) |>
+    filter(roll == 1e10, frac == 0.25) |>
+    select(proxy, site, sol, date, roll, window, RMSD, depth, age_floating, age_slider, kpg_age, age, value, long_ecc_filter = `405 kyr`, short_ecc_filter = `100 kyr`, ecc, ecc_sln) |>
+    mutate(comb_ecc_filter = -ecc, .before = ecc_sln) |>
+    select(-ecc) |>
+    ## distinct(age_slider)
+    ## glimpse()
+  ## colnames()
+  write_csv("out/Zumaia_Sopelana_optimized_taner_filters.csv")
+#+end_src
+
+#+begin_src R
+  read_csv("out/Zumaia_Sopelana_optimized_taner_filters.csv") |>
+    ggplot(aes(x = age * 1e-3, y = comb_ecc_filter, colour = site)) +
+    facet_grid(rows = vars(sol), cols = vars(proxy)) +
+    geom_line(aes(x = age * 1e-3, y = ecc_sln), inherit.aes = FALSE) +
+    geom_line()
+#+end_src
+
+#+RESULTS:
+: indexing Zumaia_Sopelana_optimized_taner_filters.csv [=-] 180.03GB/s, eta:  0sindexing Zumaia_Sopelana_optimized_taner_filters.csv [====] 1.16GB/s, eta:  0s                                                                                                                 Rows: 26182 Columns: 17
+: ── Column specification ──────────────────────────────────────────────────────
+: Delimiter: ","
+: chr   (4): proxy, site, sol, window
+: dbl  (12): roll, RMSD, depth, age_floating, age_slider, kpg_age, age, valu...
+: date  (1): date
+:
+: ℹ Use `spec()` to retrieve the full column specification for this data.
+: ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 **** cumulative SD from young to old
 :PROPERTIES:

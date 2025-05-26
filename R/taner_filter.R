@@ -33,10 +33,10 @@ taner_filter <- function(data, frequencies, x = NULL, y = NULL, ...,
 
   # linterp by default!
   out <- data |>
-    mutate(filt = list(frequencies)) |>
-    unnest("filt") |>
-    nest(.by = tidyr::all_of(colnames(frequencies))) |>
-    mutate(lt = purrr::map(data, \(d) {
+    dplyr::mutate(filt = list(frequencies)) |>
+    tidyr::unnest("filt") |>
+    tidyr::nest(.by = tidyr::all_of(colnames(frequencies))) |>
+    dplyr::mutate(lt = purrr::map(data, \(d) {
       if (null_tracker == 2L) {
         d <- d[, 1:2]
       } else {
@@ -48,7 +48,7 @@ taner_filter <- function(data, frequencies, x = NULL, y = NULL, ...,
                             verbose = FALSE,
                             dt = linterp_dt)
     })) |>
-    mutate(bp = purrr::pmap(list(lt, flow, fhigh),
+    dplyr::mutate(bp = purrr::pmap(list(lt, flow, fhigh),
                             \(d, l, h) {
                               d <- astrochron::taner(d, flow = l, fhigh = h,
                                                      roll = roll,
@@ -62,7 +62,7 @@ taner_filter <- function(data, frequencies, x = NULL, y = NULL, ...,
                               d |> dplyr::select("filter")
                             })
            ) |>
-    unnest(cols = c("lt", "bp"))
+    tidyr::unnest(cols = c("lt", "bp"))
 
 
   # interpolate depth back to new age scale
@@ -71,7 +71,7 @@ taner_filter <- function(data, frequencies, x = NULL, y = NULL, ...,
       message("Cannot add depth when 'x' and/or 'y' are NULL.")
     } else {
       out <- out |>
-        select(-"data") |>
+        dplyr::select(-"data") |>
         dplyr::mutate(depth = stats::approx(x = dplyr::pull(data, {{x}}),
                                             y = data$depth,
                                             xout = dplyr::pull(out, {{x}}))$y,
@@ -80,7 +80,7 @@ taner_filter <- function(data, frequencies, x = NULL, y = NULL, ...,
   }
 
   out |>
-    select(-tidyselect::any_of("data"))
+    dplyr::select(-tidyselect::any_of("data"))
 }
 
 nested_taner_filter <- function(data, frequencies, x, y, nest, ...) {
