@@ -21,6 +21,17 @@ These functions are specific to this study:
 - ~construct_eccentricity()~: combines 405 and 100 kyr filters
 - ~wrap_age_model()~: the algorithm that optimizes the match between data and solution; depends on the data, age model, solution, tiepoint uncertainty, proxy phase, target periods, frequency fraction (for filtering), filter options, age slider (by how much do we shift the record), kpg_age, and some more.
 
+** Installation
+To install the package, run
+#+begin_src R
+  devtools::install_github("japhir/CretaceousConstraints")
+#+end_src
+
+or
+#+begin_src R
+  pak::pkg_install("japhir/CretaceousConstraints")
+#+end_src
+
 * Files Specific to the Manuscript
 The file [[file:cretaceous_constraints.org]] contains all the working notes and plot creation code for this study. It is an [[https://orgmode.org/][org-mode]] file, best edited in [[https://www.gnu.org/software/emacs/][emacs]].
 
@@ -28,6 +39,26 @@ Within the large file some sections may be of particular interest:
 
 - [[https://github.com/japhir/CretaceousConstraints/blob/main/cretaceous_constraints.org#table-of-final-age-model][table of final age model]]
 - [[https://github.com/japhir/CretaceousConstraints/blob/main/cretaceous_constraints.org#a-wrap_age_model-for-all][wrap_age_model for all]]: where I set up simulation grids for the sensitivity analysis
+
+** Install dependencies
+Download this repository
+- manually: click Code, Download ZIP,  then unzip
+  OR
+- from the command line:
+#+begin_src bash
+  git clone git@github.com:japhir/CretaceousConstraints.git
+#+end_src
+
+Use ~renv~ to install the exact same packages that I used in my analysis.
+From R, install ~renv~ if you haven't already
+#+begin_src R
+  install.packages("renv")
+#+end_src
+
+Then get the same packages that I used:
+#+begin_src R
+  renv::restore()
+#+end_src
 
 * References
 Meyers, S. R. (2014). astrochron: An R Package for Astrochronology. CRAN. http://cran.r-project.org/package=astrochron
