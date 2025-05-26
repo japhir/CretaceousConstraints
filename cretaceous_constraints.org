@@ -50,7 +50,7 @@ These sections may be of particular interest:
   ## devtools::install_github("https://github.com/jrevenaugh/TSAUMN2")
   ## library(TSAUMN)    # for some special spectral analysis tools
   # I also use these functions with TSAUMN::function
-  # load the AstronomicalSolutions development package
+  # load the CretaceousConstraints development package
   devtools::load_all()
   # set ggplot theme
   # very minimalist
